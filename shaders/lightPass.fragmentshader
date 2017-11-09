@@ -1,0 +1,18 @@
+#version 450 core
+
+in vec2 TexCoords;
+
+uniform sampler2D gColors;
+uniform sampler2D gNormals;
+uniform sampler2D gPositions;
+
+// Ouput data
+out vec4 color;
+
+void main(){
+	vec4 outColor = texture(gColors, TexCoords);
+	vec3 outN = texture(gNormals, TexCoords).rgb;
+	vec3 outPos = texture(gPositions, TexCoords).rgb;
+
+	color = clamp(2.0f * outColor * clamp(dot(normalize(outPos), normalize(outN)), 0.0f, 1.0f) / (1.0f + pow(length(outPos), 2.0f)), 0, 1.0f);
+}
