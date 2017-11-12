@@ -8,7 +8,7 @@
 #include <time.h> 
 #include "WindowContext.h"
 #include "ShaderProgramPipeline.h"
-#include "Context.h"
+#include "SurfaceViewContext.h"
 
 using namespace std;
 using namespace glm;

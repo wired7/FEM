@@ -1,0 +1,18 @@
+#pragma once
+#include "Controller.h"
+#include "PointSamplingContext.h"
+
+class PointSamplingContext;
+
+class PointSamplingController : public Controller<PointSamplingController, PointSamplingContext>
+{
+public:
+	bool surfaceRendering = false;
+	PointSamplingController();
+	~PointSamplingController();
+	static void kC(GLFWwindow*, int, int, int, int);
+	static void sC(GLFWwindow*, double, double);
+	static void mC(GLFWwindow*, int, int, int);
+	static void mPC(GLFWwindow*, double, double);
+	static void wRC(GLFWwindow*, int, int);
+};

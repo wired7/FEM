@@ -16,8 +16,6 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 			vertexInsert(vertex);
 		}
 	}
-
-	for(int )
 }
 
 
