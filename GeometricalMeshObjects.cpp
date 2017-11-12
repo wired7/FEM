@@ -21,6 +21,36 @@ Quad::Quad() : MeshObject()
 	bindBuffers();
 }
 
+Cylinder::Cylinder(int resolution) : MeshObject()
+{
+	float angleD = 2 * 3.1415f / resolution;
+	
+	for (int j = 0; j < 2; j++)
+	{
+		vec3 center(j, 0, 0);
+
+		for (int i = 0; i < resolution; i++)
+		{
+			vec3 normal(0, sin(angleD * i), cos(angleD * i));
+			vec3 pos = center + normal;
+			addVertex(pos, normal);
+
+			if (j > 0)
+			{
+				indices.push_back(vertices.size() - resolution);
+				indices.push_back(vertices.size() - 1);
+				indices.push_back(vertices.size() - resolution - 1);
+
+				indices.push_back(vertices.size() - resolution - 1);
+				indices.push_back(vertices.size() - 1);
+				indices.push_back(vertices.size() - 2);
+			}
+		}
+	}
+
+	bindBuffers();
+}
+
 Polyhedron::Polyhedron(int resolution, vec3 pos, vec3 radii) : MeshObject()
 {
 	model = scale(translate(mat4(1.0f), pos), radii);

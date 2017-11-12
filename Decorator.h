@@ -125,7 +125,7 @@ template <class T> T* Decorator<T>::remove(vector<string> signatures)
 	return NULL;
 }
 
-template <class T> std::ostream& operator <<(std::ostream& stream, const T* gObject)
+template <class T> std::ostream& operator <<(std::ostream& stream, const Decorator<T>* gObject)
 {
 	string outString = "";
 

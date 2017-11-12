@@ -19,7 +19,10 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 {
 	if (key == GLFW_KEY_N && action == GLFW_RELEASE)
 	{
-		auto n = new PointSamplingContext(controller->context->geometries[0], controller->context->cameras[0]);
+		auto geo = controller->context->geometries[0];
+		auto cam = controller->context->cameras[0];
+
+		auto n = new PointSamplingContext(geo, cam);
 		n->setAsActiveContext();
 	}
 }
@@ -79,7 +82,7 @@ void SurfaceViewController::getPickingID(GeometryPass* gP, double xpos, double y
 	auto data = picking->getValues(xpos, height - ypos);
 	gP->setupOnHover(data[0]);
 
-//	cout << data[0] << endl;
+	cout << data[0] << endl;
 
 	delete[] data;
 }
@@ -101,7 +104,22 @@ PointSamplingController::~PointSamplingController()
 
 void PointSamplingController::kC(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+	if (key == GLFW_KEY_S && action == GLFW_RELEASE)
+	{
+		auto geo0 = controller->context->geometries[0];
+		auto geo2 = controller->context->geometries[2];
+		auto pass = (GeometryPass*)controller->context->passRootNode;
 
+		pass->clearRenderableObjects(0);
+		if (controller->surfaceRendering)
+		{
+			pass->addRenderableObjects(geo0, 0);
+		}
+
+		controller->surfaceRendering ^= true;
+	}
+
+	controller->context->dirty = true;
 }
 
 void PointSamplingController::sC(GLFWwindow* window, double xOffset, double yOffset)
@@ -126,3 +144,5 @@ void PointSamplingController::wRC(GLFWwindow* window, int a, int b)
 	controller->context->cameras[0]->update();
 	controller->context->dirty = true;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

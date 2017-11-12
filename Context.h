@@ -28,7 +28,7 @@ public:
 #pragma region ContextTemplate
 template<class ControllerType, class CameraType, class ContextType> Context<ControllerType, CameraType, ContextType>::Context()
 {
-	setAsActiveContext();
+
 }
 
 template<class ControllerType, class CameraType, class ContextType> Context<ControllerType, CameraType, ContextType>::~Context()
@@ -85,7 +85,10 @@ template<class ControllerType, class CameraType, class ContextType> void Graphic
 {
 	if (dirty)
 	{
-		passRootNode->execute();
+		if (passRootNode != nullptr)
+		{
+			passRootNode->execute();
+		}
 		dirty = false;
 	}
 }
@@ -110,11 +113,30 @@ class PointSamplingController;
 class PointSamplingContext : public GraphicsSceneContext<PointSamplingController, SphericalCamera, PointSamplingContext>
 {
 protected:
-	virtual void setupCameras(void);
+	vector<vec3> points;
+	bool pointsReady = false;
+	virtual void setupCameras(void) {};
 	virtual void setupGeometries(void);
 	virtual void setupPasses(void);
-	virtual vector<vec3> sampleSurface(int sampleSize);
 public:
+	static vector<vec3> sampleSurface(int sampleSize, DecoratedGraphicsObject* object);
 	PointSamplingContext(DecoratedGraphicsObject* surface, SphericalCamera* cam);
 	~PointSamplingContext() {};
+	virtual void update(void);
+};
+
+class TetrahedralizationController;
+
+class TetrahedralizationContext : public GraphicsSceneContext<TetrahedralizationController, SphericalCamera, TetrahedralizationContext>
+{
+protected:
+	vector<mat4> tetrahedra;
+	bool tetrahedralizationReady = false;
+	virtual void setupCameras(void) {};
+	virtual void setupGeometries(void);
+	virtual void setupPasses(void);
+public:
+	TetrahedralizationContext(DecoratedGraphicsObject* surface, vector<vec3> points, SphericalCamera* cam);
+	~TetrahedralizationContext() {};
+	virtual void update(void);
 };
