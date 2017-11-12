@@ -19,6 +19,8 @@ void SurfaceViewContext::setupCameras(void)
 
 void SurfaceViewContext::setupGeometries(void)
 {
+	refMan = new ReferenceManager();
+
 	auto m = new ImportedMeshObject("models\\chinchilla.obj");
 
 	vector<mat4> transform;
@@ -48,17 +50,10 @@ void SurfaceViewContext::setupGeometries(void)
 	teamColor.push_back(vec4(0, 0, 1, 1));
 	auto e = new InstancedMeshObject<vec4, float>(g, teamColor, "COLOR", transform.size() / teamColor.size());
 
-	vector<GLuint> instanceID;
-
-	for (int i = 1; i <= transform.size(); i++)
-	{
-		instanceID.push_back(i);
-	}
-
-	auto pickable = new InstancedMeshObject<GLuint, GLuint>(e, instanceID, "INSTANCEID", 1);
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, e, transform.size(), "INSTANCEID", 1);
 
 	vector<GLbyte> selected;
-
+	// Maybe have an instanced mesh object constructor with a size and an initializer if all values will be the same
 	for (int i = 0; i < transform.size(); i++)
 	{
 		selected.push_back(1);
@@ -67,6 +62,8 @@ void SurfaceViewContext::setupGeometries(void)
 	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selected, "SELECTION", 1);
 
 	geometries.push_back(selectable);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	new HalfEdge::HalfSimplices(m->indices, 3);
 
@@ -91,18 +88,7 @@ void SurfaceViewContext::setupGeometries(void)
 
 	g = new MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
 
-	vector<vec4> teamColorC;
-	teamColorC.push_back(vec4(1, 1, 1, 1));
-	e = new InstancedMeshObject<vec4, float>(g, teamColorC, "COLOR", transformC.size() / teamColorC.size());
-
-	vector<GLuint> instanceIDC;
-
-	for (int i = 1; i <= transformC.size(); i++)
-	{
-		instanceIDC.push_back(i);
-	}
-
-	pickable = new InstancedMeshObject<GLuint, GLuint>(e, instanceIDC, "INSTANCEID", 1);
+	pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, transformC.size(), "INSTANCEID", 1);
 
 	vector<GLbyte> selectedC;
 
@@ -121,9 +107,9 @@ void SurfaceViewContext::setupGeometries(void)
 void SurfaceViewContext::setupPasses(void)
 {
 	// TODO: might want to manage passes as well
-	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A") });
+	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA") });
 	gP->addRenderableObjects(geometries[0], 0);
-	gP->addRenderableObjects(geometries[1], 0);
+	gP->addRenderableObjects(geometries[1], 1);
 	gP->setupCamera(cameras[0]);
 
 	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);

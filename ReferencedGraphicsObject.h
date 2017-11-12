@@ -8,25 +8,34 @@ using namespace std;
 class ReferenceManager
 {
 private:
-	int count = 0;
-	vector<pair<DecoratedGraphicsObject*, int>> managedGraphicsObject;
+	unsigned int count = 0;
+	vector<pair<DecoratedGraphicsObject*, vector<pair<int, int>>>> managedGraphicsObject;
 public:
-	vector<pair<int, int>> entityMap;
-	int assignNewGUID(DecoratedGraphicsObject* gObject, int indexWithinObject);
+	ReferenceManager();
+	~ReferenceManager();
+	int assignNewGUID(DecoratedGraphicsObject* gObject, int indexWithinObject = 0);
 	pair<DecoratedGraphicsObject*, int> getInstance(unsigned int guid);
 	void deleteRange(DecoratedGraphicsObject*, int minIndex, int maxIndex);
 };
 
-template<class T, class S> class ReferencedGraphicsObject : InstancedMeshObject<T, S>
+template<class T, class S> class ReferencedGraphicsObject : public InstancedMeshObject<T, S>
 {
 public:
-	ReferencedGraphicsObject();
+	ReferencedGraphicsObject(ReferenceManager* refMan, DecoratedGraphicsObject* child, int numInstances, string bufferSignature, int divisor);
 	~ReferencedGraphicsObject();
-
 };
 
-template<class T, class S> ReferencedGraphicsObject<T, S>::ReferencedGraphicsObject()
+template<class T, class S>
+ReferencedGraphicsObject<T, S>::ReferencedGraphicsObject(ReferenceManager* refMan, DecoratedGraphicsObject* child, int numInstances, string bufferSignature, int divisor) :
+	InstancedMeshObject<T, S>(child, bufferSignature, divisor)
 {
+	for (int i = 0; i < numInstances; i++)
+	{
+		extendedData.push_back(refMan->assignNewGUID(this, i));
+	}
+
+	glDeleteBuffers(1, &VBO);
+	bindBuffers();
 }
 
 
@@ -38,4 +47,5 @@ class SelectionManager
 {
 public:
 	vector<pair<DecoratedGraphicsObject*, int>> selectedGraphicsObject;
+	ReferenceManager* refMan;
 };

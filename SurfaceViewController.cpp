@@ -24,6 +24,42 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 		auto n = new PointSamplingContext(geo, cam);
 		n->setAsActiveContext();
 	}
+
+	if (key == GLFW_KEY_E && action == GLFW_RELEASE)
+	{
+		auto geo1 = controller->context->geometries[1];
+		auto pass = (GeometryPass*)controller->context->passRootNode;
+
+		if (controller->edgeRendering)
+		{
+			pass->addRenderableObjects(geo1, 1);
+		}
+		else
+		{
+			pass->clearRenderableObjects(1);
+		}
+
+		controller->edgeRendering ^= true;
+	}
+
+	if (key == GLFW_KEY_S && action == GLFW_RELEASE)
+	{
+		auto geo0 = controller->context->geometries[0];
+		auto pass = (GeometryPass*)controller->context->passRootNode;
+
+		if (controller->edgeRendering)
+		{
+			pass->addRenderableObjects(geo0, 0);
+		}
+		else
+		{
+			pass->clearRenderableObjects(0);
+		}
+
+		controller->edgeRendering ^= true;
+	}
+
+	controller->context->dirty = true;
 }
 
 void SurfaceViewController::sC(GLFWwindow* window, double xOffset, double yOffset)
