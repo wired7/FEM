@@ -8,8 +8,6 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 {
 	for (int i = 0; i < indices.size(); i++)
 	{
-		if (161 == indices[i])
-			int x = 0;
 		Vertex* vertex = vertexLookup(indices[i]);
 
 		if (vertex == nullptr)
@@ -17,8 +15,10 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 			vertex = new Vertex(indices[i]);
 			vertexInsert(vertex);
 		}
-		if ((vertex != vertexLookup(vertex->externalIndex))) {
-			std::cout << i << std::endl;
+
+		if (vertexLookup(indices[i]) == nullptr)
+		{
+			cout << " " << endl;
 		}
 	}
 
@@ -164,7 +164,14 @@ void HalfSimplices::vertexInsert(Vertex* vertex)
 {
 	if (vertices.size() > 0)
 	{
-		binaryInsert(vertex, vertices, 0, vertices.size() - 1);
+		if (vertex->externalIndex >= vertices[vertices.size() - 1]->externalIndex)
+		{
+			vertices.push_back(vertex);
+		}
+		else
+		{
+			binaryInsert(vertex, vertices, 0, vertices.size() - 1);
+		}
 	}
 	else
 	{
