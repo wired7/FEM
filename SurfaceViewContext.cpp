@@ -65,7 +65,13 @@ void SurfaceViewContext::setupGeometries(void)
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	new HalfEdge::HalfSimplices(m->indices, 3);
+	
+
+	std::cout << "Real: Num of Verts: " << m->vertices.size() << std::endl;
+
+	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
+	std::cout << "Num of Facets: " << hSimp->facets.size() << std::endl;
+	std::cout << "Num of Halfedges: "<<hSimp->halfEdges.size() << std::endl;
 
 	auto cylinder = new Cylinder(10);
 
