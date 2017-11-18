@@ -41,11 +41,11 @@ namespace HalfEdge {
 		// this is the vertex it points to
 		Vertex* vertex;
 		Facet* facet;
-		HalfEdge(Vertex* v1, Vertex* v2) {
+		HalfEdge(Vertex* v1, Vertex* v2,int s, int e) : twin(nullptr) {
 			vertex = v2;
 			v2->halfEdge = this;
-			start = v1->externalIndex;
-			end = v2->externalIndex;
+			start = s;
+			end = e;
 		};
 	};
 
@@ -67,7 +67,6 @@ namespace HalfEdge {
 	{
 	private:
 		int binarySearch(int externalIndex, vector<Vertex*>& data, int min, int max);
-		void binaryInsert(Vertex* vertex, vector<Vertex*>& data, int min, int max);
 	public:
 		vector<Vertex*> vertices;
 		vector<HalfEdge*> halfEdges;

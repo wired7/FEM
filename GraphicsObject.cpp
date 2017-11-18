@@ -171,8 +171,14 @@ void ImportedMeshObject::loadFile(const char* filePath)
 	{
 		return;
 	}
+#define useBalls
+#ifdef useBalls
+	for (int i = 0, count = 0; i < scene->mNumMeshes - 1; i++)
+	{
+#else
 	for (int i = 1, count = 0; i < scene->mNumMeshes; i++)
 	{
+#endif
 		aiMesh* mesh = scene->mMeshes[i];
 		for (int j = 0; j < mesh->mNumVertices; j++)
 		{

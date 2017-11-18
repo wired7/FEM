@@ -66,12 +66,13 @@ void SurfaceViewContext::setupGeometries(void)
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	
+	auto ball = new Polyhedron(10, vec3(), vec3(1.0f));
+	std::cout << "Real: Num of Verts: " << ball->vertices.size() << std::endl;
 
-	std::cout << "Real: Num of Verts: " << m->vertices.size() << std::endl;
-
-	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
-	std::cout << "Num of Facets: " << hSimp->facets.size() << std::endl;
-	std::cout << "Num of Halfedges: "<<hSimp->halfEdges.size() << std::endl;
+	
+	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(ball->indices, 3);
+//	std::cout << "Num of Facets: " << hSimp->facets.size() << std::endl;
+//	std::cout << "Num of Halfedges: "<<hSimp->halfEdges.size() << std::endl;
 
 	auto cylinder = new Cylinder(10);
 
