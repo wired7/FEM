@@ -8,6 +8,12 @@ public:
 	Quad();
 };
 
+class Cylinder : public MeshObject
+{
+public:
+	Cylinder(int resolution);
+};
+
 class Polyhedron : public MeshObject
 {
 public:

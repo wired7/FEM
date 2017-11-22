@@ -28,7 +28,7 @@ public:
 #pragma region ContextTemplate
 template<class ControllerType, class CameraType, class ContextType> Context<ControllerType, CameraType, ContextType>::Context()
 {
-	setAsActiveContext();
+
 }
 
 template<class ControllerType, class CameraType, class ContextType> Context<ControllerType, CameraType, ContextType>::~Context()
@@ -85,36 +85,12 @@ template<class ControllerType, class CameraType, class ContextType> void Graphic
 {
 	if (dirty)
 	{
-		passRootNode->execute();
+		if (passRootNode != nullptr)
+		{
+			passRootNode->execute();
+		}
 		dirty = false;
 	}
 }
 
 #pragma endregion
-
-class SurfaceViewController;
-
-class SurfaceViewContext : public GraphicsSceneContext<SurfaceViewController, SphericalCamera, SurfaceViewContext>
-{
-protected:
-	virtual void setupCameras(void);
-	virtual void setupGeometries(void);
-	virtual void setupPasses(void);
-public:
-	SurfaceViewContext();
-	~SurfaceViewContext() {};
-};
-
-class PointSamplingController;
-
-class PointSamplingContext : public GraphicsSceneContext<PointSamplingController, SphericalCamera, PointSamplingContext>
-{
-protected:
-	virtual void setupCameras(void);
-	virtual void setupGeometries(void);
-	virtual void setupPasses(void);
-	virtual vector<vec3> sampleSurface(int sampleSize);
-public:
-	PointSamplingContext(DecoratedGraphicsObject* surface, SphericalCamera* cam);
-	~PointSamplingContext() {};
-};

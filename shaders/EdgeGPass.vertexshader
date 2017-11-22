@@ -4,9 +4,8 @@
 layout(location = 0) in vec3 vertexPos;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in mat4 transform;
-layout(location = 6) in vec4 teamColor;
-layout(location = 7) in uint objectID;
-layout(location = 8) in uint selectable;
+layout(location = 6) in uint objectID;
+layout(location = 7) in uint selectable;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -33,10 +32,11 @@ void main(){
 	if(selectable > 0 && (objectID == selectedRef))
 	{
 		vColor = vec4(1, 1, 0, 1);
+		vertexOutput *= vec3(1, 3, 3);
 	}
 	else
 	{
-		vColor = teamColor;
+		vColor = vec4(1, 1, 1, 1);
 	}
 
 

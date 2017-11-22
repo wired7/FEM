@@ -171,22 +171,31 @@ void ImportedMeshObject::loadFile(const char* filePath)
 	{
 		return;
 	}
-	for (int i = 0, count = 0; i < scene->mNumMeshes; i++)
+#define useBalls
+#ifdef useBalls
+	for (int i = 0, count = 0; i < scene->mNumMeshes - 1; i++)
 	{
+#else
+	for (int i = 1, count = 0; i < scene->mNumMeshes; i++)
+	{
+#endif
 		aiMesh* mesh = scene->mMeshes[i];
-		int iMeshFaces = mesh->mNumFaces;
-		for (int j = 0; j < iMeshFaces; j++)
+		for (int j = 0; j < mesh->mNumVertices; j++)
 		{
-			const aiFace& face = mesh->mFaces[j];
-			vec3 nSum(0.0f, 0.0f, 0.0f);
-			for (int k = 0; k < 3; k++)
+			vec3 pos(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z);
+			vec3 normal(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z);
+			addVertex(pos, (1.0f - 2.0f * (i % 2)) * normalize(normal));
+		}
+
+		for (int j = 0; j < mesh->mNumFaces; j++)
+		{
+			for (int k = 0; k < mesh->mFaces[j].mNumIndices; k++)
 			{
-				aiVector3D pos = mesh->mVertices[face.mIndices[k]];
-				aiVector3D normal = mesh->HasNormals() ? mesh->mNormals[face.mIndices[k]] : aiVector3D(1.0f, 1.0f, 1.0f);
-				addVertex(vec3(pos.x, pos.y, pos.z), (1.0f - 2.0f * (i % 2)) * vec3(normal.x, normal.y, normal.z));
-				indices.push_back(count++);
+				indices.push_back(count + mesh->mFaces[j].mIndices[k]);
 			}
 		}
+
+		count += mesh->mNumVertices;
 	}
 }
 

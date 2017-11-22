@@ -14,5 +14,5 @@ void main(){
 	vec3 outN = texture(gNormals, TexCoords).rgb;
 	vec3 outPos = texture(gPositions, TexCoords).rgb;
 
-	color = clamp(2.0f * outColor * clamp(dot(normalize(outPos), normalize(outN)), 0.0f, 1.0f) / (1.0f + pow(length(outPos), 2.0f)), 0, 1.0f);
+	color = vec4(clamp(outColor.xyz * dot(vec3(0, 0, 1), normalize(outN)) / (1.0f + pow(outPos.z, 2.0f)), 0.0f, 1.0f), 1.0f);
 }

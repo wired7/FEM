@@ -4,31 +4,37 @@
 #include "WindowContext.h"
 #include "Context.h"
 
-template<class T, class S> class Controller
+class AbstractController
 {
 protected:
-	static T* controller;
 	GLFWwindow* window;
-	Controller();
-	~Controller() {};
 	void(*key_callback)(GLFWwindow*, int, int, int, int) = 0;
 	void(*scroll_callback)(GLFWwindow*, double, double) = 0;
 	void(*mouse_callback)(GLFWwindow*, int, int, int) = 0;
 	void(*mousePos_callback)(GLFWwindow*, double, double) = 0;
 	void(*windowResize_callback)(GLFWwindow*, int, int) = 0;
 public:
+	AbstractController() : window(WindowContext::window) {};
+};
+
+template<class T, class S> class Controller : public AbstractController
+{
+protected:
+	static T* controller;
+	Controller();
+	~Controller() {};
+public:
 	S* context;
 	static T* getController();
-	void setController();
 	void setContext(S* context);
+	void setController();
 };
 
 #pragma region ControllerTemplate
 template<class T, class S> T* Controller<T, S>::controller = nullptr;
 
-template<class T, class S> Controller<T, S>::Controller() : window(WindowContext::window)
+template<class T, class S> Controller<T, S>::Controller() : AbstractController()
 {
-
 }
 
 template<class T, class S> void Controller<T, S>::setController()
@@ -57,34 +63,3 @@ template<class T, class S> void Controller<T, S>::setContext(S* context)
 	this->context = context;
 }
 #pragma endregion
-
-class SurfaceViewContext;
-class GeometryPass;
-
-class SurfaceViewController : public Controller<SurfaceViewController, SurfaceViewContext>
-{
-public:
-	SurfaceViewController();
-	~SurfaceViewController();
-	static void kC(GLFWwindow*, int, int, int, int);
-	static void sC(GLFWwindow*, double, double);
-	static void mC(GLFWwindow*, int, int, int);
-	static void mPC(GLFWwindow*, double, double);
-	static void wRC(GLFWwindow*, int, int);
-	static void cameraMovement(SphericalCamera* cam, double xOffset, double yOffset);
-	static void getPickingID(GeometryPass* gP, double xpos, double ypos);
-};
-
-class PointSamplingContext;
-
-class PointSamplingController : public Controller<PointSamplingController, PointSamplingContext>
-{
-public:
-	PointSamplingController();
-	~PointSamplingController();
-	static void kC(GLFWwindow*, int, int, int, int);
-	static void sC(GLFWwindow*, double, double);
-	static void mC(GLFWwindow*, int, int, int);
-	static void mPC(GLFWwindow*, double, double);
-	static void wRC(GLFWwindow*, int, int);
-};
