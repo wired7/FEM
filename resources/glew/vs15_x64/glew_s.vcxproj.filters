@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLEW\src\glew.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLEW\include\GL\wglew.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLEW\include\GL\glew.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLEW\include\GL\glxew.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLEW\build\cmake\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLEW\build\glew.rc">
+      <Filter>Source Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{B92626D8-13ED-3F7C-AE44-4BB13706CF4F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{11013B06-E424-364D-B9AE-130D36D6D53B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

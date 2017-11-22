@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLFW\tests\threads.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLFW\deps\tinycthread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLFW\deps\glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLFW\deps\tinycthread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLFW\deps\glad\glad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Andres\source\repos\Graphics_Engine\Resources\GLFW\tests\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{B53046EE-4DC3-3483-9414-B351EFB04D25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{373CBE15-22AC-317E-860D-B357F233955F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
