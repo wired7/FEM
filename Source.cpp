@@ -33,6 +33,8 @@ int init() {
 	// Enable depth test
 	glDepthFunc(GL_LESS);
 
+	glCullFace(GL_FRONT);
+
 	glPointSize(3.0f);
 
 	srand(time(NULL));

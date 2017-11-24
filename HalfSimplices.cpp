@@ -69,12 +69,12 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 			for (int j = 0; j < list.size(); j++) {
 				HalfEdge * heTemp = list[j];
 
-				cout << heTemp->start << " " << heTemp->end << endl;
-				cout << he->end << " " << he->start << endl;
+//				cout << heTemp->start << " " << heTemp->end << endl;
+//				cout << he->end << " " << he->start << endl;
 				if (heTemp->end == he->start) {
 					heTemp->twin = he;
 					he->twin = heTemp; 
-					cout << "FOUND!" << endl<<endl;
+//					cout << "FOUND!" << endl<<endl;
 					
 					break;
 				}
