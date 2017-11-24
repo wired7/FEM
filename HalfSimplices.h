@@ -41,11 +41,11 @@ namespace HalfEdge {
 		// this is the vertex it points to
 		Vertex* vertex;
 		Facet* facet;
-		HalfEdge(Vertex* v1, Vertex* v2,int s, int e) : twin(nullptr) {
+		HalfEdge(Vertex* v1, Vertex* v2) : twin(nullptr) {
 			vertex = v2;
 			v2->halfEdge = this;
-			start = s;
-			end = e;
+			start = v1->externalIndex;
+			end = v2->externalIndex;
 		};
 	};
 
