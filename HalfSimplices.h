@@ -29,6 +29,7 @@ namespace HalfEdge {
 		int internalIndexCounter = 0;
 	};
 
+	typedef Facet Hole;
 
 	struct HalfEdge
 	{
@@ -41,7 +42,7 @@ namespace HalfEdge {
 		// this is the vertex it points to
 		Vertex* vertex;
 		Facet* facet;
-		HalfEdge(Vertex* v1, Vertex* v2) : twin(nullptr) {
+		HalfEdge(Vertex* v1, Vertex* v2) : twin(nullptr), next(nullptr), previous(nullptr){
 			vertex = v2;
 			v2->halfEdge = this;
 			start = v1->externalIndex;
@@ -71,7 +72,10 @@ namespace HalfEdge {
 		vector<Vertex*> vertices;
 		vector<HalfEdge*> halfEdges;
 		vector<Facet*> facets;
+		vector<Hole*> holes;
 		vector<Tetra*> tetras;
+		vector<Tetra*> tetraHoles;
+
 		HalfSimplices(vector<GLuint> indices, int verticesPerFacet);
 		~HalfSimplices();
 		Vertex* vertexLookup(int externalIndex);

@@ -96,59 +96,89 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 				}
 
 			}
-			cout  << endl << endl << endl;
 		}
 	}
 	int numNoTwin = 0;
+	vector<HalfEdge*> lonelyEdges;
+
 	for (int i = 0; i < halfEdges.size(); i++) {
-		if (halfEdges[i]->twin == nullptr)
-			numNoTwin++;
+		if (halfEdges[i]->twin == nullptr) {
+			lonelyEdges.push_back(halfEdges[i]);
+		}
 	}
-	std::cout << "Num no twin " << numNoTwin << std::endl;
-	
+	std::cout << "\nNum lonely edges " << lonelyEdges.size() << std::endl;
+	for (int i = 0; i < lonelyEdges.size();i++) {
+		printf("(%d %d) ", lonelyEdges[i]->start, lonelyEdges[i]->end);
+	}
+	std::cout << std::endl;
 	system("pause");
 	
-	vector<HalfEdge*> lonelyEdges;
-	vector<vector<HalfEdge*>> temp2(vertices.size());
+	vector<HalfEdge*> newEdges(0);
+	vector<vector<HalfEdge*>> newEdgesMapping(vertices.size());
 
 	// here we create halfedges that have no facet, and store them in a struture that
 	// will let us assign which halfedge is the next one
 
-	for (int i = 0; i < halfEdges.size(); i++)
+	for (int i = 0; i < lonelyEdges.size(); i++)
 	{
-		if (halfEdges[i]->twin == nullptr)
+		if (lonelyEdges[i]->twin == nullptr)
 		{
-			auto halfEdge = new HalfEdge(halfEdges[i]->vertex, halfEdges[i]->previous->vertex );
+			auto he = new HalfEdge(lonelyEdges[i]->vertex, lonelyEdges[i]->previous->vertex );
 
-			halfEdge->internalIndex = halfEdges.size() + lonelyEdges.size();
-			halfEdges[i]->twin = halfEdge;
-			halfEdge->twin = halfEdges[i];
-			lonelyEdges.push_back(halfEdge);
-			temp2[halfEdge->start].push_back(halfEdge);
+			he->internalIndex = halfEdges.size() + lonelyEdges.size();
+			lonelyEdges[i]->twin = he;
+			he->twin = lonelyEdges[i];
+			newEdges.push_back(he);
+			newEdgesMapping[he->start].push_back(he);
 		}
 	}
 
+	
 
-
-	std::cout << "Showing half edge temp2 structure\n" << std::endl;
-	for (int i = 0; i < temp2.size();i++) {
-		vector<HalfEdge*> &v = temp2[i];
+	std::cout << "Showing half edge newEdgesMapping structure\n" << std::endl;
+	for (int i = 0; i < newEdgesMapping.size();i++) {
+		vector<HalfEdge*> &v = newEdgesMapping[i];
 
 		std::sort(v.begin(), v.end(), sortFunc);
 
 		std::cout << "\nHE that start with " << i << ": ";
-		for (int j = 0; j < temp[i].size();j++) {
+		for (int j = 0; j < newEdgesMapping[i].size();j++) {
 
-			std::cout << "( " << temp[i][j]->start << ", " << temp[i][j]->end << ") ";
+			std::cout << "( " << newEdgesMapping[i][j]->start << ", " << newEdgesMapping[i][j]->end << ") ";
 		}
 
 	}
 
-	std::cout << "\nLonely edges " << lonelyEdges.size()<<std::endl;
+	std::cout << "\nNew edges " << newEdges.size()<<std::endl;
 
-	for (int i = 0; i < lonelyEdges.size();i++) {
-	//	HalfEdge* he = lonelyEdges[i];
-	
+	for (int i = 0; i < newEdges.size();i++) {
+		HalfEdge* newEdge = newEdges[i];
+		if (newEdge->next == nullptr) {
+			HalfEdge* he = newEdges[i];
+			HalfEdge* next = he;
+			do {
+				HalfEdge* t = newEdgesMapping[next->end][0];
+				next->next = t;
+				t->previous = next;
+				next = t;
+			} while ((next != he));
+			Hole* hole = new Hole;
+			hole->halfEdge = he;
+			hole->internalIndex = holes.size();
+			holes.push_back(hole);
+		}
+	}
+
+	for (int i = 0; i < holes.size();i++)
+	{
+		std::cout << "\n\nHOLE: ";
+		HalfEdge* h = holes[i]->halfEdge;
+		do {
+			printf("(%d, %d) -> ", h->start, h->end);
+			h = h->next;
+
+		} while (h != holes[i]->halfEdge);
+
 	}
 
 	/*
