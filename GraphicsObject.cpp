@@ -173,7 +173,7 @@ void ImportedMeshObject::loadFile(const char* filePath)
 	}
 #define useBalls
 #ifdef useBalls
-	for (int i = 0, count = 0; i < scene->mNumMeshes - 1; i++)
+	for (int i = 0, count = 0; i < scene->mNumMeshes ; i++)
 	{
 #else
 	for (int i = 1, count = 0; i < scene->mNumMeshes; i++)
@@ -183,7 +183,12 @@ void ImportedMeshObject::loadFile(const char* filePath)
 		for (int j = 0; j < mesh->mNumVertices; j++)
 		{
 			vec3 pos(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z);
-			vec3 normal(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z);
+			vec3 normal(0, 0, -1);
+			if (mesh->HasNormals())
+			{
+				normal = vec3(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z);
+			}
+
 			addVertex(pos, (1.0f - 2.0f * (i % 2)) * normalize(normal));
 		}
 

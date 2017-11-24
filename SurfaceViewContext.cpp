@@ -21,8 +21,8 @@ void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
 
-	auto m = new ImportedMeshObject("models\\chinchilla.obj");
-
+	auto m = new ImportedMeshObject("models\\cube.obj");
+	//auto m = new Cylinder(10);
 	vector<mat4> transform;
 	/*	int number = 5;
 
@@ -66,11 +66,11 @@ void SurfaceViewContext::setupGeometries(void)
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	
-	auto ball = new Polyhedron(10, vec3(), vec3(1.0f));
-	std::cout << "Real: Num of Verts: " << ball->vertices.size() << std::endl;
+	auto ball = new Polyhedron(6, vec3(), vec3(1.0f));
+	std::cout << "Real: Num of Verts: " << m->vertices.size() << std::endl;
 
 	
-	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(ball->indices, 3);
+	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
 //	std::cout << "Num of Facets: " << hSimp->facets.size() << std::endl;
 //	std::cout << "Num of Halfedges: "<<hSimp->halfEdges.size() << std::endl;
 

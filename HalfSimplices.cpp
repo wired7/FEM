@@ -1,6 +1,7 @@
-#include "HalfSimplices.h"
+#include "HalfSimplices.h"`
 #include <iostream>
 #include <stack>
+#include <algorithm>
 using namespace std;
 using namespace HalfEdge;
 
@@ -21,17 +22,19 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 	cout << "NUM VERTICES " << vertices.size() << endl;
 
 	vector<vector<HalfEdge*>> temp(vertices.size());
-
+	std::cout << "Indices: " << std::endl;
 	for (int i = 0; i < indices.size(); i += verticesPerFacet)
 	{
-
+	
+		printf("%4d %4d %4d)", indices[i], indices[i + 1], indices[i + 2]);
+		std::cout << std::endl;
 		Vertex* v1 = vertexLookup(indices[i]);
 		Vertex* v2 = vertexLookup(indices[i + 1]);
 		Vertex* v3 = vertexLookup(indices[i + 2]);
 
-		auto hE1 = new HalfEdge(v1, v2, indices[i], indices[i+1]);
-		auto hE2 = new HalfEdge(v2, v3, indices[i+1], indices[i+2]);
-		auto hE3 = new HalfEdge(v3, v1, indices[i+2], indices[i]);
+		auto hE1 = new HalfEdge(v1, v2);
+		auto hE2 = new HalfEdge(v2, v3);
+		auto hE3 = new HalfEdge(v3, v1);
 
 		hE1->internalIndex = halfEdges.size();
 		hE2->internalIndex = halfEdges.size() + 1;
@@ -59,9 +62,25 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 		facets.push_back(facet);
 	}
 
-	cout << "NUM EDGES " << halfEdges.size() / 2 << endl;
-	system("PAUSE");
+	auto sortFunc = [](HalfEdge* h, HalfEdge* h2) ->bool
+	{
+		return h->end < h2->end;
+	};
+	std::cout << "Showing half edge temp structure\n" << std::endl;
+	for (int i = 0; i < temp.size();i++) {
+		vector<HalfEdge*> &v = temp[i];
+		
+		std::sort(v.begin(), v.end(), sortFunc);
 
+		std::cout << "\nHE that start with " << i << ": ";
+		for (int j = 0; j < temp[i].size();j++) {
+		
+			std::cout << "( " << temp[i][j]->start <<", "<< temp[i][j]->end<< ") ";
+		}
+	
+	}
+	system("PAUSE");
+	
 	for (int i = 0; i < halfEdges.size(); i++) {
 		HalfEdge* he = halfEdges[i];
 		if (he->twin == nullptr) {
@@ -69,19 +88,15 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 			for (int j = 0; j < list.size(); j++) {
 				HalfEdge * heTemp = list[j];
 
-				cout << heTemp->start << " " << heTemp->end << endl;
-				cout << he->end << " " << he->start << endl;
 				if (heTemp->end == he->start) {
 					heTemp->twin = he;
 					he->twin = heTemp; 
-					cout << "FOUND!" << endl<<endl;
 					
 					break;
 				}
 
 			}
 			cout  << endl << endl << endl;
-
 		}
 	}
 	int numNoTwin = 0;
@@ -90,15 +105,21 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 			numNoTwin++;
 	}
 	std::cout << "Num no twin " << numNoTwin << std::endl;
-	/*
+	
+	system("pause");
+	
 	vector<HalfEdge*> lonelyEdges;
 	vector<vector<HalfEdge*>> temp2(vertices.size());
+
+	// here we create halfedges that have no facet, and store them in a struture that
+	// will let us assign which halfedge is the next one
 
 	for (int i = 0; i < halfEdges.size(); i++)
 	{
 		if (halfEdges[i]->twin == nullptr)
 		{
-			auto halfEdge = new HalfEdge(halfEdges[i]->vertex, halfEdges[i]->previous->vertex,-1,-1);
+			auto halfEdge = new HalfEdge(halfEdges[i]->vertex, halfEdges[i]->previous->vertex );
+
 			halfEdge->internalIndex = halfEdges.size() + lonelyEdges.size();
 			halfEdges[i]->twin = halfEdge;
 			halfEdge->twin = halfEdges[i];
@@ -106,8 +127,31 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 			temp2[halfEdge->start].push_back(halfEdge);
 		}
 	}
-	std::cout << "Lonely edges " << lonelyEdges.size()<<std::endl;
 
+
+
+	std::cout << "Showing half edge temp2 structure\n" << std::endl;
+	for (int i = 0; i < temp2.size();i++) {
+		vector<HalfEdge*> &v = temp2[i];
+
+		std::sort(v.begin(), v.end(), sortFunc);
+
+		std::cout << "\nHE that start with " << i << ": ";
+		for (int j = 0; j < temp[i].size();j++) {
+
+			std::cout << "( " << temp[i][j]->start << ", " << temp[i][j]->end << ") ";
+		}
+
+	}
+
+	std::cout << "\nLonely edges " << lonelyEdges.size()<<std::endl;
+
+	for (int i = 0; i < lonelyEdges.size();i++) {
+	//	HalfEdge* he = lonelyEdges[i];
+	
+	}
+
+	/*
 	if (lonelyEdges.size() > 0) {
 		int numHoles = 0;
 		vector<HalfEdge*> hole;
@@ -175,8 +219,8 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 		}
 	}
 
+	
 	*/
-
 }
 
 
