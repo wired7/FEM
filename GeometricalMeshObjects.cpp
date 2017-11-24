@@ -93,8 +93,8 @@ Polyhedron::Polyhedron(int resolution, vec3 pos, vec3 radii) : MeshObject()
 			indices.push_back(vertices.size() - 2 * circles[j].size());
 
 			indices.push_back(vertices.size() - 1);
-			indices.push_back(vertices.size() - 2 * circles[j].size());
 			indices.push_back(vertices.size() - circles[j].size());
+			indices.push_back(vertices.size() - 2 * circles[j].size());
 		}
 	}
 

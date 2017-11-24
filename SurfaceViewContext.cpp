@@ -21,8 +21,9 @@ void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
 
-	//auto m = new ImportedMeshObject("models\\cube.obj");
-	auto m = new Tetrahedron();
+//	auto m = new ImportedMeshObject("models\\chinchilla.obj");
+	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
+
 	vector<mat4> transform;
 	/*	int number = 5;
 
@@ -33,8 +34,8 @@ void SurfaceViewContext::setupGeometries(void)
 	for (int i = -number; i <= number; i++)
 	{
 	vec3 pos = 15.0f * vec3(i, j, -2.0f * k);*/
-	vec3 pos = vec3(-5, 0, 0);
-	transform.push_back(scale(mat4(1.0f), vec3(0.4f)) * translate(mat4(1.0f), pos));
+	vec3 pos = vec3(0, 0, 0);
+	transform.push_back(scale(mat4(1.0f), vec3(3.0f)) * translate(mat4(1.0f), pos));
 	/*				pos = vec3(5, 0, 0);
 	transform.push_back(scale(mat4(1.0f), vec3(0.4f)) * translate(mat4(1.0f), pos));*/
 	/*			}
@@ -66,11 +67,11 @@ void SurfaceViewContext::setupGeometries(void)
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	
-	auto ball = new Polyhedron(6, vec3(), vec3(1.0f));
+//	auto ball = new Polyhedron(10, vec3(), vec3(1.0f));
 	std::cout << "Real: Num of Verts: " << m->vertices.size() << std::endl;
 
 	
-	//HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
+	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
 //	std::cout << "Num of Facets: " << hSimp->facets.size() << std::endl;
 //	std::cout << "Num of Halfedges: "<<hSimp->halfEdges.size() << std::endl;
 
