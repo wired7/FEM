@@ -168,7 +168,7 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 			holes.push_back(hole);
 		}
 	}
-
+	
 	for (int i = 0; i < holes.size();i++)
 	{
 		std::cout << "\n\nHOLE: ";
@@ -180,6 +180,7 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 		} while (h != holes[i]->halfEdge);
 
 	}
+	std::cout << "done" << std::endl;
 
 	/*
 	if (lonelyEdges.size() > 0) {
