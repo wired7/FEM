@@ -63,6 +63,7 @@ namespace HalfEdge {
 		Tetra* tetra;
 	};
 
+
 	class HalfSimplices
 	{
 	private:

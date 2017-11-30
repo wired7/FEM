@@ -140,3 +140,69 @@ Tetrahedron::Tetrahedron() : MeshObject()
 
 	bindBuffers();
 }
+
+Arrow::Arrow()
+{
+	int resolution = 6;
+	float endDistance = 0.8f;
+
+	float angleD = 2 * 3.1415f / resolution;
+
+	for (int j = 0; j < 2; j++)
+	{
+		vec3 center(j * endDistance, 0, 0);
+
+		for (int i = 0; i < resolution; i++)
+		{
+			vec3 normal(0, sin(angleD * i), cos(angleD * i));
+			vec3 pos = center + normal;
+			addVertex(pos, normal);
+
+			if (j > 0)
+			{
+				indices.push_back(vertices.size() - resolution);
+				indices.push_back(vertices.size() - 1);
+				indices.push_back(vertices.size() - resolution - 1);
+
+				indices.push_back(vertices.size() - resolution - 1);
+				indices.push_back(vertices.size() - 1);
+				indices.push_back(vertices.size() - 2);
+			}
+		}
+	}
+
+	vec3 center(endDistance, 0, 0);
+	int centerIndex = vertices.size();
+	addVertex(center, vec3(-1, 0, 0));
+
+	for (int i = 0; i <= resolution; i++)
+	{
+		vec3 normal(0, sin(angleD * i), cos(angleD * i));
+		vec3 pos = center + normal * 4.0f;
+		addVertex(pos, normal);
+
+		if (i >= 1)
+		{
+			indices.push_back(centerIndex);
+			indices.push_back(vertices.size() - 1);
+			indices.push_back(vertices.size() - 2);
+		}
+	}
+
+	center = vec3(1.0f, 0, 0);
+	centerIndex = vertices.size();
+	addVertex(center, vec3(1.0f, 0, 0));
+
+	for (int i = 0; i <= resolution; i++)
+	{
+			indices.push_back(centerIndex);
+			indices.push_back(vertices.size() - i - 2);
+			indices.push_back(vertices.size() - i - 1);
+	}
+
+	indices.push_back(centerIndex);
+	indices.push_back(vertices.size() - 1);
+	indices.push_back(centerIndex + 1);
+
+	bindBuffers();
+}

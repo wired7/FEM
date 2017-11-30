@@ -27,3 +27,9 @@ class Tetrahedron : public MeshObject
 public:
 	Tetrahedron();
 };
+
+class Arrow : public MeshObject
+{
+public:
+	Arrow();
+};

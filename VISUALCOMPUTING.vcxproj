@@ -125,6 +125,7 @@
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="FrameBuffer.cpp" />
     <ClCompile Include="GeometricalMeshObjects.cpp" />
+    <ClCompile Include="HalfEdgeUtils.cpp" />
     <ClCompile Include="HalfSimplices.cpp" />
     <ClCompile Include="ImplicitGeometry.cpp" />
     <ClCompile Include="PointSamplingContext.cpp" />
@@ -150,6 +151,7 @@
     <ClInclude Include="DirectedGraphNode.h" />
     <ClInclude Include="FrameBuffer.h" />
     <ClInclude Include="GeometricalMeshObjects.h" />
+    <ClInclude Include="HalfEdgeUtils.h" />
     <ClInclude Include="HalfSimplices.h" />
     <ClInclude Include="ImplicitGeometry.h" />
     <ClInclude Include="PointSamplingContext.h" />

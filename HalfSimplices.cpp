@@ -106,7 +106,7 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 	}
 	std::cout << "Num no twin " << numNoTwin << std::endl;
 	
-	system("pause");
+	//system("pause");
 	
 	vector<HalfEdge*> lonelyEdges;
 	vector<vector<HalfEdge*>> temp2(vertices.size());

@@ -75,22 +75,46 @@ void SurfaceViewContext::setupGeometries(void)
 //	std::cout << "Num of Facets: " << hSimp->facets.size() << std::endl;
 //	std::cout << "Num of Halfedges: "<<hSimp->halfEdges.size() << std::endl;
 
-	auto cylinder = new Cylinder(10);
+	auto cylinder = new Arrow();
 
 	vector<mat4> transformC;
 	mat4 s = scale(mat4(1.0f), vec3(1, 0.005f, 0.005f));
+	vector<vec3> centroids;
 
 	for (int j = 0; j < transform.size(); j++)
 	{
-		for (int i = 0; i < m->indices.size(); i++)
+		for (int i = 0; i < hSimp->halfEdges.size(); i++)
 		{
-			vec3 point[2];
+			vec3 centroid(0.0f);
+			int count = 0;
+			HalfEdge::HalfEdge* halfEdge = hSimp->halfEdges[i];
+			HalfEdge::HalfEdge* newEdge = halfEdge;
+			while (true) {
+				centroid += m->vertices[newEdge->vertex->externalIndex].position;
+				count++;
+				newEdge = newEdge->next;
+				if (newEdge == halfEdge)
+				{
+					break;
+				}
+			}
 
-			point[0] = vec3(transform[j] * vec4(m->vertices[m->indices[i]].position, 1));
-			point[1] = vec3(transform[j] * vec4(m->vertices[m->indices[3 * (i / 3) + ((i + 1) % 3)]].position, 1));
+			centroid /= count;
+
+			vec3 point[2];
+			point[0] = vec3(transform[j] * vec4(m->vertices[hSimp->halfEdges[i]->start].position, 1));
+			point[1] = vec3(transform[j] * vec4(m->vertices[hSimp->halfEdges[i]->end].position, 1));
 			vec3 z = -normalize(cross(normalize(point[1] - point[0]), vec3(1, 0, 0)));
 			float angle = acos(dot(normalize(point[1] - point[0]), vec3(1, 0, 0)));
-			transformC.push_back(translate(mat4(1.0f), point[0]) * rotate(mat4(1.0f), angle, z) * scale(mat4(1.0f), vec3(length(point[1] - point[0]), 1, 1)) * s);
+			transformC.push_back(
+								scale(mat4(1.0f), vec3(1.0f / 0.8f)) * translate(mat4(1.0f), centroid) * 
+								scale(mat4(1.0f), vec3(0.7f)) * 
+								translate(mat4(1.0f), point[0] - centroid) * 
+								rotate(mat4(1.0f), angle, z) * 
+								scale(mat4(1.0f), vec3(length(point[1] - point[0]), 1, 1)) * s * 
+								translate(mat4(1.0f), vec3(0.5f, 0, 0)) *
+								scale(mat4(1.0f), vec3(0.9f, 1, 1)) *
+								translate(mat4(1.0f), vec3(-0.5f, 0, 0)));
 		}
 	}
 
