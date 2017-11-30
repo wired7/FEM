@@ -2,6 +2,8 @@
 #include "Context.h"
 #include "SurfaceViewController.h"
 #include "ReferencedGraphicsObject.h"
+#include "HalfSimplices.h"
+
 
 class SurfaceViewController;
 
@@ -9,6 +11,8 @@ class SurfaceViewContext : public GraphicsSceneContext<SurfaceViewController, Sp
 {
 private:
 	ReferenceManager* refMan;
+	void setupRenderableHalfEdges(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o);
+	void setupRenderableVertices(DecoratedGraphicsObject* o);
 protected:
 	virtual void setupCameras(void);
 	virtual void setupGeometries(void);

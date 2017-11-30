@@ -1,5 +1,5 @@
 #include "SurfaceViewContext.h"
-#include "HalfSimplices.h"
+#include "HalfEdgeUtils.h"
 
 SurfaceViewContext::SurfaceViewContext() : GraphicsSceneContext()
 {
@@ -21,8 +21,8 @@ void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
 
-//	auto m = new ImportedMeshObject("models\\chinchilla.obj");
-	auto m = new Cylinder(10);//Polyhedron(10, vec3(), vec3(1.0f));
+	auto m = new ImportedMeshObject("models\\chinchilla.obj");
+//	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;
 
@@ -49,10 +49,37 @@ void SurfaceViewContext::setupGeometries(void)
 	geometries.push_back(selectable);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
+
 	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
 
+	setupRenderableHalfEdges(hSimp, selectable);
+	setupRenderableVertices(selectable);
+
+	makeQuad();
+}
+
+void SurfaceViewContext::setupPasses(void)
+{
+	// TODO: might want to manage passes as well
+	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA"), ShaderProgramPipeline::getPipeline("C")});
+	gP->addRenderableObjects(geometries[0], 0);
+	gP->addRenderableObjects(geometries[1], 1);
+	gP->addRenderableObjects(geometries[2], 2);
+	gP->setupCamera(cameras[0]);
+
+	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
+	lP->addRenderableObjects(geometries[3], 0);
+	gP->addNeighbor(lP);
+
+	passRootNode = gP;
+}
+
+void SurfaceViewContext::setupRenderableHalfEdges(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o)
+{
 	auto cylinder = new Arrow();
+
+	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
+	auto m = (MeshObject*)o->signatureLookup("VERTEX");
 
 	vector<mat4> transformC;
 	vector<vec3> centroids;
@@ -60,95 +87,35 @@ void SurfaceViewContext::setupGeometries(void)
 
 	for (int j = 0; j < transform.size(); j++)
 	{
-		for (int i = 0; i < hSimp->halfEdges.size(); i++)
+		for (int i = 0; i < hSimp->facets.size(); i++)
 		{
-			warningC.push_back(0);
+			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->facets[i], m, transform[j]);
+			auto edges = HalfEdgeUtils::getFacetHalfEdges(hSimp->facets[i]);
 
-			vec3 centroid(0.0f);
-			int count = 0;
-			HalfEdge::HalfEdge* halfEdge = hSimp->halfEdges[i];
-			HalfEdge::HalfEdge* newEdge = halfEdge;
-			while (true) {
-				centroid += m->vertices[newEdge->vertex->externalIndex].position;
-				count++;
-				newEdge = newEdge->next;
-				if (newEdge == halfEdge)
-				{
-					break;
-				}
+			for (int k = 0; k < edges.size(); k++)
+			{
+				warningC.push_back(0);
+				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], m, transform[j], centroid));
 			}
-
-			centroid /= count;
-
-			vec3 point[2];
-			point[0] = vec3(transform[j] * vec4(m->vertices[hSimp->halfEdges[i]->start].position, 1));
-			point[1] = vec3(transform[j] * vec4(m->vertices[hSimp->halfEdges[i]->end].position, 1));
-			float edgeLength = length(point[1] - point[0]);
-			vec3 z = -normalize(cross(normalize(point[1] - point[0]), vec3(1, 0, 0)));
-			float angle = acos(dot(normalize(point[1] - point[0]), vec3(1, 0, 0)));
-			transformC.push_back(
-								scale(mat4(1.0f), vec3(1.0f / 0.65f)) * translate(mat4(1.0f), centroid) * 
-								scale(mat4(1.0f), vec3(0.5f)) * 
-								translate(mat4(1.0f), point[0] - centroid) * 
-								rotate(mat4(1.0f), angle, z) * 
-								scale(mat4(1.0f), vec3(edgeLength, edgeLength * 0.01f, edgeLength * 0.01f)) * 
-								translate(mat4(1.0f), vec3(0.5f, 0, 0)) *
-								scale(mat4(1.0f), vec3(0.9f, 1, 1)) *
-								translate(mat4(1.0f), vec3(-0.5f, 0, 0)));
 		}
 
 		for (int i = 0; i < hSimp->holes.size(); i++)
 		{
-			
-			vec3 centroid(0.0f);
-			int count = 0;
-			HalfEdge::HalfEdge* halfEdge = hSimp->holes[i]->halfEdge;
-			HalfEdge::HalfEdge* newEdge = halfEdge;
-			while (true) {
-				centroid += m->vertices[newEdge->vertex->externalIndex].position;
-				count++;
-				newEdge = newEdge->next;
-				if (newEdge == halfEdge)
-				{
-					break;
-				}
-			}
+			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->holes[i], m, transform[j]);
 
-			centroid /= count;
+			auto edges = HalfEdgeUtils::getFacetHalfEdges(hSimp->holes[i]);
 
-			newEdge = halfEdge;
-			while (true) {
+			for (int k = 0; k < edges.size(); k++)
+			{
 				warningC.push_back(1);
-				vec3 point[2];
-				point[0] = vec3(transform[j] * vec4(m->vertices[newEdge->start].position, 1));
-				point[1] = vec3(transform[j] * vec4(m->vertices[newEdge->end].position, 1));
-				float edgeLength = length(point[1] - point[0]);
-				vec3 z = -normalize(cross(normalize(point[1] - point[0]), vec3(1, 0, 0)));
-				float angle = acos(dot(normalize(point[1] - point[0]), vec3(1, 0, 0)));
-				transformC.push_back(
-					scale(mat4(1.0f), vec3(1.0f / 0.65f)) * translate(mat4(1.0f), centroid) *
-					scale(mat4(1.0f), vec3(0.5f)) *
-					translate(mat4(1.0f), point[0] - centroid) *
-					rotate(mat4(1.0f), angle, z) *
-					scale(mat4(1.0f), vec3(edgeLength, edgeLength * 0.01f, edgeLength * 0.01f)) *
-					translate(mat4(1.0f), vec3(0.5f, 0, 0)) *
-					scale(mat4(1.0f), vec3(0.9f, 1, 1)) *
-					translate(mat4(1.0f), vec3(-0.5f, 0, 0)));
-
-				newEdge = newEdge->next;
-				if (newEdge == halfEdge)
-				{
-					break;
-				}
+				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], m, transform[j], centroid));
 			}
 		}
 	}
 
-	
+	auto g = new MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
 
-	g = new MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
-
-	pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, transformC.size(), "INSTANCEID", 1);
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, transformC.size(), "INSTANCEID", 1);
 
 	vector<GLbyte> selectedC;
 
@@ -157,26 +124,41 @@ void SurfaceViewContext::setupGeometries(void)
 		selectedC.push_back(1);
 	}
 
-	selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
+	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
 
 	auto highlightable = new InstancedMeshObject<GLbyte, GLbyte>(selectable, warningC, "WARNING", 1);
 
 	geometries.push_back(highlightable);
-
-	makeQuad();
 }
 
-void SurfaceViewContext::setupPasses(void)
+void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 {
-	// TODO: might want to manage passes as well
-	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA") });
-	gP->addRenderableObjects(geometries[0], 0);
-	gP->addRenderableObjects(geometries[1], 1);
-	gP->setupCamera(cameras[0]);
+	auto point = new Polyhedron(6, vec3(), vec3(1.0f));
 
-	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[2], 0);
-	gP->addNeighbor(lP);
+	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
+	auto vertices = ((MeshObject*)o->signatureLookup("VERTEX"))->vertices;
+	vector<mat4> positions;
 
-	passRootNode = gP;
+	for (int j = 0; j < transform.size(); j++)
+	{
+		for (int i = 0; i < vertices.size(); i++)
+		{
+			positions.push_back(transform[j] * translate(mat4(1.0f), vertices[i].position) * scale(mat4(1.0f), vec3(0.02f)));
+		}
+	}
+
+	auto g = new MatrixInstancedMeshObject<mat4, float>(point, positions, "TRANSFORM");
+
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, vertices.size(), "INSTANCEID", 1);
+
+	vector<GLbyte> selectedC;
+
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		selectedC.push_back(1);
+	}
+
+	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
+
+	geometries.push_back(selectable);
 }

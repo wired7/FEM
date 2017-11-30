@@ -31,7 +31,7 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 		printf("%4d %4d %4d)", indices[i], indices[i + 1], indices[i + 2]);
 #endif // DEBUG_HALFSIMPLICES
 
-		std::cout << std::endl;
+//		std::cout << std::endl;
 		Vertex* v1 = vertexLookup(indices[i]);
 		Vertex* v2 = vertexLookup(indices[i + 1]);
 		Vertex* v3 = vertexLookup(indices[i + 2]);
