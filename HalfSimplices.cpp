@@ -102,15 +102,11 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 	vector<HalfEdge*> lonelyEdges;
 
 	for (int i = 0; i < halfEdges.size(); i++) {
-		if (halfEdges[i]->twin == nullptr) {
-			lonelyEdges.push_back(halfEdges[i]);
-		}
+		if (halfEdges[i]->twin == nullptr)
+			numNoTwin++;
 	}
-	std::cout << "\nNum lonely edges " << lonelyEdges.size() << std::endl;
-	for (int i = 0; i < lonelyEdges.size();i++) {
-		printf("(%d %d) ", lonelyEdges[i]->start, lonelyEdges[i]->end);
-	}
-	std::cout << std::endl;
+	std::cout << "Num no twin " << numNoTwin << std::endl;
+	
 	system("pause");
 	
 	vector<HalfEdge*> newEdges(0);
