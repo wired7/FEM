@@ -148,7 +148,7 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 		}
 
 	}
-
+	// fuck bitches, ger m
 	std::cout << "\nNew edges " << newEdges.size()<<std::endl;
 
 	for (int i = 0; i < newEdges.size();i++) {
