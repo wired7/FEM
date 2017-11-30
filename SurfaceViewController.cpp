@@ -42,7 +42,7 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 		controller->edgeRendering ^= true;
 	}
 
-	if (key == GLFW_KEY_L && action == GLFW_RELEASE)
+	if (key == GLFW_KEY_S && action == GLFW_RELEASE)
 	{
 		auto geo0 = controller->context->geometries[0];
 		auto pass = (GeometryPass*)controller->context->passRootNode;

@@ -39,7 +39,6 @@ void main(){
 		vColor = teamColor;
 	}
 
-
 	gl_Position = Projection * View * Model * transform * vec4(vertexOutput, 1);
 
 	pos = gl_Position.xyz;

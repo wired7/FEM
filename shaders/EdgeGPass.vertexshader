@@ -6,6 +6,7 @@ layout(location = 1) in vec3 normal;
 layout(location = 2) in mat4 transform;
 layout(location = 6) in uint objectID;
 layout(location = 7) in uint selectable;
+layout(location = 8) in uint highlightable;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -36,7 +37,14 @@ void main(){
 	}
 	else
 	{
-		vColor = vec4(1, 1, 1, 1);
+		if(highlightable > 0)
+		{
+			vColor = vec4(1, 0, 0, 1);
+		}
+		else
+		{
+			vColor = vec4(1, 1, 1, 1);
+		}
 	}
 
 
