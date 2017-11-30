@@ -5,7 +5,7 @@
 
 using namespace std;
 using namespace glm;
-
+#define dDEBUG_HALFSIMPLICES 
 namespace HalfEdge {
 
 	struct HalfEdge;
