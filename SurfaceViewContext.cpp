@@ -22,7 +22,7 @@ void SurfaceViewContext::setupGeometries(void)
 	refMan = new ReferenceManager();
 
 //	auto m = new ImportedMeshObject("models\\chinchilla.obj");
-	auto m = new Polyhedron(4, vec3(), vec3(1.0f));
+	auto m = new Polyhedron(100, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;
 	/*	int number = 5;
@@ -78,7 +78,6 @@ void SurfaceViewContext::setupGeometries(void)
 	auto cylinder = new Arrow();
 
 	vector<mat4> transformC;
-	mat4 s = scale(mat4(1.0f), vec3(1, 0.005f, 0.005f));
 	vector<vec3> centroids;
 
 	for (int j = 0; j < transform.size(); j++)
@@ -101,9 +100,12 @@ void SurfaceViewContext::setupGeometries(void)
 
 			centroid /= count;
 
+//			mat4 s = scale(mat4(1.0f), vec3(1, 0.005f, 0.005f));
+
 			vec3 point[2];
 			point[0] = vec3(transform[j] * vec4(m->vertices[hSimp->halfEdges[i]->start].position, 1));
 			point[1] = vec3(transform[j] * vec4(m->vertices[hSimp->halfEdges[i]->end].position, 1));
+			float edgeLength = length(point[1] - point[0]);
 			vec3 z = -normalize(cross(normalize(point[1] - point[0]), vec3(1, 0, 0)));
 			float angle = acos(dot(normalize(point[1] - point[0]), vec3(1, 0, 0)));
 			transformC.push_back(
@@ -111,7 +113,7 @@ void SurfaceViewContext::setupGeometries(void)
 								scale(mat4(1.0f), vec3(0.7f)) * 
 								translate(mat4(1.0f), point[0] - centroid) * 
 								rotate(mat4(1.0f), angle, z) * 
-								scale(mat4(1.0f), vec3(length(point[1] - point[0]), 1, 1)) * s * 
+								scale(mat4(1.0f), vec3(edgeLength, edgeLength * 0.01f, edgeLength * 0.01f)) * 
 								translate(mat4(1.0f), vec3(0.5f, 0, 0)) *
 								scale(mat4(1.0f), vec3(0.9f, 1, 1)) *
 								translate(mat4(1.0f), vec3(-0.5f, 0, 0)));
