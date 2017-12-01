@@ -30,7 +30,7 @@ void main(){
 
 	if(selectable > 0 && (objectID == selectedRef))
 	{
-		vertexOutput = vertexPos * 2.0f;
+		vertexOutput = vertexPos * 1.02f;
 		vColor = vec4(0, 1, 0, 1);
 	}
 	else

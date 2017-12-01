@@ -53,19 +53,19 @@ mat4 HalfEdgeUtils::getHalfEdgeTransform(HalfEdge::HalfEdge* halfEdge, MeshObjec
 	float edgeLength = length(point[1] - point[0]);
 	vec3 vectorDir = normalize(point[1] - point[0]);
 	vec3 z;
-	if (abs(vectorDir.x) == 0.0f || (vectorDir.y != 0.0f && vectorDir.z != 0.0f))
+	if (!(abs(vectorDir.x) == 1.0f && vectorDir.y == 0.0f && vectorDir.z == 0.0f))
 	{
 		z = -normalize(cross(vectorDir, vec3(1, 0, 0)));
 	}
-	else if (vectorDir.x == 1.0f)
-	{
-		z = vec3(0, 0, 1);
-	}
-	else
+	else if (abs(vectorDir.x) == 1.0f)
 	{
 		z = vec3(0, 0, -1);
 	}
-
+	else
+	{
+		z = vec3(0, 0, 1);
+	}
+	
 	float angle = acos(dot(normalize(point[1] - point[0]), vec3(1, 0, 0)));
 
 	mat4 aroundCentroid =

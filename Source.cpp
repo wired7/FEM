@@ -33,7 +33,7 @@ int init() {
 	// Enable depth test
 	glDepthFunc(GL_LESS);
 
-	glCullFace(GL_FRONT);
+//	glCullFace(GL_FRONT);
 
 	glPointSize(3.0f);
 
@@ -49,6 +49,9 @@ int init() {
 	
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\pointGPass.VERTEXSHADER", { tuple<const GLchar*, UniformType>("View", MATRIX4FV),
 		tuple<const GLchar*, UniformType>("Projection", MATRIX4FV),  tuple<const GLchar*, UniformType>("Model", MATRIX4FV), tuple<const GLchar*, UniformType>("selectedRef", ONEUI) }, "POINTGPASSVS");
+
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\facetGPass.VERTEXSHADER", { tuple<const GLchar*, UniformType>("View", MATRIX4FV),
+		tuple<const GLchar*, UniformType>("Projection", MATRIX4FV),  tuple<const GLchar*, UniformType>("Model", MATRIX4FV), tuple<const GLchar*, UniformType>("selectedRef", ONEUI) }, "FACETGPASSVS");
 
 	ShaderProgram::getShaderProgram<FragmentShaderProgram>("shaders\\gPass.FRAGMENTSHADER", {}, "GPASSFS");
 
@@ -66,6 +69,9 @@ int init() {
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("POINTGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("C"));
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("C"));
+
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("FACETGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("D"));
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("D"));
 
 	return 1;
 }

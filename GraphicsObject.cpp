@@ -203,7 +203,7 @@ void ImportedMeshObject::loadFile(const char* filePath)
 		for (int j = 0; j < mesh->mNumVertices; j++)
 		{
 			vec3 pos(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z);
-			vec3 normal(0, 0, -1);
+			vec3 normal(0, 0, 1);
 			if (mesh->HasNormals())
 			{
 				normal = vec3(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z);

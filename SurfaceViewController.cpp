@@ -76,6 +76,23 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 		controller->pointRendering ^= true;
 	}
 
+	if (key == GLFW_KEY_F && action == GLFW_PRESS)
+	{
+		auto geo0 = controller->context->geometries[3];
+		auto pass = (GeometryPass*)controller->context->passRootNode;
+
+		if (controller->pointRendering)
+		{
+			pass->addRenderableObjects(geo0, 3);
+		}
+		else
+		{
+			pass->clearRenderableObjects(3);
+		}
+
+		controller->pointRendering ^= true;
+	}
+
 	if (key == GLFW_KEY_SPACE && action != GLFW_PRESS) {
 		
 		SphericalCamera* cam = controller->context->cameras[0];
