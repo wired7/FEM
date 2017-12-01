@@ -30,6 +30,8 @@ void DecoratedGraphicsObject::enableBuffers(void)
 {
 	glBindVertexArray(VAO);
 
+	updateIfDirty();
+
 	int index = 0;
 	if (child != nullptr)
 	{
@@ -89,6 +91,9 @@ void MeshObject::commitVBOToGPU()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, normal));
 
 	glBindVertexArray(0);
+
+	commitedVertexCount = vertices.size();
+	commitedIndexCount = indices.size();
 }
 
 void MeshObject::bindBuffers(void)
@@ -110,17 +115,34 @@ void MeshObject::updateBuffers(void)
 void MeshObject::addVertex(vec3 pos, vec3 normal)
 {
 	vertices.push_back(Vertex(pos, normal));
-}
-
-void MeshObject::setLocalUniforms(void)
-{
-
+	dirty = true;
 }
 
 void MeshObject::draw(void)
 {
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+}
+
+void MeshObject::updateIfDirty(void)
+{
+	if (dirty)
+	{
+		if (vertices.size() != commitedVertexCount || indices.size() != commitedIndexCount)
+		{
+			glBindVertexArray(VAO);
+			glDeleteBuffers(1, &VBO);
+			glDeleteBuffers(1, &EBO);
+
+			bindBuffers();
+		}
+		else
+		{
+			updateBuffers();
+		}
+
+		dirty = false;
+	}
 }
 
 ImportedMeshObject::ImportedMeshObject(const char* string) : MeshObject()
