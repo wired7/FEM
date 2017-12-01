@@ -258,7 +258,7 @@ void GeometryPass::clearBuffers(void)
 void GeometryPass::configureGL(void)
 {
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+//	glEnable(GL_CULL_FACE);
 }
 
 void GeometryPass::setupObjectwiseUniforms(int programIndex, int index)
