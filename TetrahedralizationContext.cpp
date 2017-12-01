@@ -2,12 +2,14 @@
 #include "TetrahedralizationContext.h"
 #include <thread>
 
-TetrahedralizationContext::TetrahedralizationContext(DecoratedGraphicsObject* surface, vector<vec3> points, SphericalCamera* cam)
+TetrahedralizationContext::TetrahedralizationContext(DecoratedGraphicsObject* surface, vector<vec3> &_points, SphericalCamera* cam) : points(_points)
 {
 	cameras.push_back(cam);
 	geometries.push_back(surface);
-	setupPasses();
+	points = _points;
 
+	setupPasses();
+	
 	thread t([=] {
 		// compute tetrahedralization here
 		tetrahedralizationReady = true;

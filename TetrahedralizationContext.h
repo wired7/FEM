@@ -12,8 +12,10 @@ protected:
 	virtual void setupCameras(void) {};
 	virtual void setupGeometries(void);
 	virtual void setupPasses(void);
+
+	vector<glm::vec3> & points;
 public:
-	TetrahedralizationContext(DecoratedGraphicsObject* surface, vector<vec3> points, SphericalCamera* cam);
+	TetrahedralizationContext(DecoratedGraphicsObject* surface, vector<vec3> & _points, SphericalCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);
 };

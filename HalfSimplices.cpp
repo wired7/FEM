@@ -158,22 +158,40 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 #endif
 	}
 	
+	vector<int> visited(newEdgesMapping.size(),0);
+
 	for (int i = 0; i < newEdges.size();i++) {
-		HalfEdge* newEdge = newEdges[i];
-		halfEdges.push_back(newEdge);
-		if (newEdge->next == nullptr) {
+		halfEdges.push_back(newEdges[i]);
+
+		if (newEdges[i]->next == nullptr) {
 			HalfEdge* he = newEdges[i];
 			HalfEdge* next = he;
+#ifdef  DEBUG_HALFSIMPLICES
+
+
 			std::cout << "\n\nstarting at: (";
 			printf("(%d, %d)", he->start, he->end);
 			std::cout << "): "<<std::endl;
+#endif //  DEBUG_HALFSIMPLICES
+
 			do {
-				HalfEdge* t = newEdgesMapping[next->end][0];
+				HalfEdge* t;
+				vector<HalfEdge*> &v = newEdgesMapping[next->end];
+				if(visited[next->end] < v.size())
+					t = v[visited[next->end]++];
+				else
+				{
+					std::cout << "problem with half edges, breaking loop" << std::endl;
+					break;
+				}
 				next->next = t;
 				t->previous = next;
 				next = t;
+#ifdef  DEBUG_HALFSIMPLICES
+
 				printf("(%d, %d)", t->start, t->end);
 				std::cout << "->";
+#endif
 			} while ((next != he));
 			Hole* hole = new Hole;
 			hole->halfEdge = he;
