@@ -1,6 +1,7 @@
 #include "HalfEdgeUtils.h"
 #include <iostream>
 
+using namespace Geometry;
 vector<Geometry::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(Geometry::Facet* facet)
 {
 	vector<Geometry::HalfEdge*> edges;
@@ -15,7 +16,6 @@ vector<Geometry::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(Geometry::Facet* fa
 			break;
 		}
 	}
-
 	return edges;
 }
 
@@ -29,6 +29,17 @@ vector<Geometry::Vertex*> HalfEdgeUtils::getFacetVertices(Geometry::Facet* facet
 	}
 
 	return vertices;
+}
+static float distanceToHalfEdge(const vector<vec3> & positions, const Geometry::Vertex & vertex, Geometry::HalfEdge halfedge) {
+
+	const vec3 & vPos = positions[vertex.externalIndex];
+	const vec3 & hPos1 = positions[halfedge.start];
+	const vec3 & hPos2 = positions[halfedge.end];
+
+	float f1 = glm::distance(hPos1, vPos);
+	float f2 = glm::distance(hPos2, vPos);
+
+	return sqrtf(f1 + f2);
 }
 
 vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, Graphics::MeshObject* m, const mat4& parentTransform)

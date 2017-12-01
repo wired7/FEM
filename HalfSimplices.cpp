@@ -6,7 +6,7 @@ using namespace std;
 using namespace Geometry;
 
 
-HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
+Mesh::Mesh(vector<GLuint> indices, int verticesPerFacet)
 {
 	for (int i = 0; i < indices.size(); i++)
 	{
@@ -289,13 +289,13 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 }
 
 
-HalfSimplices::~HalfSimplices()
+Mesh::~Mesh()
 {
 
 }
 
 
-int HalfSimplices::binarySearch(int externalIndex, vector<Vertex*>& data, int min, int max)
+int Mesh::binarySearch(int externalIndex, vector<Vertex*>& data, int min, int max)
 {
 	if (min > max)
 	{
@@ -326,7 +326,7 @@ int HalfSimplices::binarySearch(int externalIndex, vector<Vertex*>& data, int mi
 	}
 }
 
-Vertex* HalfSimplices::vertexLookup(int externalIndex)
+Vertex* Mesh::vertexLookup(int externalIndex)
 {
 	if (vertices.size() == 0)
 	{
@@ -345,7 +345,7 @@ Vertex* HalfSimplices::vertexLookup(int externalIndex)
 	} 
 }
 
-void HalfSimplices::vertexInsert(Vertex* vertex)
+void Mesh::vertexInsert(Vertex* vertex)
 {
 	int i = 0;
 	for (; i < vertices.size(); i++)

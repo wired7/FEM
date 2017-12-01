@@ -5,6 +5,9 @@
 
 using namespace std;
 using namespace Graphics;
+
+#define NUM_POINTS 1000
+#define POINT_SCALE 0.50f
 PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, SphericalCamera* cam)
 {
 	cameras.push_back(cam);
@@ -12,7 +15,7 @@ PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, Sph
 	setupPasses();
 
 	thread t([=] {
-		points = sampleSurface(10000, surface);
+		points = sampleSurface(NUM_POINTS, surface);
 		pointsReady = true;
 	});
 	t.detach();
@@ -25,11 +28,10 @@ void PointSamplingContext::setupGeometries(void)
 	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;
-	vec3 size(0.02f);
 
 	for (int i = 0; i < points.size(); i++)
 	{
-		transform.push_back(translate(mat4(1.0f), points[i]) * scale(mat4(1.0f), size));
+		transform.push_back(translate(mat4(1.0f), points[i]) * scale(mat4(1.0f), glm::vec3(1,1,1)*POINT_SCALE));
 	}
 
 	auto g = new MatrixInstancedMeshObject<mat4, float>(m, transform, "OFFSET");
