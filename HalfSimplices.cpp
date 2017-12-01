@@ -160,6 +160,7 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 	
 	for (int i = 0; i < newEdges.size();i++) {
 		HalfEdge* newEdge = newEdges[i];
+		halfEdges.push_back(newEdge);
 		if (newEdge->next == nullptr) {
 			HalfEdge* he = newEdges[i];
 			HalfEdge* next = he;
