@@ -13,8 +13,8 @@ protected:
 	virtual void setupPasses(void);
 public:
 	vector<vec3> points;
-	static vector<vec3> sampleSurface(int sampleSize, DecoratedGraphicsObject* object);
-	PointSamplingContext(DecoratedGraphicsObject* surface, SphericalCamera* cam);
+	static vector<vec3> sampleSurface(int sampleSize, Graphics::DecoratedGraphicsObject* object);
+	PointSamplingContext(Graphics::DecoratedGraphicsObject* surface, SphericalCamera* cam);
 	~PointSamplingContext() {};
 	virtual void update(void);
 };

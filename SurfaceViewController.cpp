@@ -106,6 +106,7 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 
 	}
 
+
 	controller->context->dirty = true;
 }
 

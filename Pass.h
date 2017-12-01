@@ -75,7 +75,7 @@ template<typename T> void Pass::updateValueBySignature(int programIndex, string 
 class RenderPass : public Pass
 {
 protected:
-	vector<vector<DecoratedGraphicsObject*>> renderableObjects;
+	vector<vector<Graphics::DecoratedGraphicsObject*>> renderableObjects;
 	bool terminal;
 	virtual void initFrameBuffers(void) = 0;
 	virtual void clearBuffers(void);
@@ -91,10 +91,10 @@ public:
 	// TODO: Give the user the ability to apply renderable objects to any inner pass for rendering before the call
 	virtual void clearRenderableObjects(int programIndex);
 	virtual void clearRenderableObjects(int programIndex, string signature) {};
-	virtual void setRenderableObjects(vector<vector<DecoratedGraphicsObject*>> input);
-	virtual void setRenderableObjects(vector<vector<DecoratedGraphicsObject*>> input, string signature) {};
-	virtual void addRenderableObjects(DecoratedGraphicsObject* input, int programIndex);
-	virtual void addRenderableObjects(DecoratedGraphicsObject* input, int programIndex, string signature) {};
+	virtual void setRenderableObjects(vector<vector<Graphics::DecoratedGraphicsObject*>> input);
+	virtual void setRenderableObjects(vector<vector<Graphics::DecoratedGraphicsObject*>> input, string signature) {};
+	virtual void addRenderableObjects(Graphics::DecoratedGraphicsObject* input, int programIndex);
+	virtual void addRenderableObjects(Graphics::DecoratedGraphicsObject* input, int programIndex, string signature) {};
 	virtual void setProbe(string passSignature, string frameBufferSignature);
 	virtual void setFrameBuffer(DecoratedFrameBuffer* fb);
 	virtual void setTextureUniforms(int index);

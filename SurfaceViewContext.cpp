@@ -1,6 +1,7 @@
 #include "SurfaceViewContext.h"
 #include "HalfEdgeUtils.h"
 
+using namespace Graphics;
 SurfaceViewContext::SurfaceViewContext() : GraphicsSceneContext()
 {
 	setupCameras();
@@ -20,7 +21,6 @@ void SurfaceViewContext::setupCameras(void)
 void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
-
 	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
 //	auto m = new Cylinder(10);//Polyhedron(10, vec3(), vec3(1.0f));
 
@@ -50,7 +50,7 @@ void SurfaceViewContext::setupGeometries(void)
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
+	Geometry::Mesh * hSimp = new Geometry::Mesh(m->indices, 3);
 
 	setupRenderableHalfEdges(hSimp, selectable);
 	setupRenderableVertices(selectable);
@@ -76,7 +76,7 @@ void SurfaceViewContext::setupPasses(void)
 	passRootNode = gP;
 }
 
-void SurfaceViewContext::setupRenderableHalfEdges(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o)
+void SurfaceViewContext::setupRenderableHalfEdges(Geometry::Mesh* hSimp, DecoratedGraphicsObject* o)
 {
 	auto cylinder = new Arrow();
 
@@ -165,7 +165,7 @@ void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 	geometries.push_back(selectable);
 }
 
-void SurfaceViewContext::setupRenderableFacets(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o)
+void SurfaceViewContext::setupRenderableFacets(Geometry::Mesh* hSimp, Graphics::DecoratedGraphicsObject* o)
 {
 	vector<GLuint> indices;
 	vector<Vertex> vertices;

@@ -57,7 +57,7 @@ protected:
 public:
 	bool dirty = true;
 	Pass* passRootNode;
-	vector<DecoratedGraphicsObject*> geometries;
+	vector<Graphics::DecoratedGraphicsObject*> geometries;
 	GraphicsSceneContext() {};
 	~GraphicsSceneContext() {};
 	virtual void update(void);
@@ -76,7 +76,7 @@ template<class ControllerType, class CameraType, class ContextType> void Graphic
 	uvMap.push_back(vec2(0, 1));
 	uvMap.push_back(vec2(1, 1));
 
-	auto displayQuadUV = new ExtendedMeshObject<vec2, float>(displayQuad, uvMap, "TEXTURECOORD");
+	auto displayQuadUV = new Graphics::ExtendedMeshObject<vec2, float>(displayQuad, uvMap, "TEXTURECOORD");
 
 	geometries.push_back(displayQuadUV);
 }

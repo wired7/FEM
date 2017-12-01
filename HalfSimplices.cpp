@@ -3,10 +3,10 @@
 #include <stack>
 #include <algorithm>
 using namespace std;
-using namespace HalfEdge;
+using namespace Geometry;
 
 
-HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
+Mesh::Mesh(vector<GLuint> indices, int verticesPerFacet)
 {
 	for (int i = 0; i < indices.size(); i++)
 	{
@@ -158,22 +158,40 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 #endif
 	}
 	
+	vector<int> visited(newEdgesMapping.size(),0);
+
 	for (int i = 0; i < newEdges.size();i++) {
-		HalfEdge* newEdge = newEdges[i];
-		halfEdges.push_back(newEdge);
-		if (newEdge->next == nullptr) {
+		halfEdges.push_back(newEdges[i]);
+
+		if (newEdges[i]->next == nullptr) {
 			HalfEdge* he = newEdges[i];
 			HalfEdge* next = he;
+#ifdef  DEBUG_HALFSIMPLICES
+
+
 			std::cout << "\n\nstarting at: (";
 			printf("(%d, %d)", he->start, he->end);
 			std::cout << "): "<<std::endl;
+#endif //  DEBUG_HALFSIMPLICES
+
 			do {
-				HalfEdge* t = newEdgesMapping[next->end][0];
+				HalfEdge* t;
+				vector<HalfEdge*> &v = newEdgesMapping[next->end];
+				if(visited[next->end] < v.size())
+					t = v[visited[next->end]++];
+				else
+				{
+					std::cout << "problem with half edges, breaking loop" << std::endl;
+					break;
+				}
 				next->next = t;
 				t->previous = next;
 				next = t;
+#ifdef  DEBUG_HALFSIMPLICES
+
 				printf("(%d, %d)", t->start, t->end);
 				std::cout << "->";
+#endif
 			} while ((next != he));
 			Hole* hole = new Hole;
 			hole->halfEdge = he;
@@ -271,13 +289,13 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 }
 
 
-HalfSimplices::~HalfSimplices()
+Mesh::~Mesh()
 {
 
 }
 
 
-int HalfSimplices::binarySearch(int externalIndex, vector<Vertex*>& data, int min, int max)
+int Mesh::binarySearch(int externalIndex, vector<Vertex*>& data, int min, int max)
 {
 	if (min > max)
 	{
@@ -308,7 +326,7 @@ int HalfSimplices::binarySearch(int externalIndex, vector<Vertex*>& data, int mi
 	}
 }
 
-Vertex* HalfSimplices::vertexLookup(int externalIndex)
+Vertex* Mesh::vertexLookup(int externalIndex)
 {
 	if (vertices.size() == 0)
 	{
@@ -327,7 +345,7 @@ Vertex* HalfSimplices::vertexLookup(int externalIndex)
 	} 
 }
 
-void HalfSimplices::vertexInsert(Vertex* vertex)
+void Mesh::vertexInsert(Vertex* vertex)
 {
 	int i = 0;
 	for (; i < vertices.size(); i++)

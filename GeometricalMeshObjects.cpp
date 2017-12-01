@@ -3,6 +3,8 @@
 #include "GeometricalMeshObjects.h"
 #include <iostream>
 
+using namespace Graphics;
+
 Quad::Quad() : MeshObject()
 {
 	addVertex(vec3(-1, -1, 0), vec3());

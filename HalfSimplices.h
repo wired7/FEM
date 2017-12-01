@@ -5,10 +5,12 @@
 
 using namespace std;
 using namespace glm;
-#define DEBUG_HALFSIMPLICES 
-namespace HalfEdge {
+#define dDEBUG_HALFSIMPLICES 
+namespace Geometry {
 
 	struct HalfEdge;
+	struct Facet;
+	class Mesh;
 
 	struct Vertex
 	{
@@ -17,17 +19,9 @@ namespace HalfEdge {
 		HalfEdge* halfEdge;
 		int externalIndex;
 		Vertex(int externalIndex) : externalIndex(externalIndex) {};
+		Vertex() {};
 	};
 
-	struct Facet
-	{
-	public:
-		HalfEdge* halfEdge;
-		int internalIndex;
-
-	private:
-		int internalIndexCounter = 0;
-	};
 
 	typedef Facet Hole;
 
@@ -51,22 +45,21 @@ namespace HalfEdge {
 
 	};
 
-	struct HalfFacet;
 
-	struct Tetra
+	struct Facet
 	{
 	public:
-		HalfFacet* halfFacet;
+		HalfEdge* halfEdge;
+		Mesh* mesh;
+		Facet* twin;
+		Facet* next;
+		Facet* previous;
+		int internalIndex;
+
+
 	};
 
-	struct HalfFacet : public HalfEdge
-	{
-	public:
-		Tetra* tetra;
-	};
-
-
-	class HalfSimplices
+	class Mesh
 	{
 	private:
 		int binarySearch(int externalIndex, vector<Vertex*>& data, int min, int max);
@@ -75,13 +68,17 @@ namespace HalfEdge {
 		vector<HalfEdge*> halfEdges;
 		vector<Facet*> facets;
 		vector<Hole*> holes;
-		vector<Tetra*> tetras;
-		vector<Tetra*> tetraHoles;
 
-		HalfSimplices(vector<GLuint> indices, int verticesPerFacet);
-		~HalfSimplices();
+		Mesh(vector<GLuint> indices, int verticesPerFacet);
+		Mesh() {};
+		~Mesh();
 		Vertex* vertexLookup(int externalIndex);
 		void vertexInsert(Vertex* vertex);
+	};
+
+	struct VolumetricMesh {
+	public:
+		vector<Mesh*> meshes;
 	};
 
 }

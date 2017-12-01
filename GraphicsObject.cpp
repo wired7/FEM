@@ -5,8 +5,9 @@
 #include <iostream>
 
 using namespace Assimp;
+using namespace Graphics;
 
-DecoratedGraphicsObject::DecoratedGraphicsObject(DecoratedGraphicsObject* child, string bufferSignature) : Decorator(child, bufferSignature)
+DecoratedGraphicsObject::DecoratedGraphicsObject(Graphics::DecoratedGraphicsObject* child, string bufferSignature) : Decorator(child, bufferSignature)
 {
 
 }

@@ -1,5 +1,6 @@
 #include "ReferencedGraphicsObject.h"
 
+using namespace Graphics;
 ReferenceManager::ReferenceManager()
 {
 

@@ -1,12 +1,14 @@
 #include "HalfEdgeUtils.h"
 #include <iostream>
+#include "LinearAlgebraUtils.h"
 
-vector<HalfEdge::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(HalfEdge::Facet* facet)
+using namespace Geometry;
+vector<Geometry::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(Geometry::Facet* facet)
 {
-	vector<HalfEdge::HalfEdge*> edges;
+	vector<Geometry::HalfEdge*> edges;
 
-	HalfEdge::HalfEdge* halfEdge = facet->halfEdge;
-	HalfEdge::HalfEdge* newEdge = halfEdge;
+	Geometry::HalfEdge* halfEdge = facet->halfEdge;
+	Geometry::HalfEdge* newEdge = halfEdge;
 	while (true) {
 		edges.push_back(newEdge);
 		newEdge = newEdge->next;
@@ -15,14 +17,13 @@ vector<HalfEdge::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(HalfEdge::Facet* fa
 			break;
 		}
 	}
-
 	return edges;
 }
 
-vector<HalfEdge::Vertex*> HalfEdgeUtils::getFacetVertices(HalfEdge::Facet* facet)
+vector<Geometry::Vertex*> HalfEdgeUtils::getFacetVertices(Geometry::Facet* facet)
 {
 	auto edges = getFacetHalfEdges(facet);
-	vector<HalfEdge::Vertex*> vertices;
+	vector<Geometry::Vertex*> vertices;
 	for (int i = 0; i < edges.size(); i++)
 	{
 		vertices.push_back(edges[i]->vertex);
@@ -30,8 +31,19 @@ vector<HalfEdge::Vertex*> HalfEdgeUtils::getFacetVertices(HalfEdge::Facet* facet
 
 	return vertices;
 }
+static float distanceToHalfEdge(const vector<vec3> & positions, const Geometry::Vertex & vertex, Geometry::HalfEdge halfedge) {
 
-vec3 HalfEdgeUtils::getFacetCentroid(HalfEdge::Facet* facet, MeshObject* m, const mat4& parentTransform)
+	const vec3 & vPos = positions[vertex.externalIndex];
+	const vec3 & hPos1 = positions[halfedge.start];
+	const vec3 & hPos2 = positions[halfedge.end];
+
+	float f1 = glm::distance(hPos1, vPos);
+	float f2 = glm::distance(hPos2, vPos);
+
+	return sqrtf(f1 + f2);
+}
+
+vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, Graphics::MeshObject* m, const mat4& parentTransform)
 {
 	vec3 centroid(0.0f);
 	
@@ -45,32 +57,17 @@ vec3 HalfEdgeUtils::getFacetCentroid(HalfEdge::Facet* facet, MeshObject* m, cons
 	return centroid / (float)edges.size();
 }
 
-mat4 HalfEdgeUtils::getHalfEdgeTransform(HalfEdge::HalfEdge* halfEdge, MeshObject* m, const mat4& parentTransform, const vec3& centroid)
+mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, Graphics::MeshObject* m, const mat4& parentTransform, const vec3& centroid)
 {
 	vec3 point[2];
 	point[0] = vec3(parentTransform * vec4(m->vertices[halfEdge->start].position, 1));
 	point[1] = vec3(parentTransform * vec4(m->vertices[halfEdge->end].position, 1));
 	float edgeLength = length(point[1] - point[0]);
-	vec3 vectorDir = normalize(point[1] - point[0]);
-	vec3 z;
-	if (!(abs(vectorDir.x) == 1.0f && vectorDir.y == 0.0f && vectorDir.z == 0.0f))
-	{
-		z = -normalize(cross(vectorDir, vec3(1, 0, 0)));
-	}
-	else if (abs(vectorDir.x) == 1.0f)
-	{
-		z = vec3(0, 0, -1);
-	}
-	else
-	{
-		z = vec3(0, 0, 1);
-	}
-	
-	float angle = acos(dot(normalize(point[1] - point[0]), vec3(1, 0, 0)));
+	auto lineTransform = LinearAlgebraUtils::getLineTransformFrom2Points(point[0], point[1]);
 
 	mat4 aroundCentroid =
-		translate(mat4(1.0f), point[0] - centroid) *
-		rotate(mat4(1.0f), angle, z) *
+		translate(mat4(1.0f), -centroid) *
+		lineTransform *
 		scale(mat4(1.0f), vec3(edgeLength, edgeLength * 0.01f, edgeLength * 0.01f)) *
 		translate(mat4(1.0f), vec3(0.5f, 0, 0)) *
 		scale(mat4(1.0f), vec3(0.9f)) *
