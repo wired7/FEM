@@ -2,19 +2,19 @@
 
 #include "GraphicsObject.h"
 
-class Quad : public MeshObject
+class Quad : public Graphics::MeshObject
 {
 public:
 	Quad();
 };
 
-class Cylinder : public MeshObject
+class Cylinder : public Graphics::MeshObject
 {
 public:
 	Cylinder(int resolution);
 };
 
-class Polyhedron : public MeshObject
+class Polyhedron : public Graphics::MeshObject
 {
 public:
 	int resolution;
@@ -22,13 +22,13 @@ public:
 	Polyhedron(int resolution, vec3 pos, vec3 radii);
 };
 
-class Tetrahedron : public MeshObject
+class Tetrahedron : public Graphics::MeshObject
 {
 public:
 	Tetrahedron();
 };
 
-class Arrow : public MeshObject
+class Arrow : public Graphics::MeshObject
 {
 public:
 	Arrow();

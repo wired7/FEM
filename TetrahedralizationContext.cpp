@@ -3,7 +3,7 @@
 #include <thread>
 #include "HalfSimplices.h"
 
-TetrahedralizationContext::TetrahedralizationContext(DecoratedGraphicsObject* surface, vector<vec3> &_points, SphericalCamera* cam) : points(_points)
+TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, vector<vec3> &_points, SphericalCamera* cam) : points(_points)
 {
 	cameras.push_back(cam);
 	geometries.push_back(surface);

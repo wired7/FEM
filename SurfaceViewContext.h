@@ -11,9 +11,9 @@ class SurfaceViewContext : public GraphicsSceneContext<SurfaceViewController, Sp
 {
 private:
 	ReferenceManager* refMan;
-	void setupRenderableHalfEdges(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o);
-	void setupRenderableVertices(DecoratedGraphicsObject* o);
-	void setupRenderableFacets(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o);
+	void setupRenderableHalfEdges(Geometry::HalfSimplices* hSimp, Graphics::DecoratedGraphicsObject* o);
+	void setupRenderableVertices(Graphics::DecoratedGraphicsObject* o);
+	void setupRenderableFacets(Geometry::HalfSimplices* hSimp, Graphics::DecoratedGraphicsObject* o);
 protected:
 	virtual void setupCameras(void);
 	virtual void setupGeometries(void);

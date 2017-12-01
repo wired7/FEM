@@ -1,6 +1,7 @@
 #include "SurfaceViewContext.h"
 #include "HalfEdgeUtils.h"
 
+using namespace Graphics;
 SurfaceViewContext::SurfaceViewContext() : GraphicsSceneContext()
 {
 	setupCameras();
@@ -50,7 +51,7 @@ void SurfaceViewContext::setupGeometries(void)
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
+	Geometry::HalfSimplices * hSimp = new Geometry::HalfSimplices(m->indices, 3);
 
 	setupRenderableHalfEdges(hSimp, selectable);
 	setupRenderableVertices(selectable);
@@ -74,7 +75,7 @@ void SurfaceViewContext::setupPasses(void)
 	passRootNode = gP;
 }
 
-void SurfaceViewContext::setupRenderableHalfEdges(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o)
+void SurfaceViewContext::setupRenderableHalfEdges(Geometry::HalfSimplices* hSimp, DecoratedGraphicsObject* o)
 {
 	auto cylinder = new Arrow();
 
@@ -163,7 +164,7 @@ void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 	geometries.push_back(selectable);
 }
 
-void setupRenderableFacets(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o)
+void setupRenderableFacets(Geometry::HalfSimplices* hSimp, Graphics::DecoratedGraphicsObject* o)
 {
 	vector<GLuint> indices;
 	vector<Vertex> vertices;
