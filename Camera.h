@@ -51,3 +51,24 @@ private:
 	double maxCamPhi;
 };
 
+class FPSCamera : public Camera
+{
+	const float YAW = 90.0f;
+	const float PITCH = 0.0f;
+	const float SENSITIVTY = 0.1f;
+	const float ZOOM = 45.0f;
+	const float SPEED_FAST = 500.0f;
+	const float SPEED_SLOW = 100.0f;
+	const float SPEED = SPEED_FAST;
+
+	float Yaw;
+	float Pitch;
+	// Camera options
+	float MovementSpeed;
+	float MouseSensitivity;
+	float Zoom;
+
+//	FPSCamera(GLFW* window, vec2 relativePosition, vec2 relativeDimensions, vec3 pos, vec3 lookAt, vec3 up, mat4 Projection);
+
+
+};
