@@ -45,6 +45,7 @@ public:
 	virtual void enableBuffers(void);
 	virtual void setLocalUniforms(void) = 0;
 	virtual void draw(void) = 0;
+	virtual void updateIfDirty(void) = 0;
 	virtual string printOwnProperties(void);
 	mat4 getModelMatrix();
 };
@@ -55,6 +56,8 @@ public:
 	vector<Vertex> vertices;
 	vector<GLuint> indices;
 	GLuint EBO;
+	int commitedVertexCount;
+	int commitedIndexCount;
 
 	MeshObject();
 	MeshObject(vector<Vertex> vertices, vector<GLuint> indices);
@@ -72,8 +75,8 @@ public:
 	virtual void commitVBOToGPU(void);
 	virtual void bindBuffers(void);
 	virtual void updateBuffers(void);
-	virtual void setLocalUniforms(void);
 	virtual void draw(void);
+	virtual void updateIfDirty(void);
 };
 
 class ImportedMeshObject : public MeshObject
@@ -88,6 +91,8 @@ template <class T, class S> class ExtendedMeshObject : public DecoratedGraphicsO
 {
 public:
 	vector<T> extendedData;
+	int commitedExtendedData;
+
 	ExtendedMeshObject() {};
 	ExtendedMeshObject(DecoratedGraphicsObject* child, string bufferSignature);
 	ExtendedMeshObject(DecoratedGraphicsObject* child, vector<T> data, string bufferSignature);
@@ -98,8 +103,8 @@ public:
 	virtual void commitVBOToGPU(void);
 	virtual void bindBuffers(void);
 	virtual void updateBuffers(void);
-	virtual void setLocalUniforms(void);
 	virtual void draw(void);
+	virtual void updateIfDirty(void);
 };
 
 #pragma region ExtendedMeshObjectTemplate
@@ -142,6 +147,8 @@ template <class T, class S> void ExtendedMeshObject<T, S>::commitVBOToGPU(void)
 	glVertexAttribPointer(layoutCount - 1, sizeof(T) / sizeof(S), GL_FLOAT, GL_FALSE, sizeof(T), (GLvoid*)0);
 
 	glBindVertexArray(0);
+
+	commitedExtendedData = extendedData.size();
 }
 
 template <class T, class S> void ExtendedMeshObject<T, S>::bindBuffers(void)
@@ -159,15 +166,31 @@ template <class T, class S> void ExtendedMeshObject<T, S>::updateBuffers(void)
 	commitVBOToGPU();
 }
 
-template <class T, class S> void ExtendedMeshObject<T, S>::setLocalUniforms(void)
-{
-
-}
-
 template <class T, class S> void ExtendedMeshObject<T, S>::draw(void)
 {
 	child->draw();
 }
+
+template <class T, class S> void ExtendedMeshObject<T,S>::updateIfDirty(void)
+{
+	if (dirty)
+	{
+		if (extendedData.size() != commitedExtendedData)
+		{
+			glBindVertexArray(VAO);
+			glDeleteBuffers(1, &VBO);
+
+			bindBuffers();
+		}
+		else
+		{
+			updateBuffers();
+		}
+
+		dirty = false;
+	}
+}
+
 #pragma endregion
 
 class TexturedMeshObject : public ExtendedMeshObject<vec2, float>
