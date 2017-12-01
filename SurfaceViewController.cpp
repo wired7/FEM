@@ -107,6 +107,7 @@ void SurfaceViewController::cameraMovement(SphericalCamera* cam, double xOffset,
 	cam->camTheta -= 0.1 * (GLfloat)xOffset;
 	cam->translate(5.0f * vec2(yOffset, yOffset));
 	cam->update();
+	std::cout << "Move" << std::endl;
 }
 
 void SurfaceViewController::getPickingID(GeometryPass* gP, double xpos, double ypos)

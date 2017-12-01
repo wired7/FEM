@@ -33,7 +33,7 @@ int init() {
 	// Enable depth test
 	glDepthFunc(GL_LESS);
 
-	glCullFace(GL_FRONT);
+	glCullFace(GL_BACK);
 
 	glPointSize(3.0f);
 
@@ -76,6 +76,7 @@ int main()
 		return -1;
 
 	SurfaceViewContext* context1 = new SurfaceViewContext();
+
 	context1->setAsActiveContext();
 
 	do {

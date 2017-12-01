@@ -17,7 +17,7 @@ TetrahedralizationContext::TetrahedralizationContext(DecoratedGraphicsObject* su
 
 void TetrahedralizationContext::setupGeometries(void)
 {
-	((GeometryPass*)passRootNode)->clearRenderableObjects(0);
+/*	((GeometryPass*)passRootNode)->clearRenderableObjects(0);
 
 	auto m = new Tetrahedron();
 
@@ -43,7 +43,7 @@ void TetrahedralizationContext::setupGeometries(void)
 
 	geometries.push_back(selectable);
 
-	((GeometryPass*)passRootNode)->addRenderableObjects(selectable, 0);
+	((GeometryPass*)passRootNode)->addRenderableObjects(selectable, 0);*/
 }
 
 void TetrahedralizationContext::setupPasses(void)

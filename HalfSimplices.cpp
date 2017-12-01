@@ -29,9 +29,10 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 	
 #ifdef DEBUG_HALFSIMPLICES
 		printf("%4d %4d %4d)", indices[i], indices[i + 1], indices[i + 2]);
+		std::cout << std::endl;
+
 #endif // DEBUG_HALFSIMPLICES
 
-		std::cout << std::endl;
 		Vertex* v1 = vertexLookup(indices[i]);
 		Vertex* v2 = vertexLookup(indices[i + 1]);
 		Vertex* v3 = vertexLookup(indices[i + 2]);
@@ -81,10 +82,12 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 		std::sort(v.begin(), v.end(), sortFunc);
 #ifdef DEBUG_HALFSIMPLICES
 
-		std::cout << "\nHE that start with " << i << ": ";
-		for (int j = 0; j < temp[i].size();j++) {
-		
-			std::cout << "( " << temp[i][j]->start <<", "<< temp[i][j]->end<< ") ";
+		if (v.size() > 0) {
+			std::cout << "\nHE that start with " << i << ": ";
+			for (int j = 0; j < temp[i].size();j++) {
+
+				std::cout << "( " << temp[i][j]->start << ", " << temp[i][j]->end << ") ";
+			}
 		}
 #endif
 
@@ -154,18 +157,22 @@ HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
 		}
 #endif
 	}
-	// fuck bitches, ger m
-
+	
 	for (int i = 0; i < newEdges.size();i++) {
 		HalfEdge* newEdge = newEdges[i];
 		if (newEdge->next == nullptr) {
 			HalfEdge* he = newEdges[i];
 			HalfEdge* next = he;
+			std::cout << "\n\nstarting at: (";
+			printf("(%d, %d)", he->start, he->end);
+			std::cout << "): "<<std::endl;
 			do {
 				HalfEdge* t = newEdgesMapping[next->end][0];
 				next->next = t;
 				t->previous = next;
 				next = t;
+				printf("(%d, %d)", t->start, t->end);
+				std::cout << "->";
 			} while ((next != he));
 			Hole* hole = new Hole;
 			hole->halfEdge = he;
