@@ -22,7 +22,7 @@ void SurfaceViewContext::setupGeometries(void)
 	refMan = new ReferenceManager();
 
 //	auto m = new ImportedMeshObject("models\\noEyeballsChinchilla.obj");
-	auto m = new Cylinder(3);//Polyhedron(10, vec3(), vec3(1.0f));
+	auto m = new Cylinder(10);//Polyhedron(10, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;
 
@@ -112,9 +112,6 @@ void SurfaceViewContext::setupRenderableHalfEdges(HalfEdge::HalfSimplices* hSimp
 			}
 		}
 	}
-
-	cout << transformC.size() << endl;
-	cout << hSimp->halfEdges.size() << endl;
 
 	auto g = new MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
 

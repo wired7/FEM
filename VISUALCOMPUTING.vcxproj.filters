@@ -78,6 +78,12 @@
     <ClCompile Include="TetrahedralizationController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="HalfEdgeUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LinearAlgebraUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraphicsObject.h">
@@ -144,6 +150,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TetrahedralizationController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HalfEdgeUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LinearAlgebraUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

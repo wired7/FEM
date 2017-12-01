@@ -1,4 +1,5 @@
 #include "HalfEdgeUtils.h"
+#include <iostream>
 
 vector<HalfEdge::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(HalfEdge::Facet* facet)
 {
@@ -38,7 +39,21 @@ mat4 HalfEdgeUtils::getHalfEdgeTransform(HalfEdge::HalfEdge* halfEdge, MeshObjec
 	point[0] = vec3(parentTransform * vec4(m->vertices[halfEdge->start].position, 1));
 	point[1] = vec3(parentTransform * vec4(m->vertices[halfEdge->end].position, 1));
 	float edgeLength = length(point[1] - point[0]);
-	vec3 z = -normalize(cross(normalize(point[1] - point[0]), vec3(1, 0, 0)));
+	vec3 vectorDir = normalize(point[1] - point[0]);
+	vec3 z;
+	if (abs(vectorDir.x) == 0.0f || (vectorDir.y != 0.0f && vectorDir.z != 0.0f))
+	{
+		z = -normalize(cross(vectorDir, vec3(1, 0, 0)));
+	}
+	else if (vectorDir.x == 1.0f)
+	{
+		z = vec3(0, 0, 1);
+	}
+	else
+	{
+		z = vec3(0, 0, -1);
+	}
+
 	float angle = acos(dot(normalize(point[1] - point[0]), vec3(1, 0, 0)));
 
 	mat4 aroundCentroid =

@@ -128,6 +128,7 @@
     <ClCompile Include="HalfEdgeUtils.cpp" />
     <ClCompile Include="HalfSimplices.cpp" />
     <ClCompile Include="ImplicitGeometry.cpp" />
+    <ClCompile Include="LinearAlgebraUtils.cpp" />
     <ClCompile Include="PointSamplingContext.cpp" />
     <ClCompile Include="PointSamplingController.cpp" />
     <ClCompile Include="ReferencedGraphicsObject.cpp" />
@@ -154,6 +155,7 @@
     <ClInclude Include="HalfEdgeUtils.h" />
     <ClInclude Include="HalfSimplices.h" />
     <ClInclude Include="ImplicitGeometry.h" />
+    <ClInclude Include="LinearAlgebraUtils.h" />
     <ClInclude Include="PointSamplingContext.h" />
     <ClInclude Include="PointSamplingController.h" />
     <ClInclude Include="ReferencedGraphicsObject.h" />
