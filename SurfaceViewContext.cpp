@@ -162,3 +162,44 @@ void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 
 	geometries.push_back(selectable);
 }
+
+void setupRenderableFacets(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o)
+{
+	vector<GLuint> indices;
+	vector<Vertex> vertices;
+	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
+	auto mesh = ((MeshObject*)o->signatureLookup("VERTEX"));
+
+	for (int j = 0; j < transform.size(); j++)
+	{
+		for (int i = 0; i < hSimp->facets.size(); i++)
+		{
+			auto facetVertices = HalfEdgeUtils::getFacetVertices(hSimp->facets[i]);
+			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->facets[i], mesh, transform[j]);
+			vec3 normal;
+
+			for (int k = 0; k < facetVertices.size(); k++)
+			{
+				normal += mesh->vertices[facetVertices[0]->externalIndex].normal;
+			}
+			
+			normal = normalize(normal);
+			vertices.push_back(Vertex( centroid, normal));
+			int centroidIndex = vertices.size() - 1;
+
+			for (int k = 0; k <= facetVertices.size(); k++)
+			{
+				vertices.push_back(mesh->vertices[facetVertices[k]->externalIndex]);
+
+				if (k > 0)
+				{
+					indices.push_back(centroidIndex);
+					indices.push_back(centroidIndex + (k % facetVertices.size()));
+					indices.push_back(centroidIndex + k - 1);
+				}
+			}
+		}
+	}
+
+	auto meshObject = new MeshObject(vertices, indices);
+}
