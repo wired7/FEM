@@ -7,6 +7,13 @@
 using namespace glm;
 using namespace std;
 
+const glm::vec3 FRONT	( 0,  0,  1);
+const glm::vec3 BACK	( 0,  0, -1);
+const glm::vec3 LEFT	(-1,  0,  0);
+const glm::vec3 RIGHT	( 1,  0,  0);
+const glm::vec3 UP		( 0,  1,  0);
+const glm::vec3 DOWN	( 0, -1,  0);
+
 class Camera
 {
 public:
@@ -53,6 +60,19 @@ private:
 
 class FPSCamera : public Camera
 {
+
+public:
+	FPSCamera(GLFWwindow* window, vec2 relativePosition, vec2 relativeDimensions, vec3 pos, vec3 lookAt, vec3 up, mat4 Projection);
+	void changeSpeed();
+
+	void processKeyInput(glm::vec3 direction);
+	void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
+	void update();
+
+
+private:
+	// Calculates the front vector from the Camera's (updated) Eular Angles
+
 	const float YAW = 90.0f;
 	const float PITCH = 0.0f;
 	const float SENSITIVTY = 0.1f;
@@ -67,8 +87,6 @@ class FPSCamera : public Camera
 	float MovementSpeed;
 	float MouseSensitivity;
 	float Zoom;
-
-//	FPSCamera(GLFW* window, vec2 relativePosition, vec2 relativeDimensions, vec3 pos, vec3 lookAt, vec3 up, mat4 Projection);
-
+	glm::vec3 Right;
 
 };

@@ -85,3 +85,75 @@ void SphericalCamera::translate(vec2 offset)
 	vec3 diff(cos(camTheta), 0, sin(camTheta));
 	camPosVector += diff * vec3(offset.x, 0, offset.y);
 }
+
+
+FPSCamera::FPSCamera(GLFWwindow* window, vec2 relativePosition, vec2 relativeDimensions, vec3 pos, vec3 lookAt, vec3 up, mat4 Projection)
+	: Camera(window, relativePosition, relativeDimensions, pos, lookAt, up, Projection) {
+
+	Yaw = YAW;
+	Pitch = PITCH;
+	MovementSpeed = SPEED_FAST;
+//	update();
+}
+
+void FPSCamera::changeSpeed() {
+	if (MovementSpeed == SPEED_FAST)
+		MovementSpeed = SPEED_SLOW;
+	else
+		MovementSpeed = SPEED_FAST;
+}
+
+void FPSCamera::processKeyInput(glm::vec3 direction) {
+	float velocity = -MovementSpeed;
+
+	if (direction == FRONT)
+		camPosVector -= lookAtVector * velocity;
+	if (direction == BACK)
+		camPosVector += lookAtVector * velocity;
+	if (direction == LEFT)
+		camPosVector += Right * velocity;
+	if (direction == RIGHT)
+		camPosVector -= Right * velocity;
+	if (direction == UP)
+		camPosVector -= UP * velocity;
+	if (direction == DOWN)
+		camPosVector += UP * velocity;
+
+	View = glm::lookAt(camPosVector, camPosVector + lookAtVector, upVector);
+
+}
+
+void FPSCamera::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
+	xoffset *= MouseSensitivity;
+	yoffset *= MouseSensitivity;
+
+	Yaw += xoffset;
+	Pitch += yoffset;
+
+	// Make sure that when pitch is out of bounds, screen doesn't get flipped
+	if (constrainPitch)
+	{
+		if (Pitch > 89.0f)
+			Pitch = 89.0f;
+		if (Pitch < -89.0f)
+			Pitch = -89.0f;
+	}
+
+	// Update Front, Right and Up Vectors using the updated Eular angles
+	update();
+}
+
+void FPSCamera::update() {
+	glm::vec3 front;
+	front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+	front.y = sin(glm::radians(Pitch));
+	front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+	lookAtVector = glm::normalize(front);
+
+	// Also re-calculate the Right and Up vector
+	Right = glm::normalize(glm::cross(lookAtVector, glm::vec3(0,1,0)));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+	upVector = glm::normalize(glm::cross(Right, lookAtVector));
+
+	View = glm::lookAt(camPosVector, camPosVector + lookAtVector, upVector);
+
+}
