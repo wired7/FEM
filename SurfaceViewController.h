@@ -18,5 +18,7 @@ public:
 	static void mPC(GLFWwindow*, double, double);
 	static void wRC(GLFWwindow*, int, int);
 	static void cameraMovement(SphericalCamera* cam, double xOffset, double yOffset);
+	static void cameraMovement(SphericalCamera* cam, glm::vec3 direction);
+
 	static void getPickingID(GeometryPass* gP, double xpos, double ypos);
 };

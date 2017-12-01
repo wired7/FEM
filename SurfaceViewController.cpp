@@ -76,6 +76,19 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 		controller->pointRendering ^= true;
 	}
 
+	if (key == GLFW_KEY_SPACE && action != GLFW_PRESS) {
+		
+		SphericalCamera* cam = controller->context->cameras[0];
+		cameraMovement(cam,glm::vec3(0, 1, 0));
+
+	}
+	if (key == GLFW_KEY_LEFT_CONTROL && action != GLFW_PRESS) {
+
+		SphericalCamera* cam = controller->context->cameras[0];
+		cameraMovement(cam,glm::vec3(0, -1, 0));
+
+	}
+
 	controller->context->dirty = true;
 }
 
@@ -123,6 +136,11 @@ void SurfaceViewController::cameraMovement(SphericalCamera* cam, double xOffset,
 {
 	cam->camTheta -= 0.1 * (GLfloat)xOffset;
 	cam->translate(5.0f * vec2(yOffset, yOffset));
+	cam->update();
+}
+void SurfaceViewController::cameraMovement(SphericalCamera* cam, glm::vec3 direction)
+{
+	cam->camPosVector += direction*0.3f;
 	cam->update();
 }
 
