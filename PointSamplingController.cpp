@@ -1,6 +1,7 @@
 #pragma once
 #include "PointSamplingController.h"
 #include "SurfaceViewController.h"
+#include "TetrahedralizationContext.h"
 
 PointSamplingController::PointSamplingController()
 {
@@ -30,6 +31,15 @@ void PointSamplingController::kC(GLFWwindow* window, int key, int scancode, int 
 		}
 
 		controller->surfaceRendering ^= true;
+	}
+
+	if (key == GLFW_KEY_N && action == GLFW_RELEASE) {
+		auto geo = controller->context->geometries[0];
+		auto &points = controller->context->points;
+		auto cam = controller->context->cameras[0];
+		
+		auto n = new TetrahedralizationContext(geo,points, cam);
+		n->setAsActiveContext();
 	}
 
 	controller->context->dirty = true;
