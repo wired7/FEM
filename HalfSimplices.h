@@ -6,9 +6,11 @@
 using namespace std;
 using namespace glm;
 #define dDEBUG_HALFSIMPLICES 
-namespace HalfEdge {
+namespace Geometry {
 
+	struct Volume;
 	struct HalfEdge;
+	struct Facet;
 
 	struct Vertex
 	{
@@ -19,15 +21,6 @@ namespace HalfEdge {
 		Vertex(int externalIndex) : externalIndex(externalIndex) {};
 	};
 
-	struct Facet
-	{
-	public:
-		HalfEdge* halfEdge;
-		int internalIndex;
-
-	private:
-		int internalIndexCounter = 0;
-	};
 
 	typedef Facet Hole;
 
@@ -51,20 +44,33 @@ namespace HalfEdge {
 
 	};
 
-	struct HalfFacet;
 
-	struct Tetra
+	struct Facet
 	{
 	public:
-		HalfFacet* halfFacet;
-	};
+		HalfEdge* halfEdge;
+		Volume* volume;
+		Facet* twin;
+		Facet* next;
+		Facet* previous;
+		int internalIndex;
 
-	struct HalfFacet : public HalfEdge
+		vector<int> getIndices() {
+			vector<int> indices(0);
+			HalfEdge* h = halfEdge;
+			HalfEdge * n = h;
+			while (n->next != h) {
+				indices.push_back(n->start);
+				n = n->next;
+			}
+			return indices;
+		}
+	};
+	struct Volume
 	{
 	public:
-		Tetra* tetra;
+		Facet* Facet;
 	};
-
 
 	class HalfSimplices
 	{
@@ -75,8 +81,8 @@ namespace HalfEdge {
 		vector<HalfEdge*> halfEdges;
 		vector<Facet*> facets;
 		vector<Hole*> holes;
-		vector<Tetra*> tetras;
-		vector<Tetra*> tetraHoles;
+		vector<Volume*> tetras;
+		vector<Volume*> tetraHoles;
 
 		HalfSimplices(vector<GLuint> indices, int verticesPerFacet);
 		~HalfSimplices();

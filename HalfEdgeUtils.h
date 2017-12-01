@@ -5,8 +5,8 @@
 static class HalfEdgeUtils
 {
 public:
-	static vector<HalfEdge::HalfEdge*> getFacetHalfEdges(HalfEdge::Facet* facet);
-	static vec3 getFacetCentroid(HalfEdge::Facet* facet, MeshObject* m, const mat4& parentTransform);
-	static mat4 getHalfEdgeTransform(HalfEdge::HalfEdge* halfEdge, MeshObject* m, const mat4& parentTransform, const vec3& centroid);
+	static vector<Geometry::HalfEdge*> getFacetHalfEdges(Geometry::Facet* facet);
+	static vec3 getFacetCentroid(Geometry::Facet* facet, Graphics::MeshObject* m, const mat4& parentTransform);
+	static mat4 getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, Graphics::MeshObject* m, const mat4& parentTransform, const vec3& centroid);
 };
 

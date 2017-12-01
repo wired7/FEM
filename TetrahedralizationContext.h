@@ -3,7 +3,11 @@
 #include "TetrahedralizationController.h"
 
 class TetrahedralizationController;
-
+class HalfEdge;
+class Facet;
+class HalfFacet;
+class Volume;
+using namespace Geometry;
 class TetrahedralizationContext : public GraphicsSceneContext<TetrahedralizationController, SphericalCamera, TetrahedralizationContext>
 {
 protected:
@@ -14,8 +18,14 @@ protected:
 	virtual void setupPasses(void);
 
 	vector<glm::vec3> & points;
+
+	vector<Vertex> vertices;
+	vector<HalfEdge> halfedges;
+	vector<Facet> facets;
+	vector<Volume> volumes;
+
 public:
-	TetrahedralizationContext(DecoratedGraphicsObject* surface, vector<vec3> & _points, SphericalCamera* cam);
+	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, vector<vec3> & _points, SphericalCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);
 };

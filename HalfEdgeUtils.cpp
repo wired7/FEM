@@ -1,12 +1,12 @@
 #include "HalfEdgeUtils.h"
 #include <iostream>
 
-vector<HalfEdge::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(HalfEdge::Facet* facet)
+vector<Geometry::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(Geometry::Facet* facet)
 {
-	vector<HalfEdge::HalfEdge*> edges;
+	vector<Geometry::HalfEdge*> edges;
 
-	HalfEdge::HalfEdge* halfEdge = facet->halfEdge;
-	HalfEdge::HalfEdge* newEdge = halfEdge;
+	Geometry::HalfEdge* halfEdge = facet->halfEdge;
+	Geometry::HalfEdge* newEdge = halfEdge;
 	while (true) {
 		edges.push_back(newEdge);
 		newEdge = newEdge->next;
@@ -19,7 +19,7 @@ vector<HalfEdge::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(HalfEdge::Facet* fa
 	return edges;
 }
 
-vec3 HalfEdgeUtils::getFacetCentroid(HalfEdge::Facet* facet, MeshObject* m, const mat4& parentTransform)
+vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, Graphics::MeshObject* m, const mat4& parentTransform)
 {
 	vec3 centroid(0.0f);
 	
@@ -33,7 +33,7 @@ vec3 HalfEdgeUtils::getFacetCentroid(HalfEdge::Facet* facet, MeshObject* m, cons
 	return centroid / (float)edges.size();
 }
 
-mat4 HalfEdgeUtils::getHalfEdgeTransform(HalfEdge::HalfEdge* halfEdge, MeshObject* m, const mat4& parentTransform, const vec3& centroid)
+mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, Graphics::MeshObject* m, const mat4& parentTransform, const vec3& centroid)
 {
 	vec3 point[2];
 	point[0] = vec3(parentTransform * vec4(m->vertices[halfEdge->start].position, 1));

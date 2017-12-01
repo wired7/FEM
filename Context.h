@@ -57,7 +57,7 @@ protected:
 public:
 	bool dirty = true;
 	Pass* passRootNode;
-	vector<DecoratedGraphicsObject*> geometries;
+	vector<Graphics::DecoratedGraphicsObject*> geometries;
 	GraphicsSceneContext() {};
 	~GraphicsSceneContext() {};
 	virtual void update(void);

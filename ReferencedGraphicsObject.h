@@ -3,7 +3,7 @@
 #include <utility>
 
 using namespace std;
-
+using namespace Graphics;
 //Stores and manages reference graphics object and instance index within it associated with map index
 class ReferenceManager
 {

@@ -2,6 +2,7 @@
 #include "WindowContext.h"
 #include "Camera.h"
 
+using namespace Graphics;
 Pass::Pass()
 {
 }

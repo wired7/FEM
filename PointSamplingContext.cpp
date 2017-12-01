@@ -4,7 +4,7 @@
 #include <thread>
 
 using namespace std;
-
+using namespace Graphics;
 PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, SphericalCamera* cam)
 {
 	cameras.push_back(cam);

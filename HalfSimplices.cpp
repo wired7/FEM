@@ -3,7 +3,7 @@
 #include <stack>
 #include <algorithm>
 using namespace std;
-using namespace HalfEdge;
+using namespace Geometry;
 
 
 HalfSimplices::HalfSimplices(vector<GLuint> indices, int verticesPerFacet)
