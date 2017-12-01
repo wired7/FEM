@@ -1,5 +1,5 @@
 #include "SurfaceViewContext.h"
-#include "HalfSimplices.h"
+#include "HalfEdgeUtils.h"
 
 SurfaceViewContext::SurfaceViewContext() : GraphicsSceneContext()
 {
@@ -21,43 +21,27 @@ void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
 
-	auto m = new ImportedMeshObject("models\\sphere.obj");
+	auto m = new ImportedMeshObject("models\\chinchilla.obj");
 //	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;
-	/*	int number = 5;
 
-	for (int k = 0; k <= number; k++)
-	{
-	for (int j = -number; j <= number; j++)
-	{
-	for (int i = -number; i <= number; i++)
-	{
-	vec3 pos = 15.0f * vec3(i, j, -2.0f * k);*/
 	vec3 pos = vec3(0, 0, 0);
 	transform.push_back(scale(mat4(1.0f), vec3(3.0f)) * translate(mat4(1.0f), pos));
-	/*				pos = vec3(5, 0, 0);
-	transform.push_back(scale(mat4(1.0f), vec3(0.4f)) * translate(mat4(1.0f), pos));*/
-	/*			}
-	}
-	}*/
 
 	auto g = new MatrixInstancedMeshObject<mat4, float>(m, transform, "TRANSFORM");
 
 	vector<vec4> teamColor;
-	//	int numColors = 20;
-	//	for (int i = 0; i < numColors; i++)
-	//		teamColor.push_back(vec4(((float)i) / numColors, 1, 1 - ((float)i) / numColors, 1));
 	teamColor.push_back(vec4(0, 0, 1, 1));
-	auto e = new InstancedMeshObject<vec4, float>(g, teamColor, "COLOR", transform.size() / teamColor.size());
 
+	auto e = new InstancedMeshObject<vec4, float>(g, teamColor, "COLOR", transform.size() / teamColor.size());
 	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, e, transform.size(), "INSTANCEID", 1);
 
 	vector<GLbyte> selected;
 	// Maybe have an instanced mesh object constructor with a size and an initializer if all values will be the same
 	for (int i = 0; i < transform.size(); i++)
 	{
-		selected.push_back(1);
+		selected.push_back(0);
 	}
 
 	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selected, "SELECTION", 1);
@@ -66,61 +50,72 @@ void SurfaceViewContext::setupGeometries(void)
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	
-//	auto ball = new Polyhedron(10, vec3(), vec3(1.0f));
-	std::cout << "Real: Num of Verts: " << m->vertices.size() << std::endl;
-
-	
 	HalfEdge::HalfSimplices * hSimp = new HalfEdge::HalfSimplices(m->indices, 3);
-//	std::cout << "Num of Facets: " << hSimp->facets.size() << std::endl;
-//	std::cout << "Num of Halfedges: "<<hSimp->halfEdges.size() << std::endl;
 
+	setupRenderableHalfEdges(hSimp, selectable);
+	setupRenderableVertices(selectable);
+
+	makeQuad();
+}
+
+void SurfaceViewContext::setupPasses(void)
+{
+	// TODO: might want to manage passes as well
+	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA"), ShaderProgramPipeline::getPipeline("C")});
+	gP->addRenderableObjects(geometries[0], 0);
+	gP->addRenderableObjects(geometries[1], 1);
+	gP->addRenderableObjects(geometries[2], 2);
+	gP->setupCamera(cameras[0]);
+
+	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
+	lP->addRenderableObjects(geometries[3], 0);
+	gP->addNeighbor(lP);
+
+	passRootNode = gP;
+}
+
+void SurfaceViewContext::setupRenderableHalfEdges(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o)
+{
 	auto cylinder = new Arrow();
 
+	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
+	auto m = (MeshObject*)o->signatureLookup("VERTEX");
+
 	vector<mat4> transformC;
-	mat4 s = scale(mat4(1.0f), vec3(1, 0.005f, 0.005f));
 	vector<vec3> centroids;
+	vector<GLbyte> warningC;
 
 	for (int j = 0; j < transform.size(); j++)
 	{
-		for (int i = 0; i < hSimp->halfEdges.size(); i++)
+		for (int i = 0; i < hSimp->facets.size(); i++)
 		{
-			vec3 centroid(0.0f);
-			int count = 0;
-			HalfEdge::HalfEdge* halfEdge = hSimp->halfEdges[i];
-			HalfEdge::HalfEdge* newEdge = halfEdge;
-			while (true) {
-				centroid += m->vertices[newEdge->vertex->externalIndex].position;
-				count++;
-				newEdge = newEdge->next;
-				if (newEdge == halfEdge)
-				{
-					break;
-				}
+			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->facets[i], m, transform[j]);
+			auto edges = HalfEdgeUtils::getFacetHalfEdges(hSimp->facets[i]);
+
+			for (int k = 0; k < edges.size(); k++)
+			{
+				warningC.push_back(0);
+				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], m, transform[j], centroid));
 			}
+		}
 
-			centroid /= count;
+		for (int i = 0; i < hSimp->holes.size(); i++)
+		{
+			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->holes[i], m, transform[j]);
 
-			vec3 point[2];
-			point[0] = vec3(transform[j] * vec4(m->vertices[hSimp->halfEdges[i]->start].position, 1));
-			point[1] = vec3(transform[j] * vec4(m->vertices[hSimp->halfEdges[i]->end].position, 1));
-			vec3 z = -normalize(cross(normalize(point[1] - point[0]), vec3(1, 0, 0)));
-			float angle = acos(dot(normalize(point[1] - point[0]), vec3(1, 0, 0)));
-			transformC.push_back(
-								scale(mat4(1.0f), vec3(1.0f / 0.8f)) * translate(mat4(1.0f), centroid) * 
-								scale(mat4(1.0f), vec3(0.7f)) * 
-								translate(mat4(1.0f), point[0] - centroid) * 
-								rotate(mat4(1.0f), angle, z) * 
-								scale(mat4(1.0f), vec3(length(point[1] - point[0]), 1, 1)) * s * 
-								translate(mat4(1.0f), vec3(0.5f, 0, 0)) *
-								scale(mat4(1.0f), vec3(0.9f, 1, 1)) *
-								translate(mat4(1.0f), vec3(-0.5f, 0, 0)));
+			auto edges = HalfEdgeUtils::getFacetHalfEdges(hSimp->holes[i]);
+
+			for (int k = 0; k < edges.size(); k++)
+			{
+				warningC.push_back(1);
+				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], m, transform[j], centroid));
+			}
 		}
 	}
 
-	g = new MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
+	auto g = new MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
 
-	pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, transformC.size(), "INSTANCEID", 1);
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, transformC.size(), "INSTANCEID", 1);
 
 	vector<GLbyte> selectedC;
 
@@ -129,24 +124,41 @@ void SurfaceViewContext::setupGeometries(void)
 		selectedC.push_back(1);
 	}
 
-	selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
+	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
 
-	geometries.push_back(selectable);
+	auto highlightable = new InstancedMeshObject<GLbyte, GLbyte>(selectable, warningC, "WARNING", 1);
 
-	makeQuad();
+	geometries.push_back(highlightable);
 }
 
-void SurfaceViewContext::setupPasses(void)
+void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 {
-	// TODO: might want to manage passes as well
-	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA") });
-	gP->addRenderableObjects(geometries[0], 0);
-	gP->addRenderableObjects(geometries[1], 1);
-	gP->setupCamera(cameras[0]);
+	auto point = new Polyhedron(6, vec3(), vec3(1.0f));
 
-	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[2], 0);
-	gP->addNeighbor(lP);
+	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
+	auto vertices = ((MeshObject*)o->signatureLookup("VERTEX"))->vertices;
+	vector<mat4> positions;
 
-	passRootNode = gP;
+	for (int j = 0; j < transform.size(); j++)
+	{
+		for (int i = 0; i < vertices.size(); i++)
+		{
+			positions.push_back(transform[j] * translate(mat4(1.0f), vertices[i].position) * scale(mat4(1.0f), vec3(0.02f)));
+		}
+	}
+
+	auto g = new MatrixInstancedMeshObject<mat4, float>(point, positions, "TRANSFORM");
+
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, vertices.size(), "INSTANCEID", 1);
+
+	vector<GLbyte> selectedC;
+
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		selectedC.push_back(1);
+	}
+
+	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
+
+	geometries.push_back(selectable);
 }
