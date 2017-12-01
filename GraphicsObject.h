@@ -43,7 +43,6 @@ public:
 	virtual void updateBuffersPartially(int minBufferIndex, int maxBufferIndex);
 	virtual void updateBuffersPartially(int minBufferIndex, int maxBufferIndex, vector<string> bufferSignatures);
 	virtual void enableBuffers(void);
-	virtual void setLocalUniforms(void) = 0;
 	virtual void draw(void) = 0;
 	virtual void updateIfDirty(void) = 0;
 	virtual string printOwnProperties(void);
@@ -180,7 +179,9 @@ template <class T, class S> void ExtendedMeshObject<T,S>::updateIfDirty(void)
 			glBindVertexArray(VAO);
 			glDeleteBuffers(1, &VBO);
 
-			bindBuffers();
+			glGenBuffers(1, &VBO);
+
+			commitVBOToGPU();
 		}
 		else
 		{

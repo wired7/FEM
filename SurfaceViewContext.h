@@ -13,6 +13,7 @@ private:
 	ReferenceManager* refMan;
 	void setupRenderableHalfEdges(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o);
 	void setupRenderableVertices(DecoratedGraphicsObject* o);
+	void setupRenderableFacets(HalfEdge::HalfSimplices* hSimp, DecoratedGraphicsObject* o);
 protected:
 	virtual void setupCameras(void);
 	virtual void setupGeometries(void);

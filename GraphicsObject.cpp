@@ -30,7 +30,7 @@ void DecoratedGraphicsObject::enableBuffers(void)
 {
 	glBindVertexArray(VAO);
 
-	updateIfDirty();
+//	updateIfDirty();
 
 	int index = 0;
 	if (child != nullptr)
@@ -120,8 +120,8 @@ void MeshObject::addVertex(vec3 pos, vec3 normal)
 
 void MeshObject::draw(void)
 {
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
+	glDrawElements(GL_TRIANGLES, commitedIndexCount, GL_UNSIGNED_INT, 0);
+ 	glBindVertexArray(0);
 }
 
 void MeshObject::updateIfDirty(void)
@@ -130,11 +130,14 @@ void MeshObject::updateIfDirty(void)
 	{
 		if (vertices.size() != commitedVertexCount || indices.size() != commitedIndexCount)
 		{
-			glBindVertexArray(VAO);
+/*			glBindVertexArray(VAO);
 			glDeleteBuffers(1, &VBO);
 			glDeleteBuffers(1, &EBO);
 
-			bindBuffers();
+			glGenBuffers(1, &VBO);
+			glGenBuffers(1, &EBO);
+
+			commitVBOToGPU();*/
 		}
 		else
 		{

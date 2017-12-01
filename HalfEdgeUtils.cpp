@@ -19,6 +19,18 @@ vector<HalfEdge::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(HalfEdge::Facet* fa
 	return edges;
 }
 
+vector<HalfEdge::Vertex*> HalfEdgeUtils::getFacetVertices(HalfEdge::Facet* facet)
+{
+	auto edges = getFacetHalfEdges(facet);
+	vector<HalfEdge::Vertex*> vertices;
+	for (int i = 0; i < edges.size(); i++)
+	{
+		vertices.push_back(edges[i]->vertex);
+	}
+
+	return vertices;
+}
+
 vec3 HalfEdgeUtils::getFacetCentroid(HalfEdge::Facet* facet, MeshObject* m, const mat4& parentTransform)
 {
 	vec3 centroid(0.0f);
