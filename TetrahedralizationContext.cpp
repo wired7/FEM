@@ -31,15 +31,34 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	auto edges = HalfEdgeUtils::getRenderableEdgesFromMesh(&volume, positions, refMan);
 	geometries.push_back(edges);
 
-	geometries.push_back(points);
-
-	auto faces = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
-
-	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)faces->signatureLookup("INSTANCEID"));
+	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)points->signatureLookup("INSTANCEID"));
 	auto objectIDs = instanceIDs->extendedData;
 
 	int currentIndex = objectIDs[0];
 	int currentManagedIndex = refMan->assignNewGUID();
+	for (int i = 0; i < objectIDs.size(); i++)
+	{
+		if (objectIDs[i] != currentIndex)
+		{
+			currentIndex = objectIDs[i];
+			currentManagedIndex = refMan->assignNewGUID();
+		}
+
+		objectIDs[i] = currentManagedIndex;
+	}
+
+	instanceIDs->extendedData = objectIDs;
+	instanceIDs->updateBuffers();
+
+	geometries.push_back(points);
+
+	auto faces = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
+
+	instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)faces->signatureLookup("INSTANCEID"));
+	objectIDs = instanceIDs->extendedData;
+
+	currentIndex = objectIDs[0];
+	currentManagedIndex = refMan->assignNewGUID();
 	for (int i = 0; i < objectIDs.size(); i++)
 	{
 		if (objectIDs[i] != currentIndex)
