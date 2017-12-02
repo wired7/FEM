@@ -21,10 +21,10 @@ void SurfaceViewContext::setupCameras(void)
 void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
-	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
+//	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
 
 	//auto m = new ImportedMeshObject("models\\noEyeballsChinchilla.obj");
-	//auto m = new Cylinder(10);//Polyhedron(10, vec3(), vec3(1.0f));
+	auto m = new Polyhedron(10, vec3(), vec3(5.0f));
 
 	vector<mat4> transform;
 

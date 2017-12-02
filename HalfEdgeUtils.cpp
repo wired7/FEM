@@ -30,7 +30,8 @@ vector<Geometry::Vertex*> HalfEdgeUtils::getFacetVertices(Geometry::Facet* facet
 
 	return vertices;
 }
-static float distanceToHalfEdge(const vector<vec3> & positions, const Geometry::Vertex & vertex, Geometry::HalfEdge halfedge) {
+
+float HalfEdgeUtils::distanceToHalfEdge(vector<vec3> & positions, Geometry::Vertex & vertex, Geometry::HalfEdge & halfedge) {
 
 	const vec3 & vPos = positions[vertex.externalIndex];
 	const vec3 & hPos1 = positions[halfedge.start];
@@ -40,6 +41,19 @@ static float distanceToHalfEdge(const vector<vec3> & positions, const Geometry::
 	float f2 = glm::distance(hPos2, vPos);
 
 	return sqrtf(f1 + f2);
+}
+
+float HalfEdgeUtils::distanceToFacet(vector<vec3> & positions, Geometry::Vertex & vertex, Geometry::Facet & facet) {
+
+	const vec3 & vPos = positions[vertex.externalIndex];
+	const vector<Vertex*> vertecies = getFacetVertices(&facet);
+	float dist = 0;
+	for (int i = 0; i < vertecies.size();i++) {
+		const vec3 & facetPos = positions[vertecies[i]->externalIndex];
+		dist += distance(vPos, facetPos);
+	}
+
+	return dist;
 }
 
 vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, Graphics::MeshObject* m, const mat4& parentTransform)
@@ -93,4 +107,60 @@ mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, Graphics:
 		aroundCentroid;
 
 	return transform;
+}
+
+bool HalfEdgeUtils::containsVertex( Geometry::Vertex & vertex, Geometry::HalfEdge & halfedge) {
+	return (vertex.externalIndex == halfedge.start || vertex.externalIndex == halfedge.end);
+}
+
+bool HalfEdgeUtils::containsVertex( Geometry::Vertex & vertex, Geometry::Facet & facet) {
+
+	vector<HalfEdge*> halfedges = getFacetHalfEdges(&facet);
+	
+	for (int i = 0; i < halfedges.size();i++) {
+		if (containsVertex(vertex, *halfedges[i])) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool HalfEdgeUtils::containsHalfEdge( Geometry::HalfEdge & halfedge, Geometry::Facet & facet) {
+	vector<HalfEdge*> halfedges = getFacetHalfEdges(&facet);
+	for (int i = 0; i < halfedges.size();i++) {
+		if (&halfedge == halfedges[i]){
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
+// this connects halfedges in the orther they are in the vector... it will not ensure that they connected correctly
+void HalfEdgeUtils::connectHalfEdges(std::vector<HalfEdge*> & halfedges) {
+	 for (int i = 0; i < halfedges.size() - 1;i++) {
+		 halfedges[i]->next = halfedges[i + 1];
+	 }
+	 halfedges[halfedges.size() - 1]->next = halfedges[0];
+	 for (int i = halfedges.size()-1; i >1;i--) {
+		 halfedges[i]->previous = halfedges[i - 1];
+	 }
+	 halfedges[0]->previous = halfedges[halfedges.size() - 1];
+
+ }
+void HalfEdgeUtils::printEdge(HalfEdge* he) {
+	std::cout << "HE( " << he->start << ", " << he->end << ") ";
+}
+
+void HalfEdgeUtils::printFacet(Facet * facet) {
+
+	vector<HalfEdge*> halfedges = getFacetHalfEdges(facet);
+	std::cout << "FACET { ";
+	for (int i = 0; i < halfedges.size();i++) {
+		printEdge(halfedges[i]);
+		std::cout << ", ";
+	}
+	std::cout << " }";
+
 }
