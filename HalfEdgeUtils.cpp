@@ -2,6 +2,7 @@
 #include "HalfEdgeUtils.h"
 #include <iostream>
 #include "LinearAlgebraUtils.h"
+#include "GeometricalMeshObjects.h"
 #include <gtc/matrix_transform.hpp>
 #include <gtx/rotate_vector.hpp>
 
@@ -50,14 +51,14 @@ float HalfEdgeUtils::distanceToHalfEdge(vector<vec3> & positions, Geometry::Vert
 float HalfEdgeUtils::distanceToFacet(vector<vec3> & positions, Geometry::Vertex & vertex, Geometry::Facet & facet) {
 
 	const vec3 & vPos = positions[vertex.externalIndex];
-	const vector<Vertex*> vertecies = getFacetVertices(&facet);
+	const vector<Geometry::Vertex*> vertecies = getFacetVertices(&facet);
 	float dist = 0;
 	for (int i = 0; i < vertecies.size();i++) {
 		const vec3 & facetPos = positions[vertecies[i]->externalIndex];
 		dist += distance(vPos, facetPos);
 	}
 
-	return dist;
+	return sqrtf(dist);
 }
 
 vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, const vector<vec3>& positions, const mat4& parentTransform)
@@ -74,11 +75,11 @@ vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, const vector<vec3>&
 	return centroid / (float)edges.size();
 }
 
-mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, Graphics::MeshObject* m, const mat4& parentTransform, const vec3& centroid)
+mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, const vector<vec3>& positions, const mat4& parentTransform, const vec3& centroid)
 {
 	vec3 point[2];
-	point[0] = vec3(parentTransform * vec4(m->vertices[halfEdge->start].position, 1));
-	point[1] = vec3(parentTransform * vec4(m->vertices[halfEdge->end].position, 1));
+	point[0] = vec3(parentTransform * vec4(positions[halfEdge->start], 1));
+	point[1] = vec3(parentTransform * vec4(positions[halfEdge->end], 1));
 	float edgeLength = length(point[1] - point[0]);
 	auto lineTransform = LinearAlgebraUtils::getLineTransformFrom2Points(point[0], point[1]);
 
@@ -98,7 +99,7 @@ mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, Graphics:
 	return transform;
 }
 
-Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableObjectFromMesh(Geometry::Mesh* mesh, const vector<vec3>& positions, const vector<mat4>& transforms)
+Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableFacetsFromMesh(Geometry::Mesh* mesh, const vector<vec3>& positions, const vector<mat4>& transforms)
 {
 	vector<GLuint> indices;
 	vector<Graphics::Vertex> vertices;
@@ -159,11 +160,70 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableObjectFromMesh(Ge
 
 	vector<mat4> parentTransforms;
 
-	parentTransforms.push_back(scale(mat4(1.0f), vec3(1.001f)));
+	parentTransforms.push_back(scale(mat4(1.0f), vec3(1.0001f)));
 
 	auto g = new Graphics::MatrixInstancedMeshObject<mat4, float>(selectable, parentTransforms, "TRANSFORM");
 
 	return g;
+}
+
+Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableEdgesFromMesh(Geometry::Mesh* mesh, const vector<vec3>& positions, ReferenceManager* refMan, const vector<mat4>& transforms)
+{
+	vector<mat4> transformC;
+	vector<vec3> centroids; 
+	vector<GLbyte> warningC;
+
+	for (int j = 0; j < transforms.size(); j++)
+	{
+		for (int i = 0; i < mesh->facets.size(); i++)
+		{
+			vec3 centroid = HalfEdgeUtils::getFacetCentroid(mesh->facets[i], positions, transforms[j]);
+			auto edges = HalfEdgeUtils::getFacetHalfEdges(mesh->facets[i]);
+
+			for (int k = 0; k < edges.size(); k++)
+			{
+				warningC.push_back(0);
+				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], positions, transforms[j], centroid));
+			}
+		}
+
+		for (int i = 0; i < mesh->holes.size(); i++)
+		{
+			vec3 centroid = HalfEdgeUtils::getFacetCentroid(mesh->holes[i], positions, transforms[j]);
+
+			auto edges = HalfEdgeUtils::getFacetHalfEdges(mesh->holes[i]);
+
+			for (int k = 0; k < edges.size(); k++)
+			{
+				warningC.push_back(1);
+				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], positions, transforms[j], centroid));
+			}
+		}
+	}
+
+	auto cylinder = new Arrow();
+
+	auto g = new Graphics::MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
+
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, transformC.size(), "INSTANCEID", 1);
+
+	vector<GLbyte> selectedC;
+
+	for (int i = 0; i < transformC.size(); i++)
+	{
+		selectedC.push_back(1);
+	}
+
+	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
+
+	auto highlightable = new InstancedMeshObject<GLbyte, GLbyte>(selectable, warningC, "WARNING", 1);
+
+	return highlightable;
+}
+
+Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVerticesFromMesh(Geometry::Mesh* mesh, const vector<vec3>& positions, const vector<mat4>& transforms)
+{
+
 }
 
 bool HalfEdgeUtils::containsVertex( Geometry::Vertex & vertex, Geometry::HalfEdge & halfedge) {

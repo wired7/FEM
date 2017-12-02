@@ -78,8 +78,6 @@ void SurfaceViewContext::setupPasses(void)
 
 void SurfaceViewContext::setupRenderableHalfEdges(Geometry::Mesh* hSimp, DecoratedGraphicsObject* o)
 {
-	auto cylinder = new Arrow();
-
 	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
 	auto m = (MeshObject*)o->signatureLookup("VERTEX");
 
@@ -90,60 +88,13 @@ void SurfaceViewContext::setupRenderableHalfEdges(Geometry::Mesh* hSimp, Decorat
 		inputVertices.push_back(m->vertices[i].position);
 	}
 
-	vector<mat4> transformC;
-	vector<vec3> centroids;
-	vector<GLbyte> warningC;
+	auto outputGeometry = HalfEdgeUtils::getRenderableEdgesFromMesh(hSimp, inputVertices, refMan, transform);
 
-	for (int j = 0; j < transform.size(); j++)
-	{
-		for (int i = 0; i < hSimp->facets.size(); i++)
-		{
-			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->facets[i], inputVertices, transform[j]);
-			auto edges = HalfEdgeUtils::getFacetHalfEdges(hSimp->facets[i]);
-
-			for (int k = 0; k < edges.size(); k++)
-			{
-				warningC.push_back(0);
-				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], m, transform[j], centroid));
-			}
-		}
-
-		for (int i = 0; i < hSimp->holes.size(); i++)
-		{
-			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->holes[i], inputVertices, transform[j]);
-
-			auto edges = HalfEdgeUtils::getFacetHalfEdges(hSimp->holes[i]);
-
-			for (int k = 0; k < edges.size(); k++)
-			{
-				warningC.push_back(1);
-				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], m, transform[j], centroid));
-			}
-		}
-	}
-
-	auto g = new MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
-
-	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, transformC.size(), "INSTANCEID", 1);
-
-	vector<GLbyte> selectedC;
-
-	for (int i = 0; i < transformC.size(); i++)
-	{
-		selectedC.push_back(1);
-	}
-
-	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
-
-	auto highlightable = new InstancedMeshObject<GLbyte, GLbyte>(selectable, warningC, "WARNING", 1);
-
-	geometries.push_back(highlightable);
+	geometries.push_back(outputGeometry);
 }
 
 void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 {
-	auto point = new Polyhedron(4, vec3(), vec3(1.0f));
-
 	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
 	auto vertices = ((MeshObject*)o->signatureLookup("VERTEX"))->vertices;
 	vector<mat4> positions;
@@ -155,6 +106,8 @@ void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 			positions.push_back(transform[j] * translate(mat4(1.0f), vertices[i].position) * scale(mat4(1.0f), vec3(0.02f)));
 		}
 	}
+
+	auto point = new Polyhedron(4, vec3(), vec3(1.0f));
 
 	auto g = new MatrixInstancedMeshObject<mat4, float>(point, positions, "TRANSFORM");
 
@@ -184,7 +137,7 @@ void SurfaceViewContext::setupRenderableFacets(Geometry::Mesh* hSimp, Graphics::
 		inputVertices.push_back(mesh->vertices[i].position);
 	}
 
-	auto outputGeometry = HalfEdgeUtils::getRenderableObjectFromMesh(hSimp, inputVertices, transform);
+	auto outputGeometry = HalfEdgeUtils::getRenderableFacetsFromMesh(hSimp, inputVertices, transform);
 
 	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)o->signatureLookup("INSTANCEID"));
 	auto objectIDs = instanceIDs->extendedData;
