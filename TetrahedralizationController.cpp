@@ -12,6 +12,17 @@ TetrahedralizationController::~TetrahedralizationController() {
 
 }
 
+void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_I && action == GLFW_RELEASE)
+	{
+		((TetrahedralizationContext*)controller->context)->addNextFacet();
+	}
+
+
+	controller->context->dirty = true;
+}
+
 void TetrahedralizationController::sC(GLFWwindow* window, double xOffset, double yOffset)
 {
 	SphericalCamera* cam = controller->context->cameras[0];

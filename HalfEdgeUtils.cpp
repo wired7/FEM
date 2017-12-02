@@ -111,6 +111,14 @@ bool HalfEdgeUtils::containsVertex( Geometry::Vertex & vertex, Geometry::Facet &
 	return false;
 }
 
+bool HalfEdgeUtils::containsVertex(Vertex & vertex, Mesh & mesh) {
+	for (int i = 0; i < mesh.facets.size();i++) {
+		if (containsVertex(vertex, *mesh.facets[i])) {
+			return true;
+		}
+	}
+	return false;
+}
 bool HalfEdgeUtils::containsHalfEdge( Geometry::HalfEdge & halfedge, Geometry::Facet & facet) {
 	vector<HalfEdge*> halfedges = getFacetHalfEdges(&facet);
 	for (int i = 0; i < halfedges.size();i++) {
@@ -124,17 +132,137 @@ bool HalfEdgeUtils::containsHalfEdge( Geometry::HalfEdge & halfedge, Geometry::F
 
 
 // this connects halfedges in the orther they are in the vector... it will not ensure that they connected correctly
-void HalfEdgeUtils::connectHalfEdges(std::vector<HalfEdge*> & halfedges) {
+vector<Vertex*> HalfEdgeUtils::connectHalfEdges(std::vector<HalfEdge*> & halfedges) {
+	vector<Vertex*> vertices;
 	 for (int i = 0; i < halfedges.size() - 1;i++) {
 		 halfedges[i]->next = halfedges[i + 1];
+		 vertices.push_back(halfedges[i]->vertex);
 	 }
 	 halfedges[halfedges.size() - 1]->next = halfedges[0];
-	 for (int i = halfedges.size()-1; i >1;i--) {
+	 vertices.push_back(halfedges[halfedges.size() - 1]->vertex);
+
+	 for (int i = halfedges.size()-1; i >0;i--) {
 		 halfedges[i]->previous = halfedges[i - 1];
 	 }
 	 halfedges[0]->previous = halfedges[halfedges.size() - 1];
-
+	 return vertices;
  }
+
+vector<HalfEdge*> HalfEdgeUtils::connectFacets(std::vector<Facet*> & facets, int numVertices) {
+	vector<HalfEdge*> halfedges;
+
+	for (int i = 0; i < facets.size() - 1;i++) {
+		facets[i]->next = facets[i + 1];
+	}
+	facets[facets.size() - 1]->next = facets[0];
+	for (int i = facets.size() - 1; i >0;i--) {
+		facets[i]->previous = facets[i - 1];
+	}
+	facets[0]->previous = facets[facets.size() - 1];
+
+
+	vector<vector<HalfEdge*>> halfedgeMap(numVertices);
+
+	for (int i = 0; i < facets.size();i++) {
+		vector<HalfEdge*> halfedges = getFacetHalfEdges(facets[i]);
+	
+		for (int j = 0; j < halfedges.size();j++) {
+			HalfEdge* he = halfedges[j];
+			bool mapped = false;
+			for (int k = 0; k < halfedgeMap[he->start].size(); k++) {
+				if (halfedgeMap[he->start][k]->end == he->end) {
+
+					mapped = true;
+					break;
+				}
+			}
+			if (!mapped) {
+				halfedgeMap[he->start].push_back(he);
+				halfedges.push_back(he);
+			}
+		}
+	}
+
+	for (int i = 0; i < halfedges.size(); i++) {
+		HalfEdge* he = halfedges[i];
+		if (he->twin == nullptr) {
+			vector<HalfEdge*> &list = halfedgeMap[he->end];
+			for (int j = 0; j < list.size(); j++) {
+				HalfEdge * heTemp = list[j];
+
+				if (heTemp->end == he->start) {
+					heTemp->twin = he;
+					he->twin = heTemp;
+					break;
+				}
+			}
+		}
+	}
+	return halfedges;
+}
+
+
+Facet* HalfEdgeUtils::constructFacet(vector<Vertex*> &vertices) {
+
+	vector<HalfEdge*> halfedges;
+	for (int i = 0; i < vertices.size()-1;i++) {
+		halfedges.push_back(new HalfEdge(vertices[i], vertices[i+1]));
+	}
+	halfedges.push_back(new HalfEdge(vertices[vertices.size()-1], vertices[0] ));
+
+	connectHalfEdges(halfedges);
+
+	return new Facet(halfedges[0]);
+}
+
+Facet* HalfEdgeUtils::constructTwinFacet(Facet* facet) {
+	
+	vector<Vertex*> vertices = getFacetVertices(facet);
+	vector<Vertex*> reverse(vertices.size());
+
+	for (int i = reverse.size() - 1; i >= 0; i--) {
+		reverse[reverse.size() - (i + 1)] = vertices[i];
+	}
+
+	Facet* twin = constructFacet(reverse);
+
+	twin->twin = facet;
+	facet->twin = twin;
+	return twin;
+}
+
+Mesh* HalfEdgeUtils::constructTetrahedron(Vertex & vertex, Facet & facet, vector<Vertex*> vertices) {
+
+	vector<Facet*> facets;
+	facets.push_back(&facet);
+	HalfEdge * start = facet.halfEdge;
+	HalfEdge * next = start;
+	
+	do {
+		//opposite orientation
+		
+		Vertex* a = next->vertex;
+		Vertex* b = next->previous->vertex;
+		Vertex* c = &vertex;
+
+		vector<Vertex*> vertices = { a,b,c };
+		facets.push_back(constructFacet(vertices));
+		next = next->next;
+	} while (next != start);
+	
+
+	Mesh* mesh = new Mesh();
+	mesh->halfEdges = connectFacets(facets, vertices.size());
+	mesh->facets = facets;
+	for (int i = 0; i < vertices.size();i++) {
+		if (containsVertex(*vertices[i],*mesh)) {
+			mesh->vertices.push_back(vertices[i]);
+		}
+	}
+
+	return mesh;
+}
+
 void HalfEdgeUtils::printEdge(HalfEdge* he) {
 	std::cout << "HE( " << he->start << ", " << he->end << ") ";
 }
@@ -149,4 +277,15 @@ void HalfEdgeUtils::printFacet(Facet * facet) {
 	}
 	std::cout << " }";
 
+}
+
+void HalfEdgeUtils::printMesh(Mesh * m) {
+	vector<Facet*> & facets = m->facets;
+
+	std::cout << "Mesh [ \n\t";
+	for (int i = 0; i < facets.size();i++) {
+		printFacet(facets[i]);
+		std::cout << "\n\t";
+	}
+	std::cout << " ]";
 }

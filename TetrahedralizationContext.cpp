@@ -14,7 +14,17 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	geometries.push_back(surface);
 
 	setupGeometries();
-	initialTriangulation();
+
+	totalMesh = new Mesh();
+	vector<Vertex*>& vertices = totalMesh->vertices;
+
+	vertices.resize(positions.size());
+	for (int i = 0; i < vertices.size();i++) {
+		vertices[i] = new Vertex(i);
+		usedVertices.push_back(false);
+	}
+
+	initialTetrahedralization();
 
 	setupPasses();
 	
@@ -27,13 +37,7 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 
 void TetrahedralizationContext::setupGeometries(void)
 {
-	volume.meshes.push_back(new Mesh());
-	vector<Vertex*>& vertices = volume.meshes[0]->vertices;
 
-	vertices.resize(positions.size());
-	for (int i = 0; i < vertices.size();i++) {
-		vertices[i] = new Vertex(i);
-	}
 }
 
 void TetrahedralizationContext::setupPasses(void)
@@ -52,13 +56,16 @@ void TetrahedralizationContext::setupPasses(void)
 	passRootNode = gP;
 }
 
-void TetrahedralizationContext::initialTriangulation(void) {
-	
-	Mesh * mesh = volume.meshes[0];
-	vector<Vertex*> &vertices = mesh->vertices;
+void TetrahedralizationContext::initialTetrahedralization(void) {
+	vector<Vertex*> &vertices = totalMesh->vertices;
+	vector<HalfEdge*> &halfedges = totalMesh->halfEdges;
+	vector<Facet*> &facets = totalMesh->facets;
+
 	Vertex * seed = vertices[0];
 	Vertex * nearest = vertices[1];
 
+
+#pragma region first_halfedge
 	vec3 posSeed  = positions[seed->externalIndex];
 	vec3 posNearest = positions[nearest->externalIndex];
 
@@ -76,6 +83,9 @@ void TetrahedralizationContext::initialTriangulation(void) {
 			nearest = nextVert;
 		}
 	}
+#pragma endregion
+
+#pragma region first_facet
 
 	Vertex* a = seed;
 	Vertex* b = nearest;
@@ -108,13 +118,103 @@ void TetrahedralizationContext::initialTriangulation(void) {
 	HalfEdgeUtils::connectHalfEdges(HEchain);
 	Facet * facet = new Facet(HEab);
 
-	std::cout << "SEED FACET: ";
-	HalfEdgeUtils::printFacet(facet);
+#pragma endregion
+
+#pragma region first_tetrahedron
+
+
+	Vertex* finalVertex = vertices[4];
+	
+	shortestDistance = HalfEdgeUtils::distanceToFacet(positions, *finalVertex, *facet);
+
+	for (int i = 0; i < vertices.size();i++) {
+		Vertex& nextVertex = *vertices[i];
+
+		if (!HalfEdgeUtils::containsVertex(nextVertex, *facet)) {
+			float distance = HalfEdgeUtils::distanceToFacet(positions, nextVertex, *facet);
+			if (distance < shortestDistance) {
+				shortestDistance = distance;
+				finalVertex = &nextVertex;
+			}
+		}
+	}
+
+	Mesh* mesh = HalfEdgeUtils::constructTetrahedron(*finalVertex, *facet,vertices);
+	for (int i = 0; i < mesh->vertices.size();i++) {
+		usedVertices[mesh->vertices[i]->externalIndex] = true;
+	}
+#pragma endregion
+
+
+
+	facets.insert(facets.begin(), mesh->facets.begin(), mesh->facets.end());
+	openFacets.insert(openFacets.begin(), mesh->facets.begin(), mesh->facets.end());
+	halfedges.insert(halfedges.begin(), mesh->halfEdges.begin(), mesh->halfEdges.end());
+
+
+	volume.meshes.push_back(mesh);
+
+
+	std::cout << "SEED Tetra: ";
+	HalfEdgeUtils::printMesh(mesh);
 	std::cout<< std::endl;
+}
+
+bool TetrahedralizationContext::addNextFacet() {
+	
+	vector<Vertex*> &vertices = totalMesh->vertices;
+
+	Vertex* closest = vertices[0];
+	Facet* facet = openFacets[0];
+	int facetIndex = 0;
+	float shortestDistance = -1;
+	for (int i = 0; i < vertices.size();i++) {
+		Vertex* vertex = vertices[i];
+		if (!usedVertices[vertex->externalIndex]) {
+			for (int j = 0; j < openFacets.size();j++) {
+				float distance = HalfEdgeUtils::distanceToFacet(positions, *vertex, *openFacets[j]);
+				if (distance < shortestDistance || shortestDistance == -1) {
+					shortestDistance = distance;
+					closest = vertex;
+					facet = openFacets[j];
+					facetIndex = j;
+				}
+			}
+		}
+	}
+
+	if (shortestDistance == -1) {
+		std::cout << "Could not add another face"<<std::endl;
+		return true;
+	}
+	else {
+		
+		Facet* twinFacet = HalfEdgeUtils::constructTwinFacet(facet);
+		openFacets.erase(openFacets.begin()+facetIndex);
+		Mesh* m = HalfEdgeUtils::constructTetrahedron(*closest, *twinFacet,totalMesh->vertices);
+		
+		for (int i = 0; i < m->vertices.size();i++) {
+			usedVertices[m->vertices[i]->externalIndex] = true;
+		}
+
+		volume.meshes.push_back(m);
+		std::cout << "NEW Tetra: ";
+		HalfEdgeUtils::printMesh(m);
+		std::cout << std::endl;
+
+
+		for (int i = 0; i < m->facets.size();i++) {
+			Facet* f = m->facets[i];
+			if (f != twinFacet) {
+				openFacets.push_back(f);
+			}
+		}
+	}
 
 
 
 
+	
 }
 
 void TetrahedralizationContext::update(void)
@@ -123,7 +223,6 @@ void TetrahedralizationContext::update(void)
 
 	if (tetrahedralizationReady)
 	{
-		setupGeometries();
 		tetrahedralizationReady = false;
 	}
 }
