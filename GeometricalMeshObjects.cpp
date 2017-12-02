@@ -145,7 +145,7 @@ Tetrahedron::Tetrahedron() : MeshObject()
 
 Arrow::Arrow()
 {
-	int resolution = 6;
+	int resolution = 4;
 	float endDistance = 0.8f;
 
 	float angleD = 2 * 3.1415f / resolution;

@@ -14,6 +14,7 @@ public:
 	ReferenceManager();
 	~ReferenceManager();
 	int assignNewGUID(DecoratedGraphicsObject* gObject, int indexWithinObject = 0);
+	int assignNewGUID(void);
 	pair<DecoratedGraphicsObject*, int> getInstance(unsigned int guid);
 	void deleteRange(DecoratedGraphicsObject*, int minIndex, int maxIndex);
 };

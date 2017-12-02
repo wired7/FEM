@@ -33,3 +33,8 @@ int ReferenceManager::assignNewGUID(DecoratedGraphicsObject* gObject, int indexW
 	managedGraphicsObject.push_back(pair<DecoratedGraphicsObject*, vector<pair<int, int>>>(gObject, { pair<int, int>(indexWithinObject, count) }));
 	return count++;
 }
+
+int ReferenceManager::assignNewGUID(void)
+{
+	return count++;
+}
