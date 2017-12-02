@@ -60,7 +60,7 @@ float HalfEdgeUtils::distanceToFacet(vector<vec3> & positions, Geometry::Vertex 
 	return dist;
 }
 
-vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, Graphics::MeshObject* m, const mat4& parentTransform)
+vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, const vector<vec3>& positions, const mat4& parentTransform)
 {
 	vec3 centroid(0.0f);
 	
@@ -164,7 +164,6 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableObjectFromMesh(Ge
 	auto g = new Graphics::MatrixInstancedMeshObject<mat4, float>(selectable, parentTransforms, "TRANSFORM");
 
 	return g;
-}
 }
 
 bool HalfEdgeUtils::containsVertex( Geometry::Vertex & vertex, Geometry::HalfEdge & halfedge) {
