@@ -29,7 +29,7 @@ private:
 	vector<bool>			   usedVertices;
 
 public:
-	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, vector<vec3> & _points, SphericalCamera* cam);
+	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, SphericalCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);
 	bool addNextFacet();

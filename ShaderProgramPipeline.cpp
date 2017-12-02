@@ -30,7 +30,7 @@ ShaderProgramPipeline* ShaderProgramPipeline::getPipeline(string s)
 	return nullptr;
 }
 
-ShaderProgramPipeline::ShaderProgramPipeline(string s) : signature(s)
+ShaderProgramPipeline::ShaderProgramPipeline(string s, bool alphaRendered) : signature(s), alphaRendered(alphaRendered)
 {
 	glGetError();
 
