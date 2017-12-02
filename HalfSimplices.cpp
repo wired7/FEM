@@ -53,8 +53,7 @@ Mesh::Mesh(vector<GLuint> indices, int verticesPerFacet)
 		hE2->previous = hE1;
 		hE3->previous=  hE2;
 
-		auto facet = new Facet();
-		facet->halfEdge = hE1;
+		auto facet = new Facet(hE1);
 
 		temp[hE1->start].push_back(hE1);
 		temp[hE2->start].push_back(hE2);

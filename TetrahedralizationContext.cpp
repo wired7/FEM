@@ -5,7 +5,7 @@
 
 #include <thread>
 #include "HalfSimplices.h"
-
+#include "HalfEdgeUtils.h"
 using namespace Geometry;
 
 TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, vector<vec3> &_points, SphericalCamera* cam) : positions(_points)
@@ -67,7 +67,7 @@ void TetrahedralizationContext::initialTriangulation(void) {
 
 	for (int i = 1; i < vertices.size();i++) {
 		Vertex* nextVert = vertices[i];
-		vec3 pos = positions[nextVert->externalIndex];
+		const vec3 & pos = positions[nextVert->externalIndex];
 		float distance = glm::distance(posSeed, pos);
 
 		if (distance < shortestDistance) {
@@ -75,11 +75,45 @@ void TetrahedralizationContext::initialTriangulation(void) {
 			posNearest = pos;
 			nearest = nextVert;
 		}
-	
 	}
 
-	printf("Closest point to (%f, %f, %f) is (%f, %f, %f)\n\n", 
-		posSeed.x, posSeed.y, posSeed.z, posNearest.x, posNearest.y, posNearest.z);
+	Vertex* a = seed;
+	Vertex* b = nearest;
+	Vertex* c = vertices[2];
+
+	HalfEdge* HEab = new HalfEdge(seed, nearest);
+	HalfEdge* HEbc;
+	HalfEdge* HEca;
+
+	shortestDistance = HalfEdgeUtils::distanceToHalfEdge(positions, *c, *HEab);
+
+	for (int i = 0; i < vertices.size();i++) 
+	{
+		Vertex & nextVert = *vertices[i];
+		if (!HalfEdgeUtils::containsVertex(nextVert, *HEab)) {
+			float distance = HalfEdgeUtils::distanceToHalfEdge(positions, nextVert, *HEab);
+			if (distance == -1 || distance < shortestDistance)
+			{
+				shortestDistance = distance;
+				c = &nextVert;
+			}
+		}
+	}
+
+	HEbc = new HalfEdge(b, c);
+	HEca = new HalfEdge(c, a);
+
+	vector<HalfEdge*> HEchain = { HEab,HEbc,HEca };
+	
+	HalfEdgeUtils::connectHalfEdges(HEchain);
+	Facet * facet = new Facet(HEab);
+
+	std::cout << "SEED FACET: ";
+	HalfEdgeUtils::printFacet(facet);
+	std::cout<< std::endl;
+
+
+
 
 }
 

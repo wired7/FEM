@@ -56,7 +56,11 @@ namespace Geometry {
 		Facet* previous;
 		int internalIndex;
 
-
+		Facet() {};
+		Facet(HalfEdge * he) : twin(nullptr), next(nullptr), previous(nullptr) 
+		{
+			halfEdge = he;
+		}
 	};
 
 	class Mesh
