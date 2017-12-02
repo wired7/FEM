@@ -12,7 +12,7 @@ public:
 
 	Decorator();
 	Decorator(T* child, string signature);
-	~Decorator();
+	virtual ~Decorator();
 
 	virtual T* make() = 0;
 	virtual T* clone();

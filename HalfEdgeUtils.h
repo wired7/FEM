@@ -21,12 +21,21 @@ public:
 
 	static bool containsVertex( Geometry::Vertex & vertex,  Geometry::HalfEdge & halfedge);
 	static bool containsVertex( Geometry::Vertex & vertex,  Geometry::Facet & facet);
+	static bool containsVertex( Geometry::Vertex & vertex,  Geometry::Mesh & mesh);
+
 	static bool containsHalfEdge( Geometry::HalfEdge & halfedge,  Geometry::Facet & facet);
 
-	static void connectHalfEdges(std::vector<Geometry::HalfEdge*> & halfedges);
-
+	static vector<Geometry::Vertex*> connectHalfEdges(std::vector<Geometry::HalfEdge*> & halfedges);
+	static vector<Geometry::HalfEdge*> connectFacets(std::vector<Geometry::Facet*> & facets, int NumVertices);
+	
 	static void printEdge(Geometry::HalfEdge* he);
 	static void printFacet(Geometry::Facet* facet);
+	static void printMesh(Geometry::Mesh * m);
+
+	static Geometry::Facet* constructFacet(vector<Geometry::Vertex*> & vertices);
+	static Geometry::Facet* constructTwinFacet(Geometry::Facet* facet);
+
+	static Geometry::Mesh* constructTetrahedron(Geometry::Vertex & vertex, Geometry::Facet & facet,  vector<Geometry::Vertex*> vertices);
 
 };
 

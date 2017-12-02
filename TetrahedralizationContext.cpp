@@ -11,13 +11,31 @@ using namespace Geometry;
 TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, vector<vec3> &_points, SphericalCamera* cam) : positions(_points)
 {
 	cameras.push_back(cam);
-	geometries.push_back(surface);
 
 	setupGeometries();
-	initialTriangulation();
+
+	totalMesh = new Mesh();
+	vector<Geometry::Vertex*>& vertices = totalMesh->vertices;
+
+	vertices.resize(positions.size());
+	for (int i = 0; i < vertices.size();i++) {
+		vertices[i] = new Geometry::Vertex(i);
+		usedVertices.push_back(false);
+	}
+
+	initialTetrahedralization();
+	for (int i = 0; i < 1000; i++) {
+		addNextFacet();
+	}
+
+	auto volumes = HalfEdgeUtils::getRenderableVolumesFromMesh(&volume, positions, refMan);
+	geometries.push_back(volumes);
 
 	auto edges = HalfEdgeUtils::getRenderableEdgesFromMesh(&volume, positions, refMan);
 	geometries.push_back(edges);
+
+	auto faces = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
+	geometries.push_back(faces);
 
 	setupPasses();
 	
@@ -31,16 +49,6 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 void TetrahedralizationContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
-
-	volume.meshes.push_back(new Mesh());
-	vector<Geometry::Vertex*>& vertices = volume.meshes[0]->vertices;
-
-	vertices.resize(positions.size());
-	for (int i = 0; i < vertices.size();i++) {
-		vertices[i] = new Geometry::Vertex(i);
-	}
-
-
 }
 
 void TetrahedralizationContext::setupPasses(void)
@@ -49,24 +57,27 @@ void TetrahedralizationContext::setupPasses(void)
 	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA"), ShaderProgramPipeline::getPipeline("C"), ShaderProgramPipeline::getPipeline("D") });
 	gP->addRenderableObjects(geometries[0], 0);
 	gP->addRenderableObjects(geometries[1], 1);
+	gP->addRenderableObjects(geometries[2], 3);
 	gP->setupCamera(cameras[0]);
 
 	makeQuad();
 	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[2], 0);
+	lP->addRenderableObjects(geometries[3], 0);
 
 	gP->addNeighbor(lP);
 
 	passRootNode = gP;
 }
 
-void TetrahedralizationContext::initialTriangulation(void) {
-	
-	Mesh * mesh = volume.meshes[0];
-	vector<Geometry::Vertex*> &vertices = mesh->vertices;
+void TetrahedralizationContext::initialTetrahedralization(void) {
+	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
+	vector<HalfEdge*> &halfedges = totalMesh->halfEdges;
+	vector<Facet*> &facets = totalMesh->facets;
+
 	Geometry::Vertex * seed = vertices[0];
 	Geometry::Vertex * nearest = vertices[1];
 
+#pragma region first_halfedge
 	vec3 posSeed  = positions[seed->externalIndex];
 	vec3 posNearest = positions[nearest->externalIndex];
 
@@ -84,6 +95,9 @@ void TetrahedralizationContext::initialTriangulation(void) {
 			nearest = nextVert;
 		}
 	}
+#pragma endregion
+
+#pragma region first_facet
 
 	Geometry::Vertex* a = seed;
 	Geometry::Vertex* b = nearest;
@@ -116,13 +130,118 @@ void TetrahedralizationContext::initialTriangulation(void) {
 	HalfEdgeUtils::connectHalfEdges(HEchain);
 	Facet * facet = new Facet(HEab);
 
-	std::cout << "SEED FACET: ";
-	HalfEdgeUtils::printFacet(facet);
+#pragma endregion
+
+#pragma region first_tetrahedron
+
+
+	Geometry::Vertex* finalVertex = vertices[4];
+	
+	shortestDistance = HalfEdgeUtils::distanceToFacet(positions, *finalVertex, *facet);
+
+	for (int i = 0; i < vertices.size();i++) {
+		Geometry::Vertex& nextVertex = *vertices[i];
+
+		if (!HalfEdgeUtils::containsVertex(nextVertex, *facet)) {
+			float distance = HalfEdgeUtils::distanceToFacet(positions, nextVertex, *facet);
+			if (distance < shortestDistance) {
+				shortestDistance = distance;
+				finalVertex = &nextVertex;
+			}
+		}
+	}
+
+	Mesh* mesh = HalfEdgeUtils::constructTetrahedron(*finalVertex, *facet,vertices);
+	for (int i = 0; i < mesh->vertices.size();i++) {
+		usedVertices[mesh->vertices[i]->externalIndex] = true;
+	}
+#pragma endregion
+
+
+
+	facets.insert(facets.begin(), mesh->facets.begin(), mesh->facets.end());
+	openFacets.insert(openFacets.begin(), mesh->facets.begin(), mesh->facets.end());
+	halfedges.insert(halfedges.begin(), mesh->halfEdges.begin(), mesh->halfEdges.end());
+
+
+	volume.meshes.push_back(mesh);
+
+
+	std::cout << "SEED Tetra: ";
+	HalfEdgeUtils::printMesh(mesh);
 	std::cout<< std::endl;
+}
+
+bool TetrahedralizationContext::addNextFacet() {
+	
+	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
+
+	Geometry::Vertex* closest = vertices[0];
+	Facet* facet = openFacets[0];
+	int facetIndex = 0;
+	float shortestDistance = -1;
+	for (int i = 0; i < vertices.size();i++) {
+		Geometry::Vertex* vertex = vertices[i];
+		if (!usedVertices[vertex->externalIndex]) {
+			for (int j = 0; j < openFacets.size();j++) {
+				float distance = HalfEdgeUtils::distanceToFacet(positions, *vertex, *openFacets[j]);
+				if (distance < shortestDistance || shortestDistance == -1) {
+					shortestDistance = distance;
+					closest = vertex;
+					facet = openFacets[j];
+					facetIndex = j;
+				}
+			}
+		}
+	}
+
+	if (shortestDistance == -1) {
+		std::cout << "Could not add another face"<<std::endl;
+		return true;
+	}
+	else {
+		
+		Facet* twinFacet = HalfEdgeUtils::constructTwinFacet(facet);
+		openFacets.erase(openFacets.begin()+facetIndex);
+		Mesh* m = HalfEdgeUtils::constructTetrahedron(*closest, *twinFacet,totalMesh->vertices);
+		
+		for (int i = 0; i < m->vertices.size();i++) {
+			usedVertices[m->vertices[i]->externalIndex] = true;
+		}
+
+		volume.meshes.push_back(m);
+		std::cout << "NEW Tetra: ";
+		HalfEdgeUtils::printMesh(m);
+		std::cout << std::endl;
 
 
+		for (int i = 0; i < m->facets.size();i++) {
+			Facet* f = m->facets[i];
+			if (f != twinFacet) {
+				openFacets.push_back(f);
+			}
+		}
+	}
 
+//	updateGeometries();
+}
 
+void TetrahedralizationContext::updateGeometries()
+{
+	for (int i = 0; i < 3; i++)
+	{
+		((GeometryPass*)passRootNode)->clearRenderableObjects(i);
+		delete geometries[i];
+	}
+
+	geometries[0] = HalfEdgeUtils::getRenderableVolumesFromMesh(&volume, positions, refMan);
+	((GeometryPass*)passRootNode)->addRenderableObjects(geometries[0], 0);
+
+	geometries[1] = HalfEdgeUtils::getRenderableEdgesFromMesh(&volume, positions, refMan);
+	((GeometryPass*)passRootNode)->addRenderableObjects(geometries[1], 1);
+
+	geometries[2] = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
+	((GeometryPass*)passRootNode)->addRenderableObjects(geometries[2], 3);
 }
 
 void TetrahedralizationContext::update(void)
@@ -131,7 +250,6 @@ void TetrahedralizationContext::update(void)
 
 	if (tetrahedralizationReady)
 	{
-		setupGeometries();
 		tetrahedralizationReady = false;
 	}
 }

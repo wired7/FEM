@@ -11,6 +11,7 @@ class TetrahedralizationContext : public GraphicsSceneContext<Tetrahedralization
 {
 private:
 	ReferenceManager* refMan;
+	void updateGeometries();
 protected:
 	vector<mat4> tetrahedra;
 	bool tetrahedralizationReady = false;
@@ -18,12 +19,22 @@ protected:
 	virtual void setupGeometries(void);
 	virtual void setupPasses(void);
 
-	vector<glm::vec3>		 & positions;
+private:
+	void initialTetrahedralization();
+
+	Geometry::Mesh	*		   totalMesh;
 	Geometry::VolumetricMesh   volume;
+	vector<glm::vec3>		 & positions;
+	vector<Geometry::Facet*>   openFacets;
+	vector<bool>			   usedVertices;
+
 public:
 	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, vector<vec3> & _points, SphericalCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);
-	void initialTriangulation();
+	bool addNextFacet();
+
+
+
 
 };

@@ -31,9 +31,9 @@ namespace Graphics {
 		GLuint VBO;
 		bool dirty = false;
 		int layoutCount;
-		DecoratedGraphicsObject() {};
+		DecoratedGraphicsObject();
 		DecoratedGraphicsObject(DecoratedGraphicsObject* child, string bufferSignature);
-		~DecoratedGraphicsObject() {};
+		~DecoratedGraphicsObject();
 		virtual void addVertex(vec3 pos, vec3 normal) = 0;
 		virtual void commitVBOToGPU(void) = 0;
 		virtual void bindBuffers(void) = 0;

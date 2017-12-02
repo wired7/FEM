@@ -12,6 +12,11 @@ DecoratedGraphicsObject::DecoratedGraphicsObject(Graphics::DecoratedGraphicsObje
 
 }
 
+DecoratedGraphicsObject::~DecoratedGraphicsObject()
+{
+
+}
+
 void DecoratedGraphicsObject::updateBuffers(vector<string> bufferSignatures)
 {
 
