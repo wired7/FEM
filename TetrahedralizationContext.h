@@ -2,12 +2,15 @@
 #include "Context.h"
 #include "TetrahedralizationController.h"
 #include "Halfsimplices.h"
+#include "ReferencedGraphicsObject.h"
 
 class TetrahedralizationController;
 
 
 class TetrahedralizationContext : public GraphicsSceneContext<TetrahedralizationController, SphericalCamera, TetrahedralizationContext>
 {
+private:
+	ReferenceManager* refMan;
 protected:
 	vector<mat4> tetrahedra;
 	bool tetrahedralizationReady = false;

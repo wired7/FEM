@@ -22,39 +22,49 @@ void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
 	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
-//	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
+//	auto m = new Cylinder(10);//Polyhedron(10, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;
 
 	vec3 pos = vec3(0, 0, 0);
-	transform.push_back(scale(mat4(1.0f), vec3(3.0f)) * translate(mat4(1.0f), pos));
-
-	auto g = new MatrixInstancedMeshObject<mat4, float>(m, transform, "TRANSFORM");
-
-	vector<vec4> teamColor;
-	teamColor.push_back(vec4(0, 0, 1, 1));
-
-	auto e = new InstancedMeshObject<vec4, float>(g, teamColor, "COLOR", transform.size() / teamColor.size());
-	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, e, transform.size(), "INSTANCEID", 1);
-
-	vector<GLbyte> selected;
-	// Maybe have an instanced mesh object constructor with a size and an initializer if all values will be the same
-	for (int i = 0; i < transform.size(); i++)
-	{
-		selected.push_back(0);
-	}
-
-	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selected, "SELECTION", 1);
-
-	geometries.push_back(selectable);
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	transform.push_back(scale(mat4(1.0f), vec3(1.0f)) * translate(mat4(1.0f), pos));
 
 	Geometry::Mesh * hSimp = new Geometry::Mesh(m->indices, 3);
+	Geometry::VolumetricMesh* vMesh = new Geometry::VolumetricMesh();
+	vMesh->meshes.push_back(hSimp);
 
-	setupRenderableHalfEdges(hSimp, selectable);
-	setupRenderableVertices(selectable);
-	setupRenderableFacets(hSimp, selectable);
+	vector<vec3> positions;
+	for (int i = 0; i < m->vertices.size(); i++)
+	{
+		positions.push_back(m->vertices[i].position);
+	}
+
+	auto outputGeometry = HalfEdgeUtils::getRenderableVolumesFromMesh(vMesh, positions, refMan, transform);
+
+	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)outputGeometry->signatureLookup("INSTANCEID"));
+	auto objectIDs = instanceIDs->extendedData;
+
+	int currentIndex = objectIDs[0];
+	int currentManagedIndex = refMan->assignNewGUID();
+	for (int i = 0; i < objectIDs.size(); i++)
+	{
+		if (objectIDs[i] != currentIndex)
+		{
+			currentIndex = objectIDs[i];
+			currentManagedIndex = refMan->assignNewGUID();
+		}
+
+		objectIDs[i] = currentManagedIndex;
+	}
+
+	instanceIDs->extendedData = objectIDs;
+	instanceIDs->updateBuffers();
+
+	geometries.push_back(outputGeometry);
+
+	setupRenderableHalfEdges(vMesh, positions);
+	setupRenderableVertices(positions);
+	setupRenderableFacets(vMesh, positions);
 
 	makeQuad();
 }
@@ -76,46 +86,31 @@ void SurfaceViewContext::setupPasses(void)
 	passRootNode = gP;
 }
 
-void SurfaceViewContext::setupRenderableHalfEdges(Geometry::Mesh* hSimp, DecoratedGraphicsObject* o)
+void SurfaceViewContext::setupRenderableHalfEdges(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions)
 {
-	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
-	auto m = (MeshObject*)o->signatureLookup("VERTEX");
-
-	vector<vec3> inputVertices;
-
-	for (int i = 0; i < m->vertices.size(); i++)
-	{
-		inputVertices.push_back(m->vertices[i].position);
-	}
-
-	auto outputGeometry = HalfEdgeUtils::getRenderableEdgesFromMesh(hSimp, inputVertices, refMan, transform);
+	auto outputGeometry = HalfEdgeUtils::getRenderableEdgesFromMesh(hSimp, positions, refMan);
 
 	geometries.push_back(outputGeometry);
 }
 
-void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
+void SurfaceViewContext::setupRenderableVertices(const vector<vec3>& positions)
 {
-	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
-	auto vertices = ((MeshObject*)o->signatureLookup("VERTEX"))->vertices;
-	vector<mat4> positions;
+	vector<mat4> pTransforms;
 
-	for (int j = 0; j < transform.size(); j++)
+	for (int i = 0; i < positions.size(); i++)
 	{
-		for (int i = 0; i < vertices.size(); i++)
-		{
-			positions.push_back(transform[j] * translate(mat4(1.0f), vertices[i].position) * scale(mat4(1.0f), vec3(0.02f)));
-		}
+		pTransforms.push_back(translate(mat4(1.0f), positions[i]) * scale(mat4(1.0f), vec3(0.02f)));
 	}
 
 	auto point = new Polyhedron(4, vec3(), vec3(1.0f));
 
-	auto g = new MatrixInstancedMeshObject<mat4, float>(point, positions, "TRANSFORM");
+	auto g = new MatrixInstancedMeshObject<mat4, float>(point, pTransforms, "TRANSFORM");
 
-	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, vertices.size(), "INSTANCEID", 1);
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, pTransforms.size(), "INSTANCEID", 1);
 
 	vector<GLbyte> selectedC;
 
-	for (int i = 0; i < vertices.size(); i++)
+	for (int i = 0; i < pTransforms.size(); i++)
 	{
 		selectedC.push_back(1);
 	}
@@ -125,21 +120,11 @@ void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 	geometries.push_back(selectable);
 }
 
-void SurfaceViewContext::setupRenderableFacets(Geometry::Mesh* hSimp, Graphics::DecoratedGraphicsObject* o)
+void SurfaceViewContext::setupRenderableFacets(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions)
 {
-	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
-	auto mesh = ((MeshObject*)o->signatureLookup("VERTEX"));
+	auto outputGeometry = HalfEdgeUtils::getRenderableFacetsFromMesh(hSimp, positions);
 
-	vector<vec3> inputVertices;
-
-	for (int i = 0; i < mesh->vertices.size(); i++)
-	{
-		inputVertices.push_back(mesh->vertices[i].position);
-	}
-
-	auto outputGeometry = HalfEdgeUtils::getRenderableFacetsFromMesh(hSimp, inputVertices, transform);
-
-	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)o->signatureLookup("INSTANCEID"));
+	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)outputGeometry->signatureLookup("INSTANCEID"));
 	auto objectIDs = instanceIDs->extendedData;
 
 	int currentIndex = objectIDs[0];

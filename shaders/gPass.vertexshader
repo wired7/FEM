@@ -3,10 +3,9 @@
 // Input vertex data, different for all executions of this shader.
 layout(location = 0) in vec3 vertexPos;
 layout(location = 1) in vec3 normal;
-layout(location = 2) in mat4 transform;
-layout(location = 6) in vec4 teamColor;
-layout(location = 7) in uint objectID;
-layout(location = 8) in uint selectable;
+layout(location = 2) in uint objectID;
+layout(location = 3) in uint selectable;
+layout(location = 4) in mat4 transform;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -36,7 +35,7 @@ void main(){
 	}
 	else
 	{
-		vColor = teamColor;
+		vColor = vec4(0, 0, 1, 1);
 	}
 
 	gl_Position = Projection * View * Model * transform * vec4(vertexOutput, 1);

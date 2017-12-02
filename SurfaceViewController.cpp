@@ -16,13 +16,18 @@ SurfaceViewController::~SurfaceViewController()
 
 void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_N && action == GLFW_RELEASE)
+	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
 	{
-		auto geo = controller->context->geometries[0];
-		auto cam = controller->context->cameras[0];
+		if (controller->context->nextContext == nullptr)
+		{
+			auto geo = controller->context->geometries[0];
+			auto cam = controller->context->cameras[0];
 
-		auto n = new PointSamplingContext(geo, cam);
-		n->setAsActiveContext();
+			controller->context->nextContext = new PointSamplingContext(geo, cam);
+			((PointSamplingContext*)controller->context->nextContext)->prevContext = controller->context;
+		}
+
+		((PointSamplingContext*)controller->context->nextContext)->setAsActiveContext();
 	}
 
 	if (key == GLFW_KEY_E && action == GLFW_PRESS)

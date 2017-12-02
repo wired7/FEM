@@ -16,17 +16,22 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	setupGeometries();
 	initialTriangulation();
 
+	auto edges = HalfEdgeUtils::getRenderableEdgesFromMesh(&volume, positions, refMan);
+	geometries.push_back(edges);
+
 	setupPasses();
 	
-	thread t([=] {
+/*	thread t([=] {
 		// compute tetrahedralization here
 		tetrahedralizationReady = true;
 	});
-	t.detach();
+	t.detach();*/
 }
 
 void TetrahedralizationContext::setupGeometries(void)
 {
+	refMan = new ReferenceManager();
+
 	volume.meshes.push_back(new Mesh());
 	vector<Geometry::Vertex*>& vertices = volume.meshes[0]->vertices;
 
@@ -34,18 +39,21 @@ void TetrahedralizationContext::setupGeometries(void)
 	for (int i = 0; i < vertices.size();i++) {
 		vertices[i] = new Geometry::Vertex(i);
 	}
+
+
 }
 
 void TetrahedralizationContext::setupPasses(void)
 {
 	// TODO: might want to manage passes as well
-	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("C") });
+	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA"), ShaderProgramPipeline::getPipeline("C"), ShaderProgramPipeline::getPipeline("D") });
 	gP->addRenderableObjects(geometries[0], 0);
+	gP->addRenderableObjects(geometries[1], 1);
 	gP->setupCamera(cameras[0]);
 
 	makeQuad();
 	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[1], 0);
+	lP->addRenderableObjects(geometries[2], 0);
 
 	gP->addNeighbor(lP);
 

@@ -14,7 +14,7 @@ PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, Sph
 	geometries.push_back(surface);
 	setupPasses();
 
-	thread t([=] {
+	thread t([&] {
 		points = sampleSurface(NUM_POINTS, surface);
 		pointsReady = true;
 	});
@@ -84,6 +84,7 @@ void PointSamplingContext::update(void)
 	{
 		setupGeometries();
 		pointsReady = false;
+		readyToAdvance = true;
 	}
 }
 

@@ -12,6 +12,7 @@ protected:
 	virtual void setupGeometries(void);
 	virtual void setupPasses(void);
 public:
+	bool readyToAdvance = false;
 	vector<vec3> points;
 	static vector<vec3> sampleSurface(int sampleSize, Graphics::DecoratedGraphicsObject* object);
 	PointSamplingContext(Graphics::DecoratedGraphicsObject* surface, SphericalCamera* cam);

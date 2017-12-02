@@ -20,6 +20,8 @@ template<class ControllerType, class CameraType, class ContextType> class Contex
 public:
 	ControllerType* controller;
 	vector<CameraType*> cameras;
+	AbstractContext* nextContext;
+	AbstractContext* prevContext;
 	Context();
 	~Context();
 	virtual void setAsActiveContext(void);
