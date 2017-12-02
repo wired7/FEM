@@ -16,11 +16,11 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	setupGeometries();
 
 	totalMesh = new Mesh();
-	vector<Vertex*>& vertices = totalMesh->vertices;
+	vector<Geometry::Vertex*>& vertices = totalMesh->vertices;
 
 	vertices.resize(positions.size());
 	for (int i = 0; i < vertices.size();i++) {
-		vertices[i] = new Vertex(i);
+		vertices[i] = new Geometry::Vertex(i);
 		usedVertices.push_back(false);
 	}
 
@@ -57,13 +57,12 @@ void TetrahedralizationContext::setupPasses(void)
 }
 
 void TetrahedralizationContext::initialTetrahedralization(void) {
-	vector<Vertex*> &vertices = totalMesh->vertices;
+	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
 	vector<HalfEdge*> &halfedges = totalMesh->halfEdges;
 	vector<Facet*> &facets = totalMesh->facets;
 
-	Vertex * seed = vertices[0];
-	Vertex * nearest = vertices[1];
-
+	Geometry::Vertex * seed = vertices[0];
+	Geometry::Vertex * nearest = vertices[1];
 
 #pragma region first_halfedge
 	vec3 posSeed  = positions[seed->externalIndex];
@@ -73,7 +72,7 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 	// first first nearest neighbour;
 
 	for (int i = 1; i < vertices.size();i++) {
-		Vertex* nextVert = vertices[i];
+		Geometry::Vertex* nextVert = vertices[i];
 		const vec3 & pos = positions[nextVert->externalIndex];
 		float distance = glm::distance(posSeed, pos);
 
@@ -87,9 +86,9 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 
 #pragma region first_facet
 
-	Vertex* a = seed;
-	Vertex* b = nearest;
-	Vertex* c = vertices[2];
+	Geometry::Vertex* a = seed;
+	Geometry::Vertex* b = nearest;
+	Geometry::Vertex* c = vertices[2];
 
 	HalfEdge* HEab = new HalfEdge(seed, nearest);
 	HalfEdge* HEbc;
@@ -99,7 +98,7 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 
 	for (int i = 0; i < vertices.size();i++) 
 	{
-		Vertex & nextVert = *vertices[i];
+		Geometry::Vertex & nextVert = *vertices[i];
 		if (!HalfEdgeUtils::containsVertex(nextVert, *HEab)) {
 			float distance = HalfEdgeUtils::distanceToHalfEdge(positions, nextVert, *HEab);
 			if (distance == -1 || distance < shortestDistance)
@@ -123,12 +122,12 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 #pragma region first_tetrahedron
 
 
-	Vertex* finalVertex = vertices[4];
+	Geometry::Vertex* finalVertex = vertices[4];
 	
 	shortestDistance = HalfEdgeUtils::distanceToFacet(positions, *finalVertex, *facet);
 
 	for (int i = 0; i < vertices.size();i++) {
-		Vertex& nextVertex = *vertices[i];
+		Geometry::Vertex& nextVertex = *vertices[i];
 
 		if (!HalfEdgeUtils::containsVertex(nextVertex, *facet)) {
 			float distance = HalfEdgeUtils::distanceToFacet(positions, nextVertex, *facet);
@@ -162,14 +161,14 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 
 bool TetrahedralizationContext::addNextFacet() {
 	
-	vector<Vertex*> &vertices = totalMesh->vertices;
+	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
 
-	Vertex* closest = vertices[0];
+	Geometry::Vertex* closest = vertices[0];
 	Facet* facet = openFacets[0];
 	int facetIndex = 0;
 	float shortestDistance = -1;
 	for (int i = 0; i < vertices.size();i++) {
-		Vertex* vertex = vertices[i];
+		Geometry::Vertex* vertex = vertices[i];
 		if (!usedVertices[vertex->externalIndex]) {
 			for (int j = 0; j < openFacets.size();j++) {
 				float distance = HalfEdgeUtils::distanceToFacet(positions, *vertex, *openFacets[j]);

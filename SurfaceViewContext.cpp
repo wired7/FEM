@@ -21,8 +21,8 @@ void SurfaceViewContext::setupCameras(void)
 void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
-//	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
-	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
+	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
+//	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;
 
@@ -78,65 +78,23 @@ void SurfaceViewContext::setupPasses(void)
 
 void SurfaceViewContext::setupRenderableHalfEdges(Geometry::Mesh* hSimp, DecoratedGraphicsObject* o)
 {
-	auto cylinder = new Arrow();
-
 	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
 	auto m = (MeshObject*)o->signatureLookup("VERTEX");
 
-	vector<mat4> transformC;
-	vector<vec3> centroids;
-	vector<GLbyte> warningC;
+	vector<vec3> inputVertices;
 
-	for (int j = 0; j < transform.size(); j++)
+	for (int i = 0; i < m->vertices.size(); i++)
 	{
-		for (int i = 0; i < hSimp->facets.size(); i++)
-		{
-			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->facets[i], m, transform[j]);
-			auto edges = HalfEdgeUtils::getFacetHalfEdges(hSimp->facets[i]);
-
-			for (int k = 0; k < edges.size(); k++)
-			{
-				warningC.push_back(0);
-				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], m, transform[j], centroid));
-			}
-		}
-
-		for (int i = 0; i < hSimp->holes.size(); i++)
-		{
-			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->holes[i], m, transform[j]);
-
-			auto edges = HalfEdgeUtils::getFacetHalfEdges(hSimp->holes[i]);
-
-			for (int k = 0; k < edges.size(); k++)
-			{
-				warningC.push_back(1);
-				transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], m, transform[j], centroid));
-			}
-		}
+		inputVertices.push_back(m->vertices[i].position);
 	}
 
-	auto g = new MatrixInstancedMeshObject<mat4, float>(cylinder, transformC, "TRANSFORM");
+	auto outputGeometry = HalfEdgeUtils::getRenderableEdgesFromMesh(hSimp, inputVertices, refMan, transform);
 
-	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, transformC.size(), "INSTANCEID", 1);
-
-	vector<GLbyte> selectedC;
-
-	for (int i = 0; i < transformC.size(); i++)
-	{
-		selectedC.push_back(1);
-	}
-
-	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
-
-	auto highlightable = new InstancedMeshObject<GLbyte, GLbyte>(selectable, warningC, "WARNING", 1);
-
-	geometries.push_back(highlightable);
+	geometries.push_back(outputGeometry);
 }
 
 void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 {
-	auto point = new Polyhedron(4, vec3(), vec3(1.0f));
-
 	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
 	auto vertices = ((MeshObject*)o->signatureLookup("VERTEX"))->vertices;
 	vector<mat4> positions;
@@ -148,6 +106,8 @@ void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 			positions.push_back(transform[j] * translate(mat4(1.0f), vertices[i].position) * scale(mat4(1.0f), vec3(0.02f)));
 		}
 	}
+
+	auto point = new Polyhedron(4, vec3(), vec3(1.0f));
 
 	auto g = new MatrixInstancedMeshObject<mat4, float>(point, positions, "TRANSFORM");
 
@@ -167,72 +127,36 @@ void SurfaceViewContext::setupRenderableVertices(DecoratedGraphicsObject* o)
 
 void SurfaceViewContext::setupRenderableFacets(Geometry::Mesh* hSimp, Graphics::DecoratedGraphicsObject* o)
 {
-	vector<GLuint> indices;
-	vector<Vertex> vertices;
-	vector<GLuint> pickableIndices;
 	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
 	auto mesh = ((MeshObject*)o->signatureLookup("VERTEX"));
 
-	for (int j = 0; j < transform.size(); j++)
+	vector<vec3> inputVertices;
+
+	for (int i = 0; i < mesh->vertices.size(); i++)
 	{
-		for (int i = 0; i < hSimp->facets.size(); i++)
+		inputVertices.push_back(mesh->vertices[i].position);
+	}
+
+	auto outputGeometry = HalfEdgeUtils::getRenderableFacetsFromMesh(hSimp, inputVertices, transform);
+
+	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)o->signatureLookup("INSTANCEID"));
+	auto objectIDs = instanceIDs->extendedData;
+
+	int currentIndex = objectIDs[0];
+	int currentManagedIndex = refMan->assignNewGUID();
+	for (int i = 0; i < objectIDs.size(); i++)
+	{
+		if (objectIDs[i] != currentIndex)
 		{
-			auto facetVertices = HalfEdgeUtils::getFacetVertices(hSimp->facets[i]);
-			vec3 centroid = HalfEdgeUtils::getFacetCentroid(hSimp->facets[i], mesh, transform[j]);
-			vec3 normal;
-
-			for (int k = 0; k < facetVertices.size(); k++)
-			{
-				normal += vec3(inverse(transpose(transform[j])) * vec4(mesh->vertices[facetVertices[k]->externalIndex].normal, 0));
-			}
-			
-			normal = normalize(normal);
-			vertices.push_back(Vertex(centroid, normal));
-			int guid = refMan->assignNewGUID();
-			pickableIndices.push_back(guid);
-			int centroidIndex = vertices.size() - 1;
-
-			for (int k = 0; k <= facetVertices.size(); k++)
-			{
-				vec3 pos = vec3(transform[j] * vec4(mesh->vertices[facetVertices[k % facetVertices.size()]->externalIndex].position, 1));
-
-				pos = centroid + 0.7f * (pos - centroid);
-
-				vertices.push_back(Vertex(pos, normal));
-
-				pickableIndices.push_back(guid);
-
-				if (k > 0)
-				{
-					indices.push_back(centroidIndex);
-					indices.push_back(centroidIndex + k - 1);
-					indices.push_back(centroidIndex + k);
-				}
-			}
-
-			indices.push_back(centroidIndex);
-			indices.push_back(centroidIndex + facetVertices.size());
-			indices.push_back(centroidIndex + 1);
+			currentIndex = objectIDs[i];
+			currentManagedIndex = refMan->assignNewGUID();
 		}
+
+		objectIDs[i] = currentManagedIndex;
 	}
 
-	auto meshObject = new MeshObject(vertices, indices);
-	auto pickable = new ExtendedMeshObject<GLuint, GLuint>(meshObject, pickableIndices, "INSTANCEID");
+	instanceIDs->extendedData = objectIDs;
+	instanceIDs->updateBuffers();
 
-	vector<GLbyte> selectedC;
-
-	for (int i = 0; i < pickableIndices.size(); i++)
-	{
-		selectedC.push_back(1);
-	}
-
-	auto selectable = new ExtendedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION");
-
-	vector<mat4> positions;
-
-	positions.push_back(scale(mat4(1.0f), vec3(1.001f)));
-
-	auto g = new MatrixInstancedMeshObject<mat4, float>(selectable, positions, "TRANSFORM");
-
-	geometries.push_back(g);
+	geometries.push_back(outputGeometry);
 }
