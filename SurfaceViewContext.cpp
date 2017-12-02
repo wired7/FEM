@@ -21,8 +21,8 @@ void SurfaceViewContext::setupCameras(void)
 void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
-	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
-//	auto m = new Cylinder(10);//Polyhedron(10, vec3(), vec3(1.0f));
+//	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
+	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;
 
@@ -169,6 +169,7 @@ void SurfaceViewContext::setupRenderableFacets(Geometry::Mesh* hSimp, Graphics::
 {
 	vector<GLuint> indices;
 	vector<Vertex> vertices;
+	vector<GLuint> pickableIndices;
 	auto transform = ((InstancedMeshObject<mat4, float>*)o->signatureLookup("TRANSFORM"))->extendedData;
 	auto mesh = ((MeshObject*)o->signatureLookup("VERTEX"));
 
@@ -187,6 +188,8 @@ void SurfaceViewContext::setupRenderableFacets(Geometry::Mesh* hSimp, Graphics::
 			
 			normal = normalize(normal);
 			vertices.push_back(Vertex(centroid, normal));
+			int guid = refMan->assignNewGUID();
+			pickableIndices.push_back(guid);
 			int centroidIndex = vertices.size() - 1;
 
 			for (int k = 0; k <= facetVertices.size(); k++)
@@ -196,6 +199,8 @@ void SurfaceViewContext::setupRenderableFacets(Geometry::Mesh* hSimp, Graphics::
 				pos = centroid + 0.7f * (pos - centroid);
 
 				vertices.push_back(Vertex(pos, normal));
+
+				pickableIndices.push_back(guid);
 
 				if (k > 0)
 				{
@@ -212,23 +217,22 @@ void SurfaceViewContext::setupRenderableFacets(Geometry::Mesh* hSimp, Graphics::
 	}
 
 	auto meshObject = new MeshObject(vertices, indices);
+	auto pickable = new ExtendedMeshObject<GLuint, GLuint>(meshObject, pickableIndices, "INSTANCEID");
+
+	vector<GLbyte> selectedC;
+
+	for (int i = 0; i < pickableIndices.size(); i++)
+	{
+		selectedC.push_back(1);
+	}
+
+	auto selectable = new ExtendedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION");
 
 	vector<mat4> positions;
 
 	positions.push_back(scale(mat4(1.0f), vec3(1.001f)));
 
-	auto g = new MatrixInstancedMeshObject<mat4, float>(meshObject, positions, "TRANSFORM");
+	auto g = new MatrixInstancedMeshObject<mat4, float>(selectable, positions, "TRANSFORM");
 
-	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, vertices.size(), "INSTANCEID", 1);
-
-	vector<GLbyte> selectedC;
-
-	for (int i = 0; i < vertices.size(); i++)
-	{
-		selectedC.push_back(1);
-	}
-
-	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
-
-	geometries.push_back(selectable);
+	geometries.push_back(g);
 }
