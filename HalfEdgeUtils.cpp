@@ -1,6 +1,9 @@
+#pragma once
 #include "HalfEdgeUtils.h"
 #include <iostream>
 #include "LinearAlgebraUtils.h"
+#include <gtc/matrix_transform.hpp>
+#include <gtx/rotate_vector.hpp>
 
 using namespace Geometry;
 vector<Geometry::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(Geometry::Facet* facet)
@@ -43,7 +46,7 @@ static float distanceToHalfEdge(const vector<vec3> & positions, const Geometry::
 	return sqrtf(f1 + f2);
 }
 
-vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, Graphics::MeshObject* m, const mat4& parentTransform)
+vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, const vector<vec3>& positions, const mat4& parentTransform)
 {
 	vec3 centroid(0.0f);
 	
@@ -51,7 +54,7 @@ vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, Graphics::MeshObjec
 
 	for (int i = 0; i < edges.size(); i++)
 	{
-		centroid += vec3(parentTransform * vec4(m->vertices[edges[i]->vertex->externalIndex].position, 1));
+		centroid += vec3(parentTransform * vec4(positions[edges[i]->vertex->externalIndex], 1));
 	}
 
 	return centroid / (float)edges.size();
@@ -79,4 +82,72 @@ mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, Graphics:
 		aroundCentroid;
 
 	return transform;
+}
+
+Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableObjectFromMesh(Geometry::Mesh* mesh, const vector<vec3>& positions, const vector<mat4>& transforms)
+{
+	vector<GLuint> indices;
+	vector<Graphics::Vertex> vertices;
+	vector<GLuint> pickableIndices;
+	int guid = 0;
+
+	for (int j = 0; j < transforms.size(); j++)
+	{
+		for (int i = 0; i < mesh->facets.size(); i++)
+		{
+			auto facetVertices = HalfEdgeUtils::getFacetVertices(mesh->facets[i]);
+			vec3 centroid = HalfEdgeUtils::getFacetCentroid(mesh->facets[i], positions, transforms[j]);
+			vec3 normal = normalize(cross(vec3(transforms[j] * vec4(positions[facetVertices[0]->externalIndex], 1)) - centroid,
+				vec3(transforms[j] * vec4(positions[facetVertices[1]->externalIndex], 1)) - centroid));
+
+			vertices.push_back(Graphics::Vertex(centroid, normal));
+
+			guid++;
+			pickableIndices.push_back(guid);
+			int centroidIndex = vertices.size() - 1;
+
+			for (int k = 0; k <= facetVertices.size(); k++)
+			{
+				vec3 pos = vec3(transforms[j] * vec4(positions[facetVertices[k % facetVertices.size()]->externalIndex], 1));
+
+				pos = centroid + 0.9f * (pos - centroid);
+
+				vertices.push_back(Graphics::Vertex(pos, normal));
+
+				pickableIndices.push_back(guid);
+
+				if (k > 0)
+				{
+					indices.push_back(centroidIndex);
+					indices.push_back(centroidIndex + k - 1);
+					indices.push_back(centroidIndex + k);
+				}
+			}
+
+			indices.push_back(centroidIndex);
+			indices.push_back(centroidIndex + facetVertices.size());
+			indices.push_back(centroidIndex + 1);
+		}
+	}
+
+	auto meshObject = new Graphics::MeshObject(vertices, indices);
+
+	auto pickable = new Graphics::ExtendedMeshObject<GLuint, GLuint>(meshObject, pickableIndices, "INSTANCEID");
+
+	vector<GLbyte> selectedC;
+
+	for (int i = 0; i < pickableIndices.size(); i++)
+	{
+		selectedC.push_back(1);
+	}
+
+	auto selectable = new Graphics::ExtendedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION");
+
+	vector<mat4> parentTransforms;
+
+	parentTransforms.push_back(scale(mat4(1.0f), vec3(1.001f)));
+
+	auto g = new Graphics::MatrixInstancedMeshObject<mat4, float>(selectable, parentTransforms, "TRANSFORM");
+
+	return g;
 }
