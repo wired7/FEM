@@ -11,7 +11,7 @@ namespace Geometry {
 	struct HalfEdge;
 	struct Facet;
 	class Mesh;
-
+	class VolumetricMesh;
 	struct Vertex
 	{
 	public:
@@ -29,6 +29,7 @@ namespace Geometry {
 	{
 	public:
 		int internalIndex;
+		int externalIndex;
 		int start, end;
 		HalfEdge* twin;
 		HalfEdge* next;
@@ -55,9 +56,9 @@ namespace Geometry {
 		Facet* next;
 		Facet* previous;
 		int internalIndex;
-
+		int externalIndex;
 		Facet() {};
-		Facet(HalfEdge * he) : twin(nullptr), next(nullptr), previous(nullptr) 
+		Facet(HalfEdge * he) : twin(nullptr), next(nullptr), previous(nullptr), mesh(nullptr), internalIndex(-1), externalIndex(-1)
 		{
 			halfEdge = he;
 		}
@@ -68,11 +69,12 @@ namespace Geometry {
 	private:
 		int binarySearch(int externalIndex, vector<Vertex*>& data, int min, int max);
 	public:
+		VolumetricMesh * volume;
 		vector<Vertex*> vertices;
 		vector<HalfEdge*> halfEdges;
 		vector<Facet*> facets;
 		vector<Hole*> holes;
-
+		int internalIndex;
 		Mesh(vector<GLuint> indices, int verticesPerFacet);
 		Mesh() {};
 		~Mesh();
@@ -83,6 +85,12 @@ namespace Geometry {
 	struct VolumetricMesh {
 	public:
 		vector<Mesh*> meshes;
+		void addMesh(Mesh * mesh) {
+			mesh->internalIndex = meshes.size();
+			meshes.push_back(mesh);
+			mesh->volume = this;
+		}
+		Mesh* totalMesh;
 	};
 
 }
