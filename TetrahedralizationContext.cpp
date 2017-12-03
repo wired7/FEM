@@ -2,7 +2,6 @@
 #include "TetrahedralizationContext.h"
 #include "TetrahedralizationController.h"
 
-#include <thread>
 #include "HalfSimplices.h"
 #include "HalfEdgeUtils.h"
 
@@ -86,12 +85,6 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	geometries.push_back(surface);
 
 	setupPasses();
-	
-/*	thread t([=] {
-		// compute tetrahedralization here
-		tetrahedralizationReady = true;
-	});
-	t.detach();*/
 }
 
 void TetrahedralizationContext::setupGeometries(void)
@@ -388,6 +381,8 @@ void TetrahedralizationContext::updateGeometries()
 	}
 
 	glFinish();
+
+	dirty = true;
 }
 
 void TetrahedralizationContext::update(void)
@@ -396,6 +391,7 @@ void TetrahedralizationContext::update(void)
 
 	if (tetrahedralizationReady)
 	{
+		controller->context->updateGeometries();
 		tetrahedralizationReady = false;
 	}
 

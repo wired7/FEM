@@ -23,7 +23,7 @@ void SurfaceViewContext::setupCameras(void)
 void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
-//	auto m = new ImportedMeshObject("models\\sphere.obj");
+//	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
 	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
 
 	vector<mat4> transform;

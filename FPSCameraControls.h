@@ -3,6 +3,7 @@
 #include "PointSamplingContext.h"
 #include "SurfaceViewContext.h"
 #include "TetrahedralizationContext.h"
+#include "ClusteringStageContext.h"
 
 static class FPSCameraControls
 {

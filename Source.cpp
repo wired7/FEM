@@ -45,6 +45,9 @@ int init() {
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\EdgeGPass.VERTEXSHADER", { tuple<const GLchar*, UniformType>("View", MATRIX4FV),
 		tuple<const GLchar*, UniformType>("Projection", MATRIX4FV),  tuple<const GLchar*, UniformType>("Model", MATRIX4FV), tuple<const GLchar*, UniformType>("selectedRef", ONEUI) }, "EDGEGPASSVS");
 
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\vGPass.VERTEXSHADER", { tuple<const GLchar*, UniformType>("View", MATRIX4FV),
+		tuple<const GLchar*, UniformType>("Projection", MATRIX4FV),  tuple<const GLchar*, UniformType>("Model", MATRIX4FV), tuple<const GLchar*, UniformType>("selectedRef", ONEUI) }, "VOLUMEGPASSVS");
+
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\lightPass.VERTEXSHADER", {}, "LPASSVS");
 	
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\pointGPass.VERTEXSHADER", { tuple<const GLchar*, UniformType>("View", MATRIX4FV),
@@ -73,6 +76,10 @@ int init() {
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("FACETGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("D"));
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("D"));
+
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("VOLUMEGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V"));
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V"));
+//	ShaderProgramPipeline::getPipeline("V")->alphaRendered = true;
 
 	return 1;
 }

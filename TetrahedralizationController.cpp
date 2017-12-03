@@ -1,6 +1,7 @@
 #include "TetrahedralizationController.h"
 #include "SurfaceViewController.h"
 #include "FPSCameraControls.h"
+#include <thread>
 
 TetrahedralizationController::TetrahedralizationController() {
 	key_callback = kC;
@@ -79,11 +80,17 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 
 	if (key == GLFW_KEY_I && action == GLFW_PRESS)
 	{
-		for (int i = 0; i < controller->numberOfIterations; i++)
+		if (!controller->context->tetrahedralizationReady)
 		{
-			controller->context->addNextTetra();
+			thread t([&] {
+				for (int i = 0; i < controller->numberOfIterations; i++)
+				{
+					controller->context->addNextTetra();
+				}
+				controller->context->tetrahedralizationReady = true;
+			});
+			t.detach();
 		}
-		controller->context->updateGeometries();
 	}
 
 	if (key == GLFW_KEY_UP && action != GLFW_RELEASE)
@@ -102,6 +109,23 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 			controller->numberOfIterations--;
 			cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
 		}
+	}
+
+	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+	{
+		if (controller->context->nextContext == nullptr)
+		{
+			auto geo = controller->context->geometries[0];
+			auto cam = controller->context->cameras[0];
+
+			controller->context->nextContext = new ClusteringStageContext(geo, cam);
+			((ClusteringStageContext*)controller->context->nextContext)->prevContext = controller->context;
+		}
+
+		((ClusteringStageContext*)controller->context->nextContext)->geometries[0] = controller->context->geometries[0];
+		((GeometryPass*)((ClusteringStageContext*)controller->context->nextContext)->passRootNode)->clearRenderableObjects(0);
+		((GeometryPass*)((ClusteringStageContext*)controller->context->nextContext)->passRootNode)->addRenderableObjects(controller->context->geometries[0], 0);
+		((ClusteringStageContext*)controller->context->nextContext)->setAsActiveContext();
 	}
 
 	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
