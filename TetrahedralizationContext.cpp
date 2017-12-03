@@ -10,11 +10,15 @@ using namespace Geometry;
 
 TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, SphericalCamera* cam) : positions(_points)
 {
-	cameras.push_back(cam);
+	FPSCamera *newCam = new FPSCamera(cam->window, cam->relativePosition, cam->relativeDimensions, cam->camPosVector, cam->lookAtVector, glm::vec3(0, 1, 0), cam->Projection);
+
+	cameras.push_back(newCam);
 
 	setupGeometries();
 
-	totalMesh = new Mesh();
+	volume.totalMesh = new Mesh();
+	Mesh* totalMesh = volume.totalMesh;
+	totalMesh->volume = &volume;
 	vector<Geometry::Vertex*>& vertices = totalMesh->vertices;
 
 	vertices.resize(positions.size());
@@ -111,6 +115,7 @@ void TetrahedralizationContext::setupPasses(void)
 }
 
 void TetrahedralizationContext::initialTetrahedralization(void) {
+	Mesh* totalMesh = volume.totalMesh;
 	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
 	vector<HalfEdge*> &halfedges = totalMesh->halfEdges;
 	vector<Facet*> &facets = totalMesh->facets;
@@ -204,8 +209,7 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 	openFacets.insert(openFacets.begin(), mesh->facets.begin(), mesh->facets.end());
 	halfedges.insert(halfedges.begin(), mesh->halfEdges.begin(), mesh->halfEdges.end());
 
-
-	volume.meshes.push_back(mesh);
+	volume.addMesh(mesh);
 
 
 	std::cout << "SEED Tetra: ";
@@ -213,8 +217,9 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 	std::cout<< std::endl;
 }
 
-bool TetrahedralizationContext::addNextFacet() {
-	
+bool TetrahedralizationContext::addNextTetra() {
+	Mesh* totalMesh = volume.totalMesh;
+
 	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
 
 	Geometry::Vertex* closest = vertices[0];
@@ -250,7 +255,7 @@ bool TetrahedralizationContext::addNextFacet() {
 			usedVertices[m->vertices[i]->externalIndex] = true;
 		}
 
-		volume.meshes.push_back(m);
+		volume.addMesh(m);
 		std::cout << "NEW Tetra: ";
 		HalfEdgeUtils::printMesh(m);
 		std::cout << std::endl;
@@ -263,8 +268,33 @@ bool TetrahedralizationContext::addNextFacet() {
 			}
 		}
 	}
+
+	for (int i = 0; i < totalMesh->facets.size();i++) {
+		totalMesh->facets[i]->externalIndex = i;
+	}
+	for (int i = 0; i < totalMesh->halfEdges.size();i++) {
+		totalMesh->halfEdges[i]->externalIndex = i;
+	}
+
 }
 
+bool TetrahedralizationContext::fillUpGaps() {
+	vector<vector<Mesh*>> bfsResult = HalfEdgeUtils::BreadthFirstSearch(volume.meshes[0],100);
+	int count = 0;
+	for (int i = 0; i < bfsResult.size();i++) {
+		vector<Mesh*> & level = bfsResult[i];
+		count += level.size();
+
+		std::cout << "\n\n\n#################################################################################"<< std::endl << std::endl;;
+		std::cout << "level " << i << std::endl << std::endl;;
+		for (int j = 0; j < level.size();j++) {
+			HalfEdgeUtils::printMesh(level[j]);
+			std::cout << "\n______________________________________________________________________\n";
+		}
+	}
+	std::cout << "Total count: " << count << std::endl;;
+	return false;
+}
 void TetrahedralizationContext::updateGeometries()
 {
 	glFinish();
@@ -306,10 +336,14 @@ void TetrahedralizationContext::updateGeometries()
 
 void TetrahedralizationContext::update(void)
 {
-	GraphicsSceneContext<TetrahedralizationController, SphericalCamera, TetrahedralizationContext>::update();
+	GraphicsSceneContext<TetrahedralizationController, FPSCamera, TetrahedralizationContext>::update();
 
 	if (tetrahedralizationReady)
 	{
 		tetrahedralizationReady = false;
+	}
+	if (length(controller->velocity) > 0) {
+		controller->moveCamera(cameras[0], controller->velocity);
+		dirty = true;
 	}
 }

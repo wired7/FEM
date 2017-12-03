@@ -20,4 +20,11 @@ public:
 	static void mC(GLFWwindow*, int, int, int);
 	static void mPC(GLFWwindow*, double, double);
 	static void wRC(GLFWwindow*, int, int);
+	static void moveCamera(FPSCamera* cam, float xOffset, float yOffset);
+	static void moveCamera(FPSCamera* cam, vec3 dir);
+	
+	static vec3 velocity;
+	static bool firstMouse;
+	static float lastX, lastY;
+
 };

@@ -48,6 +48,49 @@ vector<vec3> HalfEdgeUtils::getVolumeVertices(Geometry::Mesh* mesh, const vector
 	return pos;
 }
 
+vector<Geometry::Mesh*> HalfEdgeUtils::getNeighbouringMeshes(Geometry::Mesh* mesh) {
+	vector<Mesh*> meshes;
+	for (int i = 0; i < mesh->facets.size();i++) {
+		if(mesh->facets[i]->twin!=nullptr &&mesh->facets[i]->twin->mesh!=nullptr)
+			meshes.push_back(mesh->facets[i]->twin->mesh);
+	}
+	return meshes;
+}
+
+vector<vector<Geometry::Mesh*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Mesh* mesh, int depth) {
+
+	vector<vector<Mesh*>> result(depth+1);
+	result[0].push_back(mesh);
+	vector<bool> visited(mesh->volume->meshes.size(),false);
+	visited[mesh->internalIndex] = true;
+
+	for (int i = 1; i < depth;i++) {
+
+		vector<Mesh*> & previous = result[i - 1];
+		vector<Mesh*> & meshes = result[i];
+
+		for (int j = 0; j < previous.size();j++) {
+
+			Mesh* currentMesh = previous[j];
+			vector<Mesh*> currentMeshNeighbours = getNeighbouringMeshes(currentMesh);
+		
+			for (int k = 0; k < currentMeshNeighbours.size();k++) {
+
+				if (!visited[currentMeshNeighbours[k]->internalIndex]) {
+
+					visited[currentMeshNeighbours[k]->internalIndex] = true;
+					meshes.push_back(currentMeshNeighbours[k]);
+
+				}
+			}
+
+		}
+	}
+
+	return result;
+
+}
+
 float HalfEdgeUtils::distanceToHalfEdge(vector<vec3> & positions, Geometry::Vertex & vertex, Geometry::HalfEdge & halfedge) {
 
 	const vec3 & vPos = positions[vertex.externalIndex];
@@ -57,7 +100,7 @@ float HalfEdgeUtils::distanceToHalfEdge(vector<vec3> & positions, Geometry::Vert
 	float f1 = glm::distance(hPos1, vPos);
 	float f2 = glm::distance(hPos2, vPos);
 
-	return sqrtf(f1 + f2);
+	return f1*f1 + f2*f2;
 }
 
 float HalfEdgeUtils::distanceToFacet(vector<vec3> & positions, Geometry::Vertex & vertex, Geometry::Facet & facet) {
@@ -67,10 +110,12 @@ float HalfEdgeUtils::distanceToFacet(vector<vec3> & positions, Geometry::Vertex 
 	float dist = 0;
 	for (int i = 0; i < vertecies.size();i++) {
 		const vec3 & facetPos = positions[vertecies[i]->externalIndex];
-		dist += distance(vPos, facetPos);
+		float d = distance(vPos, facetPos);
+		d = d*d;
+		dist += d;
 	}
 
-	return sqrtf(dist);
+	return dist;
 }
 
 vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, const vector<vec3>& positions, const mat4& parentTransform)
@@ -482,6 +527,9 @@ Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Facet & fac
 	Mesh* mesh = new Mesh();
 	mesh->halfEdges = connectFacets(facets, vertices.size());
 	mesh->facets = facets;
+	for (int i = 0; i < facets.size();i++) {
+		facets[i]->mesh = mesh;
+	}
 	for (int i = 0; i < vertices.size();i++) {
 		if (containsVertex(*vertices[i],*mesh)) {
 			mesh->vertices.push_back(vertices[i]);
@@ -510,10 +558,10 @@ void HalfEdgeUtils::printFacet(Facet * facet) {
 void HalfEdgeUtils::printMesh(Mesh * m) {
 	vector<Facet*> & facets = m->facets;
 
-	std::cout << "Mesh [ \n\t";
+	std::cout << "Mesh "<<m->internalIndex<<"[ \n\t";
 	for (int i = 0; i < facets.size();i++) {
 		printFacet(facets[i]);
 		std::cout << "\n\t";
 	}
-	std::cout << " ]";
+	std::cout << "       }";
 }
