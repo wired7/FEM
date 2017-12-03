@@ -68,17 +68,19 @@ public:
 	void processKeyInput(glm::vec3 direction);
 	void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
 	void update();
+	void ToggleFpsMode();
 
+	bool usingCamera;
 
 private:
 	// Calculates the front vector from the Camera's (updated) Eular Angles
 
 	const float YAW = 90.0f;
 	const float PITCH = 0.0f;
-	const float SENSITIVTY = 0.1f;
+	const float SENSITIVTY = 0.05f;
 	const float ZOOM = 45.0f;
-	const float SPEED_FAST = 500.0f;
-	const float SPEED_SLOW = 100.0f;
+	const float SPEED_FAST = 0.1f;
+	const float SPEED_SLOW = 0.01f;
 	const float SPEED = SPEED_FAST;
 
 	float Yaw;
@@ -87,6 +89,9 @@ private:
 	float MovementSpeed;
 	float MouseSensitivity;
 	float Zoom;
+
+	glm::vec3 Front;
 	glm::vec3 Right;
+	glm::vec3 Up;
 
 };

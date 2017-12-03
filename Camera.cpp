@@ -87,13 +87,21 @@ void SphericalCamera::translate(vec2 offset)
 }
 
 
+
+
+
+
+
 FPSCamera::FPSCamera(GLFWwindow* window, vec2 relativePosition, vec2 relativeDimensions, vec3 pos, vec3 lookAt, vec3 up, mat4 Projection)
 	: Camera(window, relativePosition, relativeDimensions, pos, lookAt, up, Projection) {
 
 	Yaw = YAW;
 	Pitch = PITCH;
 	MovementSpeed = SPEED_FAST;
-//	update();
+	usingCamera = false;
+	MouseSensitivity = SENSITIVTY;
+	Up = up;
+
 }
 
 void FPSCamera::changeSpeed() {
@@ -104,6 +112,7 @@ void FPSCamera::changeSpeed() {
 }
 
 void FPSCamera::processKeyInput(glm::vec3 direction) {
+
 	float velocity = -MovementSpeed;
 
 	if (direction == FRONT)
@@ -118,6 +127,9 @@ void FPSCamera::processKeyInput(glm::vec3 direction) {
 		camPosVector -= UP * velocity;
 	if (direction == DOWN)
 		camPosVector += UP * velocity;
+
+//	View = lookAt(camPosVector, lookAtVector, upVector);
+
 
 	View = glm::lookAt(camPosVector, camPosVector + lookAtVector, upVector);
 
@@ -143,7 +155,35 @@ void FPSCamera::processMouseMovement(float xoffset, float yoffset, GLboolean con
 	update();
 }
 
+void FPSCamera::ToggleFpsMode()
+{
+	usingCamera = !usingCamera;
+
+	if (usingCamera)
+	{
+		glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	}
+	else
+	{
+		glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+}
+
 void FPSCamera::update() {
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+	front.y = sin(glm::radians(Pitch));
+	front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+	Front = glm::normalize(front);
+	// Also re-calculate the Right and Up vector
+	Right = glm::normalize(glm::cross(Front, glm::vec3(0,1,0)));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+	Up = glm::normalize(glm::cross(Right, Front));
+
+	lookAtVector = Front;
+
+	View = glm::lookAt(camPosVector, camPosVector + lookAtVector, upVector);
+	/*
 	glm::vec3 front;
 	front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
 	front.y = sin(glm::radians(Pitch));
@@ -155,5 +195,5 @@ void FPSCamera::update() {
 	upVector = glm::normalize(glm::cross(Right, lookAtVector));
 
 	View = glm::lookAt(camPosVector, camPosVector + lookAtVector, upVector);
-
+	*/
 }
