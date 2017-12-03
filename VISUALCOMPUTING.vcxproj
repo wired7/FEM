@@ -121,6 +121,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="ClusteringStageContext.cpp" />
+    <ClCompile Include="ClusteringStageController.cpp" />
     <ClCompile Include="Context.cpp" />
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="FPSCameraControls.cpp" />
@@ -139,6 +141,7 @@
     <ClCompile Include="SurfaceViewController.cpp" />
     <ClCompile Include="TetrahedralizationContext.cpp" />
     <ClCompile Include="TetrahedralizationController.cpp" />
+    <ClCompile Include="VoronoiDiagramUtils.cpp" />
     <ClCompile Include="WindowContext.cpp" />
     <ClCompile Include="GraphicsObject.cpp" />
     <ClCompile Include="Pass.cpp" />
@@ -147,6 +150,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="ClusteringStageContext.h" />
+    <ClInclude Include="ClusteringStageController.h" />
     <ClInclude Include="Context.h" />
     <ClInclude Include="Controller.h" />
     <ClInclude Include="Decorator.h" />
@@ -167,6 +172,7 @@
     <ClInclude Include="SurfaceViewController.h" />
     <ClInclude Include="TetrahedralizationContext.h" />
     <ClInclude Include="TetrahedralizationController.h" />
+    <ClInclude Include="VoronoiDiagramUtils.h" />
     <ClInclude Include="WindowContext.h" />
     <ClInclude Include="GraphicsObject.h" />
     <ClInclude Include="Pass.h" />

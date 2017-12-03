@@ -57,6 +57,49 @@ vector<Geometry::Mesh*> HalfEdgeUtils::getNeighbouringMeshes(Geometry::Mesh* mes
 	return meshes;
 }
 
+vector<Geometry::Mesh*> HalfEdgeUtils::getVertexMeshes(Geometry::Vertex* vertex)
+{
+	auto mesh = vertex->halfEdge->facet->mesh;
+	auto neighbors = getNeighbouringMeshes(mesh);
+	vector<Geometry::Mesh*> outputMeshes;
+
+	for (int i = 0; i < neighbors.size(); i++)
+	{
+		if (containsVertex(*vertex, *(neighbors[i])))
+		{
+			outputMeshes.push_back(neighbors[i]);
+		}
+	}
+
+	return outputMeshes;
+}
+
+vector<Geometry::Mesh*> HalfEdgeUtils::getEdgeMeshes(pair<Geometry::Vertex*, Geometry::Vertex*> edge)
+{
+	auto mesh = edge.first->halfEdge->facet->mesh;
+	auto neighbors = getNeighbouringMeshes(mesh);
+	vector<Geometry::Mesh*> outputMeshes;
+
+	for (int i = 0; i < neighbors.size(); i++)
+	{
+		if (containsVertex(*(edge.first), *(neighbors[i])) && containsVertex(*(edge.second), *(neighbors[i])))
+		{
+			// I know. No time for elegant solutions. Sorry
+			for (int j = 0; j < neighbors[i]->halfEdges.size(); j++)
+			{
+				if (neighbors[i]->halfEdges[j]->start == edge.first->externalIndex && neighbors[i]->halfEdges[j]->end == edge.second->externalIndex || 
+					neighbors[i]->halfEdges[j]->end == edge.first->externalIndex && neighbors[i]->halfEdges[j]->start == edge.second->externalIndex)
+				{
+					outputMeshes.push_back(neighbors[i]);
+					break;
+				}
+			}
+		}
+	}
+
+	return outputMeshes;
+}
+
 vector<vector<Geometry::Mesh*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Mesh* mesh, int depth) {
 
 	vector<vector<Mesh*>> result(depth+1);
@@ -402,6 +445,9 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 				indices.push_back(centroidIndex + 1);
 			}
 		}
+		pickableIndices.push_back(guid);
+		pickableIndices.push_back(guid);
+
 	}
 
 	auto meshObject = new Graphics::MeshObject(vertices, indices);

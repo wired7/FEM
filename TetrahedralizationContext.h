@@ -12,7 +12,6 @@ class TetrahedralizationContext : public GraphicsSceneContext<Tetrahedralization
 
 protected:
 	vector<mat4> tetrahedra;
-	bool tetrahedralizationReady = false;
 	virtual void setupCameras(void) {};
 	virtual void setupGeometries(void);
 	virtual void setupPasses(void);
@@ -26,6 +25,7 @@ private:
 	ReferenceManager* refMan;
 	vector<vector<int>> partitions;
 public:
+	bool tetrahedralizationReady = false;
 	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, FPSCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);

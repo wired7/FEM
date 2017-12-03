@@ -9,6 +9,8 @@ public:
 	static vector<Geometry::HalfEdge*> getFacetHalfEdges(Geometry::Facet* facet);
 	static vector<Geometry::Vertex*> getFacetVertices(Geometry::Facet* facet);
 	static vector<Geometry::Mesh*> getNeighbouringMeshes(Geometry::Mesh* mesh);
+	static vector<Geometry::Mesh*> getVertexMeshes(Geometry::Vertex* vertex);
+	static vector<Geometry::Mesh*> getEdgeMeshes(pair<Geometry::Vertex*, Geometry::Vertex*> edge);
 	static vector<vector<Geometry::Mesh*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Mesh* mesh, int depth);
 
 	static vector<vec3> getVolumeVertices(Geometry::Mesh* mesh, const vector<vec3>& positions);
