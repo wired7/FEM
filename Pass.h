@@ -79,7 +79,7 @@ protected:
 	bool terminal;
 	virtual void initFrameBuffers(void) = 0;
 	virtual void clearBuffers(void);
-	virtual void configureGL(void);
+	virtual void configureGL(int pipelineIndex);
 	virtual void renderObjects(int programIndex);
 	virtual void setupObjectwiseUniforms(int programIndex, int index);
 	virtual void executeOwnBehaviour(void);
@@ -105,7 +105,7 @@ class GeometryPass : public RenderPass
 protected:
 	void initFrameBuffers(void);
 	virtual void clearBuffers(void);
-	virtual void configureGL(void);
+	virtual void configureGL(int pipelineIndex);
 	virtual void setupObjectwiseUniforms(int programIndex, int index);
 public:
 	GeometryPass(vector<ShaderProgramPipeline*> shaderPipelines, vector<Pass*> neighbors, DecoratedFrameBuffer* frameBuffer = nullptr, bool terminal = false);
@@ -120,7 +120,7 @@ class LightPass : public RenderPass
 protected:
 	void initFrameBuffers(void);
 	virtual void clearBuffers(void);
-	virtual void configureGL(void);
+	virtual void configureGL(int pipelineIndex);
 public:
 	LightPass(vector<ShaderProgramPipeline*> shaderPipelines, vector<Pass*> neighbors, bool terminal = false);
 	LightPass(vector<ShaderProgramPipeline*> shaderPipelines, bool terminal = false);

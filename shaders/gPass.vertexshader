@@ -31,11 +31,11 @@ void main(){
 
 	if(selectable > 0 && (objectID == selectedRef))
 	{
-		vColor = vec4(1, 1, 0, 1);
+		vColor = vec4(1, 1, 0, 0.3);
 	}
 	else
 	{
-		vColor = vec4(0, 0, 1, 1);
+		vColor = vec4(0, 0, 1, 0.9f);
 	}
 
 	gl_Position = Projection * View * Model * transform * vec4(vertexOutput, 1);

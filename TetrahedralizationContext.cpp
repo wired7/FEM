@@ -8,17 +8,13 @@
 #include "HalfEdgeUtils.h"
 using namespace Geometry;
 
-TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, vector<vec3> &_points, SphericalCamera* cam) : positions(_points)
+TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, SphericalCamera* cam) : positions(_points)
 {
-	FPSCamera *newCam = new FPSCamera(cam->window, cam->relativePosition, cam->relativeDimensions, cam->camPosVector, cam->lookAtVector, glm::vec3(0, 1, 0), cam->Projection);
-
-	cameras.push_back(newCam);
+	cameras.push_back(cam);
 
 	setupGeometries();
 
-	volume.totalMesh = new Mesh();
-	Mesh* totalMesh = volume.totalMesh;
-	totalMesh->volume = &volume;
+	totalMesh = new Mesh();
 	vector<Geometry::Vertex*>& vertices = totalMesh->vertices;
 
 	vertices.resize(positions.size());
@@ -28,11 +24,6 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	}
 
 	initialTetrahedralization();
-	for (int i = 0; i < 100; i++) {
-		addNextTetra();
-	}
-
-	fillUpGaps();
 
 	auto volumes = HalfEdgeUtils::getRenderableVolumesFromMesh(&volume, positions, refMan);
 	geometries.push_back(volumes);
@@ -40,8 +31,50 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	auto edges = HalfEdgeUtils::getRenderableEdgesFromMesh(&volume, positions, refMan);
 	geometries.push_back(edges);
 
+	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)points->signatureLookup("INSTANCEID"));
+	auto objectIDs = instanceIDs->extendedData;
+
+	int currentIndex = objectIDs[0];
+	int currentManagedIndex = refMan->assignNewGUID();
+	for (int i = 0; i < objectIDs.size(); i++)
+	{
+		if (objectIDs[i] != currentIndex)
+		{
+			currentIndex = objectIDs[i];
+			currentManagedIndex = refMan->assignNewGUID();
+		}
+
+		objectIDs[i] = currentManagedIndex;
+	}
+
+	instanceIDs->extendedData = objectIDs;
+	instanceIDs->updateBuffers();
+
+	geometries.push_back(points);
+
 	auto faces = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
+
+	instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)faces->signatureLookup("INSTANCEID"));
+	objectIDs = instanceIDs->extendedData;
+
+	currentIndex = objectIDs[0];
+	currentManagedIndex = refMan->assignNewGUID();
+	for (int i = 0; i < objectIDs.size(); i++)
+	{
+		if (objectIDs[i] != currentIndex)
+		{
+			currentIndex = objectIDs[i];
+			currentManagedIndex = refMan->assignNewGUID();
+		}
+
+		objectIDs[i] = currentManagedIndex;
+	}
+
+	instanceIDs->extendedData = objectIDs;
+	instanceIDs->updateBuffers();
 	geometries.push_back(faces);
+
+	geometries.push_back(surface);
 
 	setupPasses();
 	
@@ -62,13 +95,15 @@ void TetrahedralizationContext::setupPasses(void)
 	// TODO: might want to manage passes as well
 	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA"), ShaderProgramPipeline::getPipeline("C"), ShaderProgramPipeline::getPipeline("D") });
 	gP->addRenderableObjects(geometries[0], 0);
+	gP->addRenderableObjects(geometries[4], 0);
 	gP->addRenderableObjects(geometries[1], 1);
-	gP->addRenderableObjects(geometries[2], 3);
+	gP->addRenderableObjects(geometries[2], 2);
+	gP->addRenderableObjects(geometries[3], 3);
 	gP->setupCamera(cameras[0]);
 
 	makeQuad();
 	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[3], 0);
+	lP->addRenderableObjects(geometries[5], 0);
 
 	gP->addNeighbor(lP);
 
@@ -76,7 +111,6 @@ void TetrahedralizationContext::setupPasses(void)
 }
 
 void TetrahedralizationContext::initialTetrahedralization(void) {
-	Mesh* totalMesh = volume.totalMesh;
 	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
 	vector<HalfEdge*> &halfedges = totalMesh->halfEdges;
 	vector<Facet*> &facets = totalMesh->facets;
@@ -170,7 +204,8 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 	openFacets.insert(openFacets.begin(), mesh->facets.begin(), mesh->facets.end());
 	halfedges.insert(halfedges.begin(), mesh->halfEdges.begin(), mesh->halfEdges.end());
 
-	volume.addMesh(mesh);
+
+	volume.meshes.push_back(mesh);
 
 
 	std::cout << "SEED Tetra: ";
@@ -178,9 +213,8 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 	std::cout<< std::endl;
 }
 
-bool TetrahedralizationContext::addNextTetra() {
-	Mesh* totalMesh = volume.totalMesh;
-
+bool TetrahedralizationContext::addNextFacet() {
+	
 	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
 
 	Geometry::Vertex* closest = vertices[0];
@@ -216,7 +250,7 @@ bool TetrahedralizationContext::addNextTetra() {
 			usedVertices[m->vertices[i]->externalIndex] = true;
 		}
 
-		volume.addMesh(m);
+		volume.meshes.push_back(m);
 		std::cout << "NEW Tetra: ";
 		HalfEdgeUtils::printMesh(m);
 		std::cout << std::endl;
@@ -230,60 +264,54 @@ bool TetrahedralizationContext::addNextTetra() {
 		}
 	}
 
-	for (int i = 0; i < totalMesh->facets.size();i++) {
-		totalMesh->facets[i]->externalIndex = i;
-	}
-	for (int i = 0; i < totalMesh->halfEdges.size();i++) {
-		totalMesh->halfEdges[i]->externalIndex = i;
-	}
-
+	updateGeometries();
 }
 
-bool TetrahedralizationContext::fillUpGaps() {
-	vector<vector<Mesh*>> bfsResult = HalfEdgeUtils::BreadthFirstSearch(volume.meshes[0],100);
-	int count = 0;
-	for (int i = 0; i < bfsResult.size();i++) {
-		vector<Mesh*> & level = bfsResult[i];
-		count += level.size();
-
-		std::cout << "\n\n\n#################################################################################"<< std::endl << std::endl;;
-		std::cout << "level " << i << std::endl << std::endl;;
-		for (int j = 0; j < level.size();j++) {
-			HalfEdgeUtils::printMesh(level[j]);
-			std::cout << "\n______________________________________________________________________\n";
-		}
-	}
-	std::cout << "Total count: " << count << std::endl;;
-	return false;
-}
 void TetrahedralizationContext::updateGeometries()
 {
-	for (int i = 0; i < 3; i++)
+	glFinish();
+
+	((GeometryPass*)passRootNode)->clearRenderableObjects(0);
+	delete geometries[0];
+	geometries[0] = HalfEdgeUtils::getRenderableVolumesFromMesh(&volume, positions, refMan);
+	
+	if (controller->volumeRendering)
 	{
-		((GeometryPass*)passRootNode)->clearRenderableObjects(i);
-		delete geometries[i];
+		((GeometryPass*)passRootNode)->addRenderableObjects(geometries[0], 0);
 	}
 
-	geometries[0] = HalfEdgeUtils::getRenderableVolumesFromMesh(&volume, positions, refMan);
-	((GeometryPass*)passRootNode)->addRenderableObjects(geometries[0], 0);
+	if (controller->surfaceRendering)
+	{
+		((GeometryPass*)passRootNode)->addRenderableObjects(geometries[4], 0);
+	}
 
+	((GeometryPass*)passRootNode)->clearRenderableObjects(1);
+	delete geometries[1];
 	geometries[1] = HalfEdgeUtils::getRenderableEdgesFromMesh(&volume, positions, refMan);
-	((GeometryPass*)passRootNode)->addRenderableObjects(geometries[1], 1);
 
-	geometries[2] = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
-	((GeometryPass*)passRootNode)->addRenderableObjects(geometries[2], 3);
+	if (controller->edgeRendering)
+	{
+		((GeometryPass*)passRootNode)->addRenderableObjects(geometries[1], 1);
+	}
+
+	((GeometryPass*)passRootNode)->clearRenderableObjects(3);
+	delete geometries[3];
+	geometries[3] = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
+
+	if (controller->facetRendering)
+	{
+		((GeometryPass*)passRootNode)->addRenderableObjects(geometries[3], 3);
+	}
+
+	glFinish();
 }
 
 void TetrahedralizationContext::update(void)
 {
-	GraphicsSceneContext<TetrahedralizationController, FPSCamera, TetrahedralizationContext>::update();
+	GraphicsSceneContext<TetrahedralizationController, SphericalCamera, TetrahedralizationContext>::update();
 
 	if (tetrahedralizationReady)
 	{
 		tetrahedralizationReady = false;
-	}
-	if (length(controller->velocity) > 0) {
-		controller->moveCamera(cameras[0], controller->velocity);
-		dirty = true;
 	}
 }

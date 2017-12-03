@@ -10,9 +10,10 @@ class ShaderProgram;
 class ShaderProgramPipeline
 {
 private:
-	ShaderProgramPipeline(string s);
+	ShaderProgramPipeline(string s, bool alphaRendered = false);
 	~ShaderProgramPipeline();
 public:
+	bool alphaRendered;
 	static vector<ShaderProgramPipeline*> pipelines;
 	static ShaderProgramPipeline* getPipeline(string s);
 	string signature;

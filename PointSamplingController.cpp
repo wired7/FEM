@@ -39,10 +39,11 @@ void PointSamplingController::kC(GLFWwindow* window, int key, int scancode, int 
 			if (controller->context->nextContext == nullptr)
 			{
 				auto geo = controller->context->geometries[0];
+				auto geoPoints = controller->context->geometries[2];
 				auto &points = controller->context->points;
 				auto cam = controller->context->cameras[0];
 
-				controller->context->nextContext = new TetrahedralizationContext(geo, points, cam);
+				controller->context->nextContext = new TetrahedralizationContext(geo, geoPoints, points, cam);
 				((TetrahedralizationContext*)controller->context->nextContext)->prevContext = controller->context;
 			}
 

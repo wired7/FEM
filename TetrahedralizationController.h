@@ -6,7 +6,13 @@ class TetrahedralizationContext;
 class TetrahedralizationController : public Controller<TetrahedralizationController, TetrahedralizationContext>
 {
 public:
-	bool surfaceRendering = false;
+	bool surfaceRendering = true;
+	bool edgeRendering = true;
+	bool pointRendering = true;
+	bool facetRendering = true;
+	bool volumeRendering = true;
+	int numberOfIterations = 1;
+
 	TetrahedralizationController();
 	~TetrahedralizationController();
 	static void kC(GLFWwindow*, int, int, int, int);

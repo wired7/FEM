@@ -60,6 +60,7 @@ int init() {
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("A"));
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("A"));
+	ShaderProgramPipeline::getPipeline("A")->alphaRendered = true;
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("EDGEGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("EdgeA"));
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("EdgeA"));

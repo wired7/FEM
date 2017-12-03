@@ -32,70 +32,70 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 
 	if (key == GLFW_KEY_E && action == GLFW_PRESS)
 	{
-		auto geo1 = controller->context->geometries[1];
+		controller->edgeRendering ^= true;
+
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
 		if (controller->edgeRendering)
 		{
+			auto geo1 = controller->context->geometries[1];
 			pass->addRenderableObjects(geo1, 1);
 		}
 		else
 		{
 			pass->clearRenderableObjects(1);
 		}
-
-		controller->edgeRendering ^= true;
 	}
 
 	if (key == GLFW_KEY_S && action == GLFW_PRESS)
 	{
-		auto geo0 = controller->context->geometries[0];
+		controller->surfaceRendering ^= true;
+
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
 		if (controller->surfaceRendering)
 		{
+			auto geo0 = controller->context->geometries[0];
 			pass->addRenderableObjects(geo0, 0);
 		}
 		else
 		{
 			pass->clearRenderableObjects(0);
 		}
-
-		controller->surfaceRendering ^= true;
 	}
 
 	if (key == GLFW_KEY_V && action == GLFW_PRESS)
 	{
-		auto geo0 = controller->context->geometries[2];
+		controller->pointRendering ^= true;
+
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
 		if (controller->pointRendering)
 		{
+			auto geo0 = controller->context->geometries[2];
 			pass->addRenderableObjects(geo0, 2);
 		}
 		else
 		{
 			pass->clearRenderableObjects(2);
 		}
-
-		controller->pointRendering ^= true;
 	}
 
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
 	{
-		auto geo0 = controller->context->geometries[3];
+		controller->facetRendering ^= true;
+
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
-		if (controller->pointRendering)
+		if (controller->facetRendering)
 		{
+			auto geo0 = controller->context->geometries[3];
 			pass->addRenderableObjects(geo0, 3);
 		}
 		else
 		{
 			pass->clearRenderableObjects(3);
 		}
-
-		controller->pointRendering ^= true;
 	}
 
 	if (key == GLFW_KEY_SPACE && action != GLFW_PRESS) {

@@ -7,9 +7,10 @@ class SurfaceViewContext;
 class SurfaceViewController : public Controller<SurfaceViewController, SurfaceViewContext>
 {
 public:
-	bool pointRendering = false;
-	bool edgeRendering = false;
-	bool surfaceRendering = false;
+	bool pointRendering = true;
+	bool edgeRendering = true;
+	bool surfaceRendering = true;
+	bool facetRendering = true;
 	SurfaceViewController();
 	~SurfaceViewController();
 	static void kC(GLFWwindow*, int, int, int, int);
