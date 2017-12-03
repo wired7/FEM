@@ -82,6 +82,8 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 		{
 			controller->context->addNextFacet();
 		}
+
+		controller->context->updateGeometries();
 	}
 
 	if (key == GLFW_KEY_UP && action != GLFW_RELEASE)

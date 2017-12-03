@@ -263,8 +263,6 @@ bool TetrahedralizationContext::addNextFacet() {
 			}
 		}
 	}
-
-	updateGeometries();
 }
 
 void TetrahedralizationContext::updateGeometries()

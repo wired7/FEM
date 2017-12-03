@@ -9,9 +9,6 @@ class TetrahedralizationController;
 
 class TetrahedralizationContext : public GraphicsSceneContext<TetrahedralizationController, SphericalCamera, TetrahedralizationContext>
 {
-private:
-	ReferenceManager* refMan;
-	void updateGeometries();
 protected:
 	vector<mat4> tetrahedra;
 	bool tetrahedralizationReady = false;
@@ -27,12 +24,15 @@ private:
 	vector<glm::vec3>		 & positions;
 	vector<Geometry::Facet*>   openFacets;
 	vector<bool>			   usedVertices;
+	ReferenceManager* refMan;
 
 public:
 	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, SphericalCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);
 	bool addNextFacet();
+	void updateGeometries();
+
 
 
 
