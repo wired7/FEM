@@ -24,7 +24,7 @@ private:
 	vector<Geometry::Facet*>   openFacets;
 	vector<bool>			   usedVertices;
 	ReferenceManager* refMan;
-
+	vector<vector<int>> partitions;
 public:
 	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, SphericalCamera* cam);
 	~TetrahedralizationContext() {};

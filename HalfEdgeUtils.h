@@ -13,8 +13,10 @@ public:
 
 	static vector<vec3> getVolumeVertices(Geometry::Mesh* mesh, const vector<vec3>& positions);
 
+	static vec3 getFacetDirection(Geometry::Facet* facet, const vector<vec3> & positions);
+	static vec3 getFacetCentroid(Geometry::Facet* facet, const vector<vec3>& positions, const mat4& parentTransform = {mat4(1.0f)});
+	static vec3 getMeshCentroid(Geometry::Mesh* mesh, const vector<vec3>& positions);
 
-	static vec3 getFacetCentroid(Geometry::Facet* facet, const vector<vec3>& positions, const mat4& parentTransform);
 	static mat4 getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, const vector<vec3>& positions, const mat4& parentTransform, const vec3& centroid);
 	static Graphics::DecoratedGraphicsObject* getRenderableFacetsFromMesh(Geometry::VolumetricMesh* mesh, const vector<vec3>& positions, const vector<mat4>& transforms = {mat4(1.0f)});
 	static Graphics::DecoratedGraphicsObject* getRenderableEdgesFromMesh(Geometry::VolumetricMesh* mesh, const vector<vec3>& positions, ReferenceManager* refMan, const vector<mat4>& transforms = { mat4(1.0f) });
@@ -26,8 +28,15 @@ public:
 	static bool containsVertex( Geometry::Vertex & vertex,  Geometry::HalfEdge & halfedge);
 	static bool containsVertex( Geometry::Vertex & vertex,  Geometry::Facet & facet);
 	static bool containsVertex( Geometry::Vertex & vertex,  Geometry::Mesh & mesh);
+	static bool containsHalfEdge(Geometry::HalfEdge & halfedge, Geometry::Facet & facet);
+	static bool facetPointsTo(Geometry::Facet & facet, Geometry::Vertex & vertex, vector<vec3> & positions);
 
-	static bool containsHalfEdge( Geometry::HalfEdge & halfedge,  Geometry::Facet & facet);
+	static bool getOrientation(Geometry::Mesh* mesh, const vector<vec3>& positions);
+
+	static vector<int> makeFacetPartition(Geometry::Facet * facet, vector<vec3> & positions, vector<int> currentPartition);
+
+	static float getFacetPointVolume(Geometry::Facet* facet, Geometry::Vertex* vertex, vector<vec3>& positions);
+	static float getTetraVolume(Geometry::Mesh* mesh, vector<vec3> & positions);
 
 	static vector<Geometry::Vertex*> connectHalfEdges(std::vector<Geometry::HalfEdge*> & halfedges);
 	static vector<Geometry::HalfEdge*> connectFacets(std::vector<Geometry::Facet*> & facets, int NumVertices);
@@ -39,7 +48,7 @@ public:
 	static Geometry::Facet* constructFacet(vector<Geometry::Vertex*> & vertices);
 	static Geometry::Facet* constructTwinFacet(Geometry::Facet* facet);
 
-	static Geometry::Mesh* constructTetrahedron(Geometry::Vertex & vertex, Geometry::Facet & facet,  vector<Geometry::Vertex*> vertices);
+	static Geometry::Mesh* constructTetrahedron(Geometry::Vertex & vertex, Geometry::Facet & facet,  vector<Geometry::Vertex*> vertices, const vector<vec3>& positions);
 
 };
 

@@ -109,7 +109,7 @@ float HalfEdgeUtils::distanceToFacet(vector<vec3> & positions, Geometry::Vertex 
 	const vector<Geometry::Vertex*> vertecies = getFacetVertices(&facet);
 	float dist = 0;
 	for (int i = 0; i < vertecies.size();i++) {
-		const vec3 & facetPos = positions[vertecies[i]->externalIndex];
+		const vec3  facetPos = positions[vertecies[i]->externalIndex];
 		float d = distance(vPos, facetPos);
 		d = d*d;
 		dist += d;
@@ -132,6 +132,17 @@ vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, const vector<vec3>&
 	return centroid / (float)edges.size();
 }
 
+vec3 HalfEdgeUtils::getMeshCentroid(Geometry::Mesh* mesh, const vector<vec3>& positions) {
+	vector<vec3> vertexPositions = getVolumeVertices(mesh, positions);
+
+	glm::vec3 center(0);
+	for (int i = 0; i < vertexPositions.size();i++) {
+		center += vertexPositions[i];
+	}
+	center /= (float)vertexPositions.size();
+
+	return center;
+}
 mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, const vector<vec3>& positions, const mat4& parentTransform, const vec3& centroid)
 {
 	vec3 point[2];
@@ -156,6 +167,25 @@ mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, const vec
 
 	return transform;
 }
+float HalfEdgeUtils::getFacetPointVolume(Geometry::Facet* facet, Geometry::Vertex* vertex, vector<vec3> & positions) {
+	vec3 facetNorm = getFacetDirection(facet, positions);
+	Geometry::Vertex* tempVert = facet->halfEdge->vertex;
+	vec3 pos = positions[vertex->externalIndex];
+	vec3 pos2 = positions[tempVert->externalIndex];
+
+	return abs(dot(facetNorm, pos - pos2));
+
+}
+
+float HalfEdgeUtils::getTetraVolume(Geometry::Mesh* mesh, vector<vec3> & positions) {
+
+	Facet* facet = mesh->facets[0];
+	HalfEdge* nextEdge = facet->halfEdge->twin->next;
+	vec3 facetNorm = getFacetDirection(facet, positions);
+	vec3 otherNorm = positions[nextEdge->end] - positions[nextEdge->start];
+	return abs(dot(facetNorm, otherNorm));
+}
+
 
 Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableFacetsFromMesh(Geometry::VolumetricMesh* meshes, const vector<vec3>& positions, const vector<mat4>& transforms)
 {
@@ -402,7 +432,64 @@ bool HalfEdgeUtils::containsHalfEdge( Geometry::HalfEdge & halfedge, Geometry::F
 	return false;
 }
 
+bool HalfEdgeUtils::facetPointsTo(Geometry::Facet & facet, Geometry::Vertex & vertex, vector<vec3> & positions) {
+	mat4 mat(1.0f);
+	vec3 facetDirection = HalfEdgeUtils::getFacetDirection(&facet, positions);
+	if (facet.mesh->isOutsideOrientated)
+		facetDirection *= -1.0f;
 
+	vec3 facetCentroid = getFacetCentroid(&facet, positions, mat);
+	vec3 vertexPos = positions[vertex.externalIndex];
+	vec3 vertexDirection = facetCentroid - vertexPos;
+
+	return dot(vertexDirection, facetDirection) > 0;
+
+}
+
+// doesnt correct orientation (multiply by -1.0f if facet's mesh is not outsideOrientated
+vec3 HalfEdgeUtils::getFacetDirection(Geometry::Facet* facet, const vector<vec3> & positions) {
+
+	HalfEdge* halfedge = getFacetHalfEdges(facet)[0];
+
+	vec3 p1 = positions[halfedge->start];
+	vec3 p2 = positions[halfedge->end];
+	vec3 p3 = positions[halfedge->next->end];
+
+	return cross(p1 - p2, p3 - p2);
+
+}
+bool HalfEdgeUtils::getOrientation(Geometry::Mesh* mesh, const vector<vec3>& positions) {
+	glm::mat4 mat(1.0f);
+
+	Facet* facet = mesh->facets[0];
+	vec3 meshCenter = getMeshCentroid(mesh, positions);
+	vec3 facetCentroid = getFacetCentroid(facet, positions, mat);
+
+	vec3 outDirection = facetCentroid - meshCenter;
+	vec3 facetDirection = getFacetDirection(facet, positions);
+
+	return dot(outDirection, facetDirection) > 0;
+}
+
+vector<int> HalfEdgeUtils::makeFacetPartition(Geometry::Facet * facet, vector<vec3> & positions, vector<int> currentPartition) {
+
+	vector<int> partition;
+
+	vec3 facetDiretion = getFacetDirection(facet, positions);
+	if (!facet->mesh->isOutsideOrientated)
+		facetDiretion *= -1;
+
+	vec3 facetCentroid = getFacetCentroid(facet, positions);
+
+	for (int i = 0; i < currentPartition.size();i++) {
+		int index = currentPartition[i];
+		vec3 direction = positions[index] - facetCentroid;
+		if (dot(direction, facetDiretion) > 0) {
+			partition.push_back(index);
+		}
+	}
+	return partition;
+}
 
 // this connects halfedges in the orther they are in the vector... it will not ensure that they connected correctly
 vector<Geometry::Vertex*> HalfEdgeUtils::connectHalfEdges(std::vector<HalfEdge*> & halfedges) {
@@ -441,16 +528,18 @@ vector<HalfEdge*> HalfEdgeUtils::connectFacets(std::vector<Facet*> & facets, int
 	
 		for (int j = 0; j < halfedges.size();j++) {
 			HalfEdge* he = halfedges[j];
+			vector<HalfEdge*> & row = halfedgeMap[he->start];
 			bool mapped = false;
-			for (int k = 0; k < halfedgeMap[he->start].size(); k++) {
-				if (halfedgeMap[he->start][k]->end == he->end) {
+
+			for (int k = 0; k < row.size(); k++) {
+				if (row[k]->end == he->end) {
 
 					mapped = true;
 					break;
 				}
 			}
 			if (!mapped) {
-				halfedgeMap[he->start].push_back(he);
+				row.push_back(he);
 				halfedges.push_back(he);
 			}
 		}
@@ -485,6 +574,9 @@ Facet* HalfEdgeUtils::constructFacet(vector<Geometry::Vertex*> &vertices) {
 
 	connectHalfEdges(halfedges);
 
+	for (int i = 0; i < halfedges.size();i++) {
+		halfedges[0]->internalIndex = i;
+	}
 	return new Facet(halfedges[0]);
 }
 
@@ -504,7 +596,8 @@ Facet* HalfEdgeUtils::constructTwinFacet(Facet* facet) {
 	return twin;
 }
 
-Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Facet & facet, vector<Geometry::Vertex*> vertices) {
+Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Facet & facet, vector<Geometry::Vertex*> vertices, const vector<vec3>& positions) {
+
 
 	vector<Facet*> facets;
 	facets.push_back(&facet);
@@ -529,6 +622,7 @@ Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Facet & fac
 	mesh->facets = facets;
 	for (int i = 0; i < facets.size();i++) {
 		facets[i]->mesh = mesh;
+		facets[i]->internalIndex = i;
 	}
 	for (int i = 0; i < vertices.size();i++) {
 		if (containsVertex(*vertices[i],*mesh)) {
@@ -536,17 +630,21 @@ Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Facet & fac
 		}
 	}
 
+	mesh->isOutsideOrientated = getOrientation(mesh, positions );
 	return mesh;
 }
 
 void HalfEdgeUtils::printEdge(HalfEdge* he) {
-	std::cout << "HE( " << he->start << ", " << he->end << ") ";
+	std::cout <<"HE "<< he->internalIndex << " : " << he->externalIndex;
+	std::cout << " -> ( " << he->start << ", " << he->end<<" ) ";
+	
+
 }
 
 void HalfEdgeUtils::printFacet(Facet * facet) {
 
 	vector<HalfEdge*> halfedges = getFacetHalfEdges(facet);
-	std::cout << "FACET { ";
+	std::cout << "FACET   "<<facet->internalIndex<<" : "<<facet->externalIndex<<"    { ";
 	for (int i = 0; i < halfedges.size();i++) {
 		printEdge(halfedges[i]);
 		std::cout << ", ";
@@ -558,10 +656,18 @@ void HalfEdgeUtils::printFacet(Facet * facet) {
 void HalfEdgeUtils::printMesh(Mesh * m) {
 	vector<Facet*> & facets = m->facets;
 
-	std::cout << "Mesh "<<m->internalIndex<<"[ \n\t";
+	std::cout << "Mesh "<<m->internalIndex;
+	if (m->isOutsideOrientated)
+		std::cout << " ( points Outwards )";
+	else
+		std::cout << " ( Points Inwards ) ";
+
+	std::cout << " { \n\t";
+
 	for (int i = 0; i < facets.size();i++) {
 		printFacet(facets[i]);
 		std::cout << "\n\t";
 	}
+
 	std::cout << "       }";
 }

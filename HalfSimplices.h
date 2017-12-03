@@ -61,6 +61,13 @@ namespace Geometry {
 		Facet(HalfEdge * he) : twin(nullptr), next(nullptr), previous(nullptr), mesh(nullptr), internalIndex(-1), externalIndex(-1)
 		{
 			halfEdge = he;
+			HalfEdge* nextEdge = he;
+			int i = 0;
+			do {
+				nextEdge->internalIndex = i++;
+				nextEdge = nextEdge->next;
+			} while (nextEdge != he);
+
 		}
 	};
 
@@ -80,6 +87,8 @@ namespace Geometry {
 		~Mesh();
 		Vertex* vertexLookup(int externalIndex);
 		void vertexInsert(Vertex* vertex);
+		bool isOutsideOrientated;
+
 	};
 
 	struct VolumetricMesh {
@@ -89,8 +98,20 @@ namespace Geometry {
 			mesh->internalIndex = meshes.size();
 			meshes.push_back(mesh);
 			mesh->volume = this;
+
+
+			for (int i = 0; i < mesh->facets.size();i++) {
+				mesh->facets[i]->externalIndex = totalMesh->facets.size();
+				totalMesh->facets.push_back(mesh->facets[i]);
+			}
+			for (int i = 0; i < mesh->halfEdges.size();i++) {
+				mesh->halfEdges[i]->externalIndex = totalMesh->halfEdges.size();
+				totalMesh->halfEdges.push_back(mesh->halfEdges[i]);
+			}
 		}
+
 		Mesh* totalMesh;
+		vector<glm::vec3> positions;
 	};
 
 }
