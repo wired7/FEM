@@ -4,7 +4,7 @@
 
 class PointSamplingController;
 
-class PointSamplingContext : public GraphicsSceneContext<PointSamplingController, SphericalCamera, PointSamplingContext>
+class PointSamplingContext : public GraphicsSceneContext<PointSamplingController, FPSCamera, PointSamplingContext>
 {
 protected:
 	bool pointsReady = false;
@@ -15,7 +15,7 @@ public:
 	bool readyToAdvance = false;
 	vector<vec3> points;
 	static vector<vec3> sampleSurface(int sampleSize, Graphics::DecoratedGraphicsObject* object);
-	PointSamplingContext(Graphics::DecoratedGraphicsObject* surface, SphericalCamera* cam);
+	PointSamplingContext(Graphics::DecoratedGraphicsObject* surface, FPSCamera* cam);
 	~PointSamplingContext() {};
 	virtual void update(void);
 };

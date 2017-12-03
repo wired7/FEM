@@ -1,5 +1,6 @@
 #include "SurfaceViewController.h"
 #include "PointSamplingContext.h"
+#include "FPSCameraControls.h"
 
 SurfaceViewController::SurfaceViewController()
 {
@@ -47,7 +48,7 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 		}
 	}
 
-	if (key == GLFW_KEY_S && action == GLFW_PRESS)
+	if (key == GLFW_KEY_R && action == GLFW_PRESS)
 	{
 		controller->surfaceRendering ^= true;
 
@@ -98,28 +99,13 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 		}
 	}
 
-	if (key == GLFW_KEY_SPACE && action != GLFW_PRESS) {
-		
-		SphericalCamera* cam = controller->context->cameras[0];
-		cameraMovement(cam,glm::vec3(0, 1, 0));
-
-	}
-	if (key == GLFW_KEY_LEFT_CONTROL && action != GLFW_PRESS) {
-
-		SphericalCamera* cam = controller->context->cameras[0];
-		cameraMovement(cam,glm::vec3(0, -1, 0));
-
-	}
-
+	FPSCameraControls::cameraKeyboardControls<SurfaceViewContext>(controller->context, key, action);
 
 	controller->context->dirty = true;
 }
 
 void SurfaceViewController::sC(GLFWwindow* window, double xOffset, double yOffset)
 {
-	SphericalCamera* cam = controller->context->cameras[0];
-	cameraMovement(cam, xOffset, yOffset);
-
 	double xpos, ypos;
 	glfwGetCursorPos(window, &xpos, &ypos);
 	getPickingID((GeometryPass*)controller->context->passRootNode, xpos, ypos);
@@ -145,6 +131,8 @@ void SurfaceViewController::mC(GLFWwindow* window, int button, int action, int m
 
 void SurfaceViewController::mPC(GLFWwindow* window, double xpos, double ypos)
 {
+	FPSCameraControls::mousePositionControls<SurfaceViewController>(controller, xpos, ypos);
+
 	getPickingID((GeometryPass*)controller->context->passRootNode, xpos, ypos);
 	controller->context->dirty = true;
 }

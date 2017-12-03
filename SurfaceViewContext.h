@@ -7,7 +7,7 @@
 
 class SurfaceViewController;
 
-class SurfaceViewContext : public GraphicsSceneContext<SurfaceViewController, SphericalCamera, SurfaceViewContext>
+class SurfaceViewContext : public GraphicsSceneContext<SurfaceViewController, FPSCamera, SurfaceViewContext>
 {
 private:
 	ReferenceManager* refMan;
@@ -18,6 +18,7 @@ protected:
 	virtual void setupCameras(void);
 	virtual void setupGeometries(void);
 	virtual void setupPasses(void);
+	virtual void update(void);
 public:
 	SurfaceViewContext();
 	~SurfaceViewContext() {};

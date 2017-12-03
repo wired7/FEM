@@ -60,8 +60,9 @@ private:
 
 class FPSCamera : public Camera
 {
-
 public:
+	vec3 velocity;
+
 	FPSCamera(GLFWwindow* window, vec2 relativePosition, vec2 relativeDimensions, vec3 pos, vec3 lookAt, vec3 up, mat4 Projection);
 	void changeSpeed();
 

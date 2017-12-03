@@ -26,7 +26,7 @@ private:
 	ReferenceManager* refMan;
 
 public:
-	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, SphericalCamera* cam);
+	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, FPSCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);
 	bool addNextTetra();

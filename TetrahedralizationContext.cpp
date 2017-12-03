@@ -1,18 +1,18 @@
 #pragma once
-
 #include "TetrahedralizationContext.h"
 #include "TetrahedralizationController.h"
 
 #include <thread>
 #include "HalfSimplices.h"
 #include "HalfEdgeUtils.h"
+
+#include "FPSCameraControls.h"
+
 using namespace Geometry;
 
-TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, SphericalCamera* cam) : positions(_points)
+TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, FPSCamera* cam) : positions(_points)
 {
-	FPSCamera *newCam = new FPSCamera(cam->window, cam->relativePosition, cam->relativeDimensions, cam->camPosVector, cam->lookAtVector, glm::vec3(0, 1, 0), cam->Projection);
-
-	cameras.push_back(newCam);
+	cameras.push_back(cam);
 
 	setupGeometries();
 
@@ -342,8 +342,9 @@ void TetrahedralizationContext::update(void)
 	{
 		tetrahedralizationReady = false;
 	}
-	if (length(controller->velocity) > 0) {
-		controller->moveCamera(cameras[0], controller->velocity);
+
+	if (length(cameras[0]->velocity) > 0) {
+		FPSCameraControls::moveCamera(cameras[0], cameras[0]->velocity);
 		dirty = true;
 	}
 }

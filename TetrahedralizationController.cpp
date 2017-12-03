@@ -1,12 +1,6 @@
 #include "TetrahedralizationController.h"
 #include "SurfaceViewController.h"
-
-
-
-vec3 TetrahedralizationController::velocity = vec3(0);
-bool TetrahedralizationController::firstMouse = false;
-float TetrahedralizationController::lastX = 0;
-float TetrahedralizationController::lastY = 0;
+#include "FPSCameraControls.h"
 
 TetrahedralizationController::TetrahedralizationController() {
 	key_callback = kC;
@@ -110,67 +104,12 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 		}
 	}
 
-	if (key == GLFW_KEY_F1 && action == GLFW_RELEASE) 
-	{
-		controller->context->cameras[0]->ToggleFpsMode();
+	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+			((PointSamplingContext*)controller->context->prevContext)->setAsActiveContext();
 	}
 
-	if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
-	{
-		controller->context->cameras[0]->changeSpeed();
-	}
-
-	if (key == GLFW_KEY_W )
-	{
-		if(action == GLFW_PRESS)
-			velocity += glm::vec3(0, 0, 1);
-		if(action == GLFW_RELEASE)
-			velocity -= glm::vec3(0, 0, 1);
-	}
-
-	if (key == GLFW_KEY_S)
-	{
-		if (action == GLFW_PRESS)
-			velocity += glm::vec3(0, 0, -1);
-		if (action == GLFW_RELEASE)
-			velocity -= glm::vec3(0, 0, -1);
-
-	}
-	if (key == GLFW_KEY_A )
-	{
-		//moveCamera(controller->context->cameras[0], glm::vec3(-1, 0, 0) );
-		if (action == GLFW_PRESS)
-			velocity += glm::vec3(-1, 0, 0);
-		if (action == GLFW_RELEASE)
-			velocity -= glm::vec3(-1, 0, 0);
-
-	}
-	if (key == GLFW_KEY_D)
-	{
-		//	moveCamera(controller->context->cameras[0], glm::vec3(1, 0, 0) );
-		if (action == GLFW_PRESS)
-			velocity += glm::vec3(1, 0, 0);
-		if (action == GLFW_RELEASE)
-			velocity -= glm::vec3(1, 0, 0);
-	}
-
-	if (key == GLFW_KEY_SPACE)
-	{
-		//	moveCamera(controller->context->cameras[0], glm::vec3(1, 0, 0) );
-		if (action == GLFW_PRESS)
-			velocity += glm::vec3(0, 1, 0);
-		if (action == GLFW_RELEASE)
-			velocity -= glm::vec3(0, 1, 0);
-	}
-
-	if (key == GLFW_KEY_LEFT_CONTROL)
-	{
-		//	moveCamera(controller->context->cameras[0], glm::vec3(1, 0, 0) );
-		if (action == GLFW_PRESS)
-			velocity += glm::vec3(0, -1, 0);
-		if (action == GLFW_RELEASE)
-			velocity -= glm::vec3(0, -1, 0);
-	}
+	FPSCameraControls::cameraKeyboardControls<TetrahedralizationContext>(controller->context, key, action);
+	
 	controller->context->dirty = true;
 }
 
@@ -188,22 +127,8 @@ void TetrahedralizationController::mC(GLFWwindow* window, int button, int action
 
 void TetrahedralizationController::mPC(GLFWwindow* window, double xpos, double ypos)
 {
-	if (firstMouse)
-	{
-		lastX = xpos;
-		lastY = ypos;
-		firstMouse = false;
-	}
-
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-	lastX = xpos;
-	lastY = ypos;
-
-	//camera->ProcessMouseMovement(xoffset, yoffset);
-
-	moveCamera(controller->context->cameras[0], xoffset, yoffset);
+	FPSCameraControls::mousePositionControls<TetrahedralizationController>(controller, xpos, ypos);
+	
 	SurfaceViewController::getPickingID((GeometryPass*)controller->context->passRootNode, xpos, ypos);
 	controller->context->dirty = true;
 }
@@ -212,18 +137,6 @@ void TetrahedralizationController::wRC(GLFWwindow* window, int a, int b)
 {
 	controller->context->cameras[0]->update();
 	controller->context->dirty = true;
-}
-
-void TetrahedralizationController::moveCamera(FPSCamera* cam, float xOffset, float yOffset) {
-	if (cam->usingCamera){
-		cam->processMouseMovement(xOffset, yOffset);
-	}
-
-}
-
-void TetrahedralizationController::moveCamera(FPSCamera* cam, glm::vec3 dir) {
-		cam->processKeyInput(dir);
-		cam->update();
 }
 
 

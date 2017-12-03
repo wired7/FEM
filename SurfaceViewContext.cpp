@@ -1,5 +1,7 @@
+#pragma once
 #include "SurfaceViewContext.h"
 #include "HalfEdgeUtils.h"
+#include "FPSCameraControls.h"
 
 using namespace Graphics;
 SurfaceViewContext::SurfaceViewContext() : GraphicsSceneContext()
@@ -14,7 +16,7 @@ void SurfaceViewContext::setupCameras(void)
 	int width, height;
 	glfwGetWindowSize(WindowContext::window, &width, &height);
 
-	cameras.push_back(new SphericalCamera(WindowContext::window, vec2(0, 0), vec2(1, 1), vec3(0, 0, 5), vec3(0, 0, 0),
+	cameras.push_back(new FPSCamera(WindowContext::window, vec2(0, 0), vec2(1, 1), vec3(0, 0, 5), vec3(0, 0, 0),
 		vec3(0, 1, 0), perspective(45.0f, (float)width / height, 0.1f, 1000.0f)));
 }
 
@@ -147,4 +149,14 @@ void SurfaceViewContext::setupRenderableFacets(Geometry::VolumetricMesh* hSimp, 
 	instanceIDs->updateBuffers();
 
 	geometries.push_back(outputGeometry);
+}
+
+void SurfaceViewContext::update(void)
+{
+	GraphicsSceneContext<SurfaceViewController, FPSCamera, SurfaceViewContext>::update();
+
+	if (length(cameras[0]->velocity) > 0) {
+		FPSCameraControls::moveCamera(cameras[0], cameras[0]->velocity);
+		dirty = true;
+	}
 }
