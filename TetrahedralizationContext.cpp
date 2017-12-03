@@ -9,7 +9,7 @@
 
 using namespace Geometry;
 
-#define MIN_VOLUME 1
+#define MIN_VOLUME 0.01
 
 TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, FPSCamera* cam) : positions(_points)
 {
