@@ -11,9 +11,9 @@ class SurfaceViewContext : public GraphicsSceneContext<SurfaceViewController, Sp
 {
 private:
 	ReferenceManager* refMan;
-	void setupRenderableHalfEdges(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions);
-	void setupRenderableVertices(const vector<vec3>& positions);
-	void setupRenderableFacets(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions);
+	void setupRenderableHalfEdges(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions, const vector<mat4>& transform);
+	void setupRenderableVertices(const vector<vec3>& positions, const vector<mat4>& transform);
+	void setupRenderableFacets(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions, const vector<mat4>& transform);
 protected:
 	virtual void setupCameras(void);
 	virtual void setupGeometries(void);

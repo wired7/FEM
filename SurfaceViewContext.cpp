@@ -27,7 +27,7 @@ void SurfaceViewContext::setupGeometries(void)
 	vector<mat4> transform;
 
 	vec3 pos = vec3(0, 0, 0);
-	transform.push_back(scale(mat4(1.0f), vec3(1.0f)) * translate(mat4(1.0f), pos));
+	transform.push_back(translate(mat4(1.0f), pos) * scale(mat4(1.0f), vec3(10.0f)));
 
 	Geometry::Mesh * hSimp = new Geometry::Mesh(m->indices, 3);
 	Geometry::VolumetricMesh* vMesh = new Geometry::VolumetricMesh();
@@ -62,9 +62,9 @@ void SurfaceViewContext::setupGeometries(void)
 
 	geometries.push_back(outputGeometry);
 
-	setupRenderableHalfEdges(vMesh, positions);
-	setupRenderableVertices(positions);
-	setupRenderableFacets(vMesh, positions);
+	setupRenderableHalfEdges(vMesh, positions, transform);
+	setupRenderableVertices(positions, transform);
+	setupRenderableFacets(vMesh, positions, transform);
 
 	makeQuad();
 }
@@ -86,20 +86,23 @@ void SurfaceViewContext::setupPasses(void)
 	passRootNode = gP;
 }
 
-void SurfaceViewContext::setupRenderableHalfEdges(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions)
+void SurfaceViewContext::setupRenderableHalfEdges(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions, const vector<mat4>& transform)
 {
-	auto outputGeometry = HalfEdgeUtils::getRenderableEdgesFromMesh(hSimp, positions, refMan);
+	auto outputGeometry = HalfEdgeUtils::getRenderableEdgesFromMesh(hSimp, positions, refMan, transform);
 
 	geometries.push_back(outputGeometry);
 }
 
-void SurfaceViewContext::setupRenderableVertices(const vector<vec3>& positions)
+void SurfaceViewContext::setupRenderableVertices(const vector<vec3>& positions, const vector<mat4>& transform)
 {
 	vector<mat4> pTransforms;
 
-	for (int i = 0; i < positions.size(); i++)
+	for (int j = 0; j < transform.size(); j++)
 	{
-		pTransforms.push_back(translate(mat4(1.0f), positions[i]) * scale(mat4(1.0f), vec3(0.02f)));
+		for (int i = 0; i < positions.size(); i++)
+		{
+			pTransforms.push_back(transform[j] * translate(mat4(1.0f), positions[i]) * scale(mat4(1.0f), vec3(0.02f)));
+		}
 	}
 
 	auto point = new Polyhedron(4, vec3(), vec3(1.0f));
@@ -120,9 +123,9 @@ void SurfaceViewContext::setupRenderableVertices(const vector<vec3>& positions)
 	geometries.push_back(selectable);
 }
 
-void SurfaceViewContext::setupRenderableFacets(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions)
+void SurfaceViewContext::setupRenderableFacets(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions, const vector<mat4>& transform)
 {
-	auto outputGeometry = HalfEdgeUtils::getRenderableFacetsFromMesh(hSimp, positions);
+	auto outputGeometry = HalfEdgeUtils::getRenderableFacetsFromMesh(hSimp, positions, transform);
 
 	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)outputGeometry->signatureLookup("INSTANCEID"));
 	auto objectIDs = instanceIDs->extendedData;
