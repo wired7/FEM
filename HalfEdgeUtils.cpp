@@ -198,12 +198,26 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableFacetsFromMesh(Ge
 	{
 		for (int l = 0; l < meshes->meshes.size(); l++)
 		{
+			vec3 volumeCentroid;
+			auto volumeVertices = getVolumeVertices(meshes->meshes[l], positions);
+
+			for (int i = 0; i < volumeVertices.size(); i++)
+			{
+				volumeCentroid += vec3(transforms[j] * vec4(volumeVertices[i], 1.0f));
+			}
+
+			volumeCentroid /= (float)volumeVertices.size();
+
+			mat4 volumeTransform = translate(mat4(1.0f), volumeCentroid) *
+				scale(mat4(1.0f), vec3(0.8f)) *
+				translate(mat4(1.0f), -volumeCentroid);
+
 			for (int i = 0; i < meshes->meshes[l]->facets.size(); i++)
 			{
 				auto facetVertices = HalfEdgeUtils::getFacetVertices(meshes->meshes[l]->facets[i]);
-				vec3 centroid = HalfEdgeUtils::getFacetCentroid(meshes->meshes[l]->facets[i], positions, transforms[j]);
-				vec3 normal = -normalize(cross(vec3(transforms[j] * vec4(positions[facetVertices[0]->externalIndex], 1)) - centroid,
-					vec3(transforms[j] * vec4(positions[facetVertices[1]->externalIndex], 1)) - centroid));
+				vec3 centroid = HalfEdgeUtils::getFacetCentroid(meshes->meshes[l]->facets[i], positions, transforms[j] * volumeTransform);
+				vec3 normal = -normalize(cross(vec3(transforms[j] * volumeTransform * vec4(positions[facetVertices[0]->externalIndex], 1)) - centroid,
+					vec3(transforms[j] * volumeTransform * vec4(positions[facetVertices[1]->externalIndex], 1)) - centroid));
 
 				vertices.push_back(Graphics::Vertex(centroid, normal));
 
@@ -213,7 +227,7 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableFacetsFromMesh(Ge
 
 				for (int k = 0; k <= facetVertices.size(); k++)
 				{
-					vec3 pos = vec3(transforms[j] * vec4(positions[facetVertices[k % facetVertices.size()]->externalIndex], 1));
+					vec3 pos = vec3(transforms[j] * volumeTransform * vec4(positions[facetVertices[k % facetVertices.size()]->externalIndex], 1));
 
 					pos = centroid + 0.9f * (pos - centroid);
 
@@ -268,28 +282,42 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableEdgesFromMesh(Geo
 	{
 		for (int l = 0; l < meshes->meshes.size(); l++)
 		{
+			vec3 volumeCentroid;
+			auto volumeVertices = getVolumeVertices(meshes->meshes[l], positions);
+
+			for (int i = 0; i < volumeVertices.size(); i++)
+			{
+				volumeCentroid += vec3(transforms[j] * vec4(volumeVertices[i], 1.0f));
+			}
+
+			volumeCentroid /= (float)volumeVertices.size();
+
+			mat4 volumeTransform = translate(mat4(1.0f), volumeCentroid) *
+				scale(mat4(1.0f), vec3(0.8f)) *
+				translate(mat4(1.0f), -volumeCentroid);
+
 			for (int i = 0; i < meshes->meshes[l]->facets.size(); i++)
 			{
-				vec3 centroid = HalfEdgeUtils::getFacetCentroid(meshes->meshes[l]->facets[i], positions, transforms[j]);
+				vec3 centroid = HalfEdgeUtils::getFacetCentroid(meshes->meshes[l]->facets[i], positions, transforms[j] * volumeTransform);
 				auto edges = HalfEdgeUtils::getFacetHalfEdges(meshes->meshes[l]->facets[i]);
 
 				for (int k = 0; k < edges.size(); k++)
 				{
 					warningC.push_back(0);
-					transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], positions, transforms[j], centroid));
+					transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], positions, transforms[j] * volumeTransform, centroid));
 				}
 			}
 
 			for (int i = 0; i < meshes->meshes[l]->holes.size(); i++)
 			{
-				vec3 centroid = HalfEdgeUtils::getFacetCentroid(meshes->meshes[l]->holes[i], positions, transforms[j]);
+				vec3 centroid = HalfEdgeUtils::getFacetCentroid(meshes->meshes[l]->holes[i], positions, transforms[j] * volumeTransform);
 
 				auto edges = HalfEdgeUtils::getFacetHalfEdges(meshes->meshes[l]->holes[i]);
 
 				for (int k = 0; k < edges.size(); k++)
 				{
 					warningC.push_back(1);
-					transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], positions, transforms[j], centroid));
+					transformC.push_back(HalfEdgeUtils::getHalfEdgeTransform(edges[k], positions, transforms[j] * volumeTransform, centroid));
 				}
 			}
 		}
@@ -332,14 +360,14 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 
 			for (int i = 0; i < volumeVertices.size(); i++)
 			{
-				volumeCentroid += volumeVertices[i];
+				volumeCentroid += vec3(transforms[j] * vec4(volumeVertices[i], 1.0f));
 			}
 
 			volumeCentroid /= (float)volumeVertices.size();
 
 			mat4 volumeTransform = translate(mat4(1.0f), volumeCentroid) *
-									scale(mat4(1.0f), vec3(0.99f)) *
-									translate(mat4(1.0f), -volumeCentroid);
+				scale(mat4(1.0f), vec3(0.8f)) *
+				translate(mat4(1.0f), -volumeCentroid);
 
 			for (int i = 0; i < meshes->meshes[l]->facets.size(); i++)
 			{

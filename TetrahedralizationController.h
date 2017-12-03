@@ -1,7 +1,9 @@
 #pragma once
+#include "Controller.h"
 #include "TetrahedralizationContext.h"
 
 class TetrahedralizationContext;
+class FPSCameraInterface;
 
 class TetrahedralizationController : public Controller<TetrahedralizationController, TetrahedralizationContext>
 {
@@ -13,6 +15,10 @@ public:
 	bool volumeRendering = true;
 	int numberOfIterations = 1;
 
+	bool firstMouse = false;
+	float lastX = 0;
+	float lastY = 0;
+
 	TetrahedralizationController();
 	~TetrahedralizationController();
 	static void kC(GLFWwindow*, int, int, int, int);
@@ -20,11 +26,4 @@ public:
 	static void mC(GLFWwindow*, int, int, int);
 	static void mPC(GLFWwindow*, double, double);
 	static void wRC(GLFWwindow*, int, int);
-	static void moveCamera(FPSCamera* cam, float xOffset, float yOffset);
-	static void moveCamera(FPSCamera* cam, vec3 dir);
-	
-	static vec3 velocity;
-	static bool firstMouse;
-	static float lastX, lastY;
-
 };

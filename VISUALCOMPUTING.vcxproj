@@ -123,6 +123,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Context.cpp" />
     <ClCompile Include="Controller.cpp" />
+    <ClCompile Include="FPSCameraControls.cpp" />
     <ClCompile Include="FrameBuffer.cpp" />
     <ClCompile Include="GeometricalMeshObjects.cpp" />
     <ClCompile Include="HalfEdgeUtils.cpp" />
@@ -150,6 +151,7 @@
     <ClInclude Include="Controller.h" />
     <ClInclude Include="Decorator.h" />
     <ClInclude Include="DirectedGraphNode.h" />
+    <ClInclude Include="FPSCameraControls.h" />
     <ClInclude Include="FrameBuffer.h" />
     <ClInclude Include="GeometricalMeshObjects.h" />
     <ClInclude Include="HalfEdgeUtils.h" />

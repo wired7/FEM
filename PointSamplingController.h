@@ -3,11 +3,17 @@
 #include "PointSamplingContext.h"
 
 class PointSamplingContext;
+class FPSCameraInterface;
 
 class PointSamplingController : public Controller<PointSamplingController, PointSamplingContext>
 {
 public:
 	bool surfaceRendering = false;
+
+	bool firstMouse = false;
+	float lastX = 0;
+	float lastY = 0;
+
 	PointSamplingController();
 	~PointSamplingController();
 	static void kC(GLFWwindow*, int, int, int, int);

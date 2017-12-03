@@ -2,13 +2,14 @@
 #include "PointSamplingContext.h"
 #include "ImplicitGeometry.h"
 #include <thread>
+#include "FPSCameraControls.h"
 
 using namespace std;
 using namespace Graphics;
 
 #define NUM_POINTS 1000
 #define POINT_SCALE 0.01f
-PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, SphericalCamera* cam)
+PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPSCamera* cam)
 {
 	cameras.push_back(cam);
 	geometries.push_back(surface);
@@ -78,7 +79,12 @@ void PointSamplingContext::setupPasses(void)
 
 void PointSamplingContext::update(void)
 {
-	GraphicsSceneContext<PointSamplingController, SphericalCamera, PointSamplingContext>::update();
+	GraphicsSceneContext<PointSamplingController, FPSCamera, PointSamplingContext>::update();
+
+	if (length(cameras[0]->velocity) > 0) {
+		FPSCameraControls::moveCamera(cameras[0], cameras[0]->velocity);
+		dirty = true;
+	}
 
 	if (pointsReady)
 	{

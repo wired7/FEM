@@ -15,7 +15,7 @@ out gl_PerVertex {
 
 // Output data ; will be interpolated for each fragment.
 out vec4 vColor;
-out vec3 n;
+flat out vec3 n;
 out vec3 pos;
 flat out uint oID;
 

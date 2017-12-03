@@ -3,6 +3,7 @@
 #include "SurfaceViewContext.h"
 
 class SurfaceViewContext;
+class FPSCameraInterface;
 
 class SurfaceViewController : public Controller<SurfaceViewController, SurfaceViewContext>
 {
@@ -11,6 +12,11 @@ public:
 	bool edgeRendering = true;
 	bool surfaceRendering = true;
 	bool facetRendering = true;
+
+	bool firstMouse = false;
+	float lastX = 0;
+	float lastY = 0;
+
 	SurfaceViewController();
 	~SurfaceViewController();
 	static void kC(GLFWwindow*, int, int, int, int);

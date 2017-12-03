@@ -1,19 +1,18 @@
 #pragma once
-
 #include "TetrahedralizationContext.h"
 #include "TetrahedralizationController.h"
 
 #include <thread>
 #include "HalfSimplices.h"
 #include "HalfEdgeUtils.h"
+
+#include "FPSCameraControls.h"
+
 using namespace Geometry;
 
-#define MIN_VOLUME 1
-TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, SphericalCamera* cam) : positions(_points)
+TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, FPSCamera* cam) : positions(_points)
 {
-	FPSCamera *newCam = new FPSCamera(cam->window, cam->relativePosition, cam->relativeDimensions, cam->camPosVector, cam->lookAtVector, glm::vec3(0, 1, 0), cam->Projection);
-
-	cameras.push_back(newCam);
+	cameras.push_back(cam);
 
 	setupGeometries();
 
@@ -27,9 +26,6 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 		vertices[i] = new Geometry::Vertex(i);
 		usedVertices.push_back(false);
 	}
-
-
-
 
 	initialTetrahedralization();
 
@@ -121,43 +117,28 @@ void TetrahedralizationContext::setupPasses(void)
 void TetrahedralizationContext::initialTetrahedralization(void) {
 	Mesh* totalMesh = volume.totalMesh;
 	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
-		
-	vec3 centroid(0);
-	for (int i = 0; i < positions.size(); i++) {
-		centroid += positions[i];
-	}
-	centroid /= (float)positions.size();
-	int shortestIndex = 0;
-	float shortestDistance = distance(centroid,positions[0]);
+	vector<HalfEdge*> &halfedges = totalMesh->halfEdges;
+	vector<Facet*> &facets = totalMesh->facets;
 
-	for (int i = 0; i < positions.size();i++) {
-		if (distance(positions[i], centroid) < shortestDistance) {
-			shortestDistance = distance(positions[i], centroid);
-			shortestIndex = i;
-		}
-	}
-
-	Geometry::Vertex * seed = vertices[shortestIndex];
-	Geometry::Vertex * nearest = vertices[0];
+	Geometry::Vertex * seed = vertices[0];
+	Geometry::Vertex * nearest = vertices[1];
 
 #pragma region first_halfedge
 	vec3 posSeed  = positions[seed->externalIndex];
 	vec3 posNearest = positions[nearest->externalIndex];
 
-	shortestDistance = -1;
+	float shortestDistance = glm::distance(posSeed, posNearest);
 	// first first nearest neighbour;
 
-	for (int i = 0; i < vertices.size();i++) {
-		if (i!= seed->externalIndex) {
-			Geometry::Vertex* nextVert = vertices[i];
-			const vec3 & pos = positions[nextVert->externalIndex];
-			float distance = glm::distance(posSeed, pos);
+	for (int i = 1; i < vertices.size();i++) {
+		Geometry::Vertex* nextVert = vertices[i];
+		const vec3 & pos = positions[nextVert->externalIndex];
+		float distance = glm::distance(posSeed, pos);
 
-			if (distance < shortestDistance || shortestDistance == -1) {
-				shortestDistance = distance;
-				posNearest = pos;
-				nearest = nextVert;
-			}
+		if (distance < shortestDistance) {
+			shortestDistance = distance;
+			posNearest = pos;
+			nearest = nextVert;
 		}
 	}
 #pragma endregion
@@ -166,7 +147,7 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 
 	Geometry::Vertex* a = seed;
 	Geometry::Vertex* b = nearest;
-	Geometry::Vertex* c = vertices[0];
+	Geometry::Vertex* c = vertices[2];
 
 	HalfEdge* HEab = new HalfEdge(seed, nearest);
 	HalfEdge* HEbc;
@@ -176,7 +157,6 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 
 	for (int i = 0; i < vertices.size();i++) 
 	{
-
 		Geometry::Vertex & nextVert = *vertices[i];
 		if (!HalfEdgeUtils::containsVertex(nextVert, *HEab)) {
 			float distance = HalfEdgeUtils::distanceToHalfEdge(positions, nextVert, *HEab);
@@ -217,39 +197,24 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 		}
 	}
 
-	Mesh* mesh = HalfEdgeUtils::constructTetrahedron(*finalVertex, *facet,vertices,positions);
+	Mesh* mesh = HalfEdgeUtils::constructTetrahedron(*finalVertex, *facet,vertices);
 	for (int i = 0; i < mesh->vertices.size();i++) {
 		usedVertices[mesh->vertices[i]->externalIndex] = true;
 	}
 #pragma endregion
 
+
+
+	facets.insert(facets.begin(), mesh->facets.begin(), mesh->facets.end());
 	openFacets.insert(openFacets.begin(), mesh->facets.begin(), mesh->facets.end());
+	halfedges.insert(halfedges.begin(), mesh->halfEdges.begin(), mesh->halfEdges.end());
 
 	volume.addMesh(mesh);
+
 
 	std::cout << "SEED Tetra: ";
 	HalfEdgeUtils::printMesh(mesh);
 	std::cout<< std::endl;
-
-
-
-	// partition data
-	vector<int> firstPartition;
-	firstPartition.resize(vertices.size());
-	for (int i = 0; i < vertices.size();i++) {
-		firstPartition[i] = i;
-	}
-	std::cout << "------------------------------------------------- " << std::endl;;
-
-	for (int i = 0; i < mesh->facets.size();i++) {
-		partitions.push_back(HalfEdgeUtils::makeFacetPartition(mesh->facets[i], positions, firstPartition));
-		std::cout << "\n\nPARTITION " << i << "   ( "<<partitions[i].size()<<") : ";
-
-		for (int j = 0; j < partitions[i].size();j++) {
-			std::cout << partitions[i][j] << ", ";
-		}
-	}
-
 }
 
 bool TetrahedralizationContext::addNextTetra() {
@@ -261,33 +226,20 @@ bool TetrahedralizationContext::addNextTetra() {
 	Facet* facet = openFacets[0];
 	int facetIndex = 0;
 	float shortestDistance = -1;
-
-	for (int i = 0; i < openFacets.size();i++) {
-
-		Geometry::Facet* testFacet = openFacets[i];
-		vector<int> &facetPartition = partitions[testFacet->externalIndex];
-
-		for (int j = 0; j < facetPartition.size();j++) {
-			int vertexIndex = facetPartition[j];
-			Geometry::Vertex* vertex = totalMesh->vertices[vertexIndex];
-			if (!usedVertices[vertex->externalIndex]) {
-
-				if (HalfEdgeUtils::facetPointsTo(*testFacet, *vertex, positions) && HalfEdgeUtils::getFacetPointVolume(testFacet, vertex, positions)) {
-
-					float distance = HalfEdgeUtils::distanceToFacet(positions, *vertex, *testFacet);
-					if (distance < shortestDistance || shortestDistance == -1) {
-						shortestDistance = distance;
-						closest = vertex;
-						facet = testFacet;
-						facetIndex = i;
-					}
-
+	for (int i = 0; i < vertices.size();i++) {
+		Geometry::Vertex* vertex = vertices[i];
+		if (!usedVertices[vertex->externalIndex]) {
+			for (int j = 0; j < openFacets.size();j++) {
+				float distance = HalfEdgeUtils::distanceToFacet(positions, *vertex, *openFacets[j]);
+				if (distance < shortestDistance || shortestDistance == -1) {
+					shortestDistance = distance;
+					closest = vertex;
+					facet = openFacets[j];
+					facetIndex = j;
 				}
 			}
 		}
-
 	}
-
 
 	if (shortestDistance == -1) {
 		std::cout << "Could not add another face"<<std::endl;
@@ -297,7 +249,7 @@ bool TetrahedralizationContext::addNextTetra() {
 		
 		Facet* twinFacet = HalfEdgeUtils::constructTwinFacet(facet);
 		openFacets.erase(openFacets.begin()+facetIndex);
-		Mesh* m = HalfEdgeUtils::constructTetrahedron(*closest, *twinFacet,totalMesh->vertices, positions);
+		Mesh* m = HalfEdgeUtils::constructTetrahedron(*closest, *twinFacet,totalMesh->vertices);
 		
 		for (int i = 0; i < m->vertices.size();i++) {
 			usedVertices[m->vertices[i]->externalIndex] = true;
@@ -309,28 +261,20 @@ bool TetrahedralizationContext::addNextTetra() {
 		std::cout << std::endl;
 
 
-
 		for (int i = 0; i < m->facets.size();i++) {
 			Facet* f = m->facets[i];
 			if (f != twinFacet) {
 				openFacets.push_back(f);
 			}
-			partitions.push_back(HalfEdgeUtils::makeFacetPartition(f, positions, partitions[facet->externalIndex]));
 		}
-//		std::cout << "volume: " << HalfEdgeUtils::getTetraVolume(m, positions) << std::endl;;
-
 	}
 
-
-
-/*	for (int i = 0; i < totalMesh->facets.size();i++) {
+	for (int i = 0; i < totalMesh->facets.size();i++) {
 		totalMesh->facets[i]->externalIndex = i;
 	}
 	for (int i = 0; i < totalMesh->halfEdges.size();i++) {
 		totalMesh->halfEdges[i]->externalIndex = i;
 	}
-	*/
-	std::cout << "size: " << totalMesh->facets.size() << std::endl;
 
 }
 
@@ -398,8 +342,9 @@ void TetrahedralizationContext::update(void)
 	{
 		tetrahedralizationReady = false;
 	}
-	if (length(controller->velocity) > 0) {
-		controller->moveCamera(cameras[0], controller->velocity);
+
+	if (length(cameras[0]->velocity) > 0) {
+		FPSCameraControls::moveCamera(cameras[0], cameras[0]->velocity);
 		dirty = true;
 	}
 }

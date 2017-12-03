@@ -2,6 +2,7 @@
 #include "PointSamplingController.h"
 #include "SurfaceViewController.h"
 #include "TetrahedralizationContext.h"
+#include "FPSCameraControls.h"
 
 PointSamplingController::PointSamplingController()
 {
@@ -18,7 +19,7 @@ PointSamplingController::~PointSamplingController()
 
 void PointSamplingController::kC(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_S && action == GLFW_PRESS)
+	if (key == GLFW_KEY_R && action == GLFW_PRESS)
 	{
 		auto geo0 = controller->context->geometries[0];
 		auto geo2 = controller->context->geometries[2];
@@ -58,13 +59,15 @@ void PointSamplingController::kC(GLFWwindow* window, int key, int scancode, int 
 		}
 	}
 
+	FPSCameraControls::cameraKeyboardControls(controller->context, key, action);
+
 	controller->context->dirty = true;
 }
 
 void PointSamplingController::sC(GLFWwindow* window, double xOffset, double yOffset)
 {
-	SphericalCamera* cam = controller->context->cameras[0];
-	SurfaceViewController::cameraMovement(cam, xOffset, yOffset);
+	FPSCamera* cam = controller->context->cameras[0];
+//	SurfaceViewController::cameraMovement(cam, xOffset, yOffset);
 	controller->context->dirty = true;
 }
 
@@ -74,6 +77,8 @@ void PointSamplingController::mC(GLFWwindow* window, int button, int action, int
 
 void PointSamplingController::mPC(GLFWwindow* window, double xpos, double ypos)
 {
+	FPSCameraControls::mousePositionControls(controller, xpos, ypos);
+
 	SurfaceViewController::getPickingID((GeometryPass*)controller->context->passRootNode, xpos, ypos);
 	controller->context->dirty = true;
 }
