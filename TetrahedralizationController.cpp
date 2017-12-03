@@ -189,7 +189,6 @@ void TetrahedralizationController::mC(GLFWwindow* window, int button, int action
 
 void TetrahedralizationController::mPC(GLFWwindow* window, double xpos, double ypos)
 {
-	std::cout << "new pos" << xpos << ", " << ypos << std::endl;
 	if (firstMouse)
 	{
 		lastX = xpos;
