@@ -259,7 +259,7 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableFacetsFromMesh(Ge
 			{
 				auto facetVertices = HalfEdgeUtils::getFacetVertices(meshes->meshes[l]->facets[i]);
 				vec3 centroid = HalfEdgeUtils::getFacetCentroid(meshes->meshes[l]->facets[i], positions, transforms[j] * volumeTransform);
-				vec3 normal = -normalize(cross(vec3(transforms[j] * volumeTransform * vec4(positions[facetVertices[0]->externalIndex], 1)) - centroid,
+				vec3 normal = (meshes->meshes[l]->isOutsideOrientated ? 1.0f : -1.0f) * normalize(cross(vec3(transforms[j] * volumeTransform * vec4(positions[facetVertices[0]->externalIndex], 1)) - centroid,
 					vec3(transforms[j] * volumeTransform * vec4(positions[facetVertices[1]->externalIndex], 1)) - centroid));
 
 				vertices.push_back(Graphics::Vertex(centroid, normal));
@@ -416,7 +416,7 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 			{
 				auto facetVertices = HalfEdgeUtils::getFacetVertices(meshes->meshes[l]->facets[i]);
 				vec3 centroid = HalfEdgeUtils::getFacetCentroid(meshes->meshes[l]->facets[i], positions, transforms[j] * volumeTransform);
-				vec3 normal = -normalize(cross(vec3(transforms[j] * vec4(positions[facetVertices[0]->externalIndex], 1)) - centroid,
+				vec3 normal = (meshes->meshes[l]->isOutsideOrientated ? -1.0f : 1.0f) * normalize(cross(vec3(transforms[j] * vec4(positions[facetVertices[0]->externalIndex], 1)) - centroid,
 					vec3(transforms[j] * vec4(positions[facetVertices[1]->externalIndex], 1)) - centroid));
 
 				vertices.push_back(Graphics::Vertex(centroid, normal));

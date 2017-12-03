@@ -6,6 +6,7 @@ layout(location = 1) in vec3 normal;
 layout(location = 2) in uint objectID;
 layout(location = 3) in uint selectable;
 layout(location = 4) in mat4 transform;
+layout(location = 8) in float renderable;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -36,6 +37,11 @@ void main(){
 	else
 	{
 		vColor = vec4(0, 0, 1, 1);
+	}
+
+	if(renderable == 0.0f)
+	{
+		vertexOutput.x = 10000000;
 	}
 
 	gl_Position = Projection * View * Model * transform * vec4(vertexOutput, 1);

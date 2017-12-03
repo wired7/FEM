@@ -188,7 +188,7 @@ ImportedMeshObject::ImportedMeshObject(const char* string) : MeshObject()
 	for (int i = 0; i < vertices.size(); i++)
 	{
 		vertices[i].position -= avg;
-		vertices[i].position /= diff.length();
+		vertices[i].position /= (20.0f * diff.length());
 	}
 
 	bindBuffers();

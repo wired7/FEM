@@ -43,7 +43,7 @@ void main(){
 
 	pos = gl_Position.xyz;
 
-	n = (transpose(inverse(Model * transform)) * vec4(normal,0)).xyz;
+	n = (transpose(inverse(View * Model * transform)) * vec4(normal,0)).xyz;
 	n = normalize(n);
 
 	oID = objectID;

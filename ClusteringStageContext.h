@@ -3,6 +3,7 @@
 #include "ClusteringStageController.h"
 #include "ReferencedGraphicsObject.h"
 #include "HalfSimplices.h"
+#include "OpenCLContext.h"
 
 class ClusteringStageController;
 
@@ -10,11 +11,19 @@ class ClusteringStageContext : public GraphicsSceneContext<ClusteringStageContro
 {
 protected:
 	ReferenceManager* refMan;
+	OpenCLContext* clContext;
+	CLKernel* volumeUpdateKernel;
+	CLBuffer<int>* offsetBuffer;
+	CLBuffer<int>* sizeBuffer;
+	CLBuffer<float>* cameraPosBuffer;
+	CLBuffer<float>* cameraDirBuffer;
+	CLGLBuffer<float>* renderableBuffer;
+	CLGLBuffer<float>* positionsBuffer;
 	virtual void setupCameras(void) {};
 	virtual void setupGeometries(void);
 	virtual void setupPasses(void);
 	virtual void update(void);
-	virtual void computeRenderableBuffer(void);
+	virtual void computeRenderableBuffer(DecoratedGraphicsObject* volume);
 public:
 	ClusteringStageContext(Graphics::DecoratedGraphicsObject* volume, FPSCamera* cam);
 	~ClusteringStageContext();
