@@ -10,7 +10,7 @@
 
 using namespace Geometry;
 
-#define MIN_VOLUME 3
+#define MIN_VOLUME 1
 
 TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, FPSCamera* cam) : positions(_points)
 {
@@ -273,7 +273,7 @@ bool TetrahedralizationContext::addNextTetra() {
 			Geometry::Vertex* vertex = totalMesh->vertices[vertexIndex];
 			if (!usedVertices[vertex->externalIndex]) {
 
-				if (HalfEdgeUtils::facetPointsTo(*testFacet, *vertex, positions) && HalfEdgeUtils::getFacetPointVolume(testFacet, vertex, positions)) {
+				if (HalfEdgeUtils::facetPointsTo(*testFacet, *vertex, positions) && HalfEdgeUtils::getFacetPointVolume(testFacet, vertex, positions) > MIN_VOLUME) {
 
 					float distance = HalfEdgeUtils::distanceToFacet(positions, *vertex, *testFacet);
 					if (distance < shortestDistance || shortestDistance == -1) {
@@ -317,7 +317,7 @@ bool TetrahedralizationContext::addNextTetra() {
 			}
 			partitions.push_back(HalfEdgeUtils::makeFacetPartition(f, positions, partitions[facet->externalIndex]));
 		}
-//		std::cout << "volume: " << HalfEdgeUtils::getTetraVolume(m, positions) << std::endl;;
+		std::cout << "volume: " << HalfEdgeUtils::getTetraVolume(m, positions) << std::endl;;
 
 	}
 
