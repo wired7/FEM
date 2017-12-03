@@ -506,6 +506,21 @@ bool HalfEdgeUtils::containsHalfEdge( Geometry::HalfEdge & halfedge, Geometry::F
 	return false;
 }
 
+bool HalfEdgeUtils::findHalfEdgeTwin(Geometry::Facet* facet, Geometry::HalfEdge* halfedge) {
+
+	vector<HalfEdge*> facetHalfedges = getFacetHalfEdges(facet);
+
+	for (int i = 0; i < facetHalfedges.size();i++) {
+		HalfEdge* potential = facetHalfedges[i];
+		if (potential->end == halfedge->start && potential->start == halfedge->end) {
+			potential->twin = halfedge;
+			halfedge->twin = potential;
+			return true;
+		}
+	}
+	return false;
+}
+
 bool HalfEdgeUtils::facetPointsTo(Geometry::Facet & facet, Geometry::Vertex & vertex, vector<vec3> & positions) {
 	mat4 mat(1.0f);
 	vec3 facetDirection = HalfEdgeUtils::getFacetDirection(&facet, positions);
@@ -595,45 +610,26 @@ vector<HalfEdge*> HalfEdgeUtils::connectFacets(std::vector<Facet*> & facets, int
 	facets[0]->previous = facets[facets.size() - 1];
 
 
-	vector<vector<HalfEdge*>> halfedgeMap(numVertices);
 
 	for (int i = 0; i < facets.size();i++) {
-		vector<HalfEdge*> halfedges = getFacetHalfEdges(facets[i]);
-	
-		for (int j = 0; j < halfedges.size();j++) {
-			HalfEdge* he = halfedges[j];
-			vector<HalfEdge*> & row = halfedgeMap[he->start];
-			bool mapped = false;
 
-			for (int k = 0; k < row.size(); k++) {
-				if (row[k]->end == he->end) {
+		vector<HalfEdge*> facetHalfedges = getFacetHalfEdges(facets[i]);
+		halfedges.insert(halfedges.end(), facetHalfedges.begin(), facetHalfedges.end());
 
-					mapped = true;
-					break;
+		for (int j = 0; j < facetHalfedges.size();j++) {
+			HalfEdge* halfedge = facetHalfedges[j];
+			if (halfedge->twin == nullptr) {
+				for (int k = 0; k < facets.size();k++) {
+					if (k != i) {
+						if (findHalfEdgeTwin(facets[k], halfedge)) break;
+					}
 				}
 			}
-			if (!mapped) {
-				row.push_back(he);
-				halfedges.push_back(he);
-			}
+		
 		}
 	}
 
-	for (int i = 0; i < halfedges.size(); i++) {
-		HalfEdge* he = halfedges[i];
-		if (he->twin == nullptr) {
-			vector<HalfEdge*> &list = halfedgeMap[he->end];
-			for (int j = 0; j < list.size(); j++) {
-				HalfEdge * heTemp = list[j];
 
-				if (heTemp->end == he->start) {
-					heTemp->twin = he;
-					he->twin = heTemp;
-					break;
-				}
-			}
-		}
-	}
 	return halfedges;
 }
 

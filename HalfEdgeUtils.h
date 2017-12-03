@@ -31,6 +31,7 @@ public:
 	static bool containsVertex( Geometry::Vertex & vertex,  Geometry::Facet & facet);
 	static bool containsVertex( Geometry::Vertex & vertex,  Geometry::Mesh & mesh);
 	static bool containsHalfEdge(Geometry::HalfEdge & halfedge, Geometry::Facet & facet);
+	static bool findHalfEdgeTwin(Geometry::Facet* facet, Geometry::HalfEdge* halfedge);
 	static bool facetPointsTo(Geometry::Facet & facet, Geometry::Vertex & vertex, vector<vec3> & positions);
 
 	static bool getOrientation(Geometry::Mesh* mesh, const vector<vec3>& positions);
