@@ -60,7 +60,7 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	vector<ivec4> tetrahedra;
 #undef max
 #undef min
-	int windowSize = 10;
+	int windowSize = 4;
 	for (int i = 0; i < _points.size(); i++)
 	{
 		vector<int> closeSpaceIndices;
@@ -84,13 +84,20 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 			}
 		}
 
-//		cout << closeSpaceIndices.size() << endl;
 		for (int j = 0; j < closeSpaceIndices.size(); j++)
 		{
 			for (int k = j + 1; k < closeSpaceIndices.size(); k++)
 			{
+				if (closeSpaceIndices[k] == closeSpaceIndices[j])
+				{
+					continue;
+				}
 				for (int l = k + 1; l < closeSpaceIndices.size(); l++)
 				{
+					if (closeSpaceIndices[l] == closeSpaceIndices[k] || closeSpaceIndices[l] == closeSpaceIndices[j])
+					{
+						continue;
+					}
 					for (int m = l + 1; m < closeSpaceIndices.size(); m++)
 					{
 						if (closeSpaceIndices[m] == closeSpaceIndices[l] || closeSpaceIndices[m] == closeSpaceIndices[k] || closeSpaceIndices[m] == closeSpaceIndices[j])
@@ -105,6 +112,38 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 						vec3 minBounds = sphere.center - sphere.radius;
 						vec3 maxBounds = sphere.center + sphere.radius;
 
+						ivec3 minIndices(INFINITY);
+						ivec3 maxIndices(-INFINITY);
+
+						for (int z = 0; z < 4; z++)
+						{
+							for (int y = 0; y < 3; y++)
+							{
+								if (tPoints[z][y] > _points[maxIndices[y]][y])
+								{
+									maxIndices[y] = z;
+								}
+								else if (tPoints[z][y] < _points[minIndices[y]][y])
+								{
+									minIndices[y] = z;
+								}
+							}
+						}
+
+						ivec3 diff;
+						for (int z = 0; z < 3; z++)
+						{
+							minIndices[z] = mapFromOriginalToSorted[z][minIndices[z]];
+							maxIndices[z] = mapFromOriginalToSorted[z][maxIndices[z]];
+						}
+
+						diff = maxIndices - minIndices;
+
+						if (diff[0] > 0 && diff[1] > 0 && diff[2] > 0)
+						{
+							continue;
+						}
+
 						for (int a = 0; a < _points.size(); a++)
 						{
 							if (a == j || a == k || a == l || a == m)
@@ -114,6 +153,7 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 
 							if (length(sphere.center - _points[a]) < sphere.radius)
 							{
+//								cout << sphere.radius << " > " << length(sphere.center - _points[a]) << endl;
 								success = false;
 								break;
 							}
@@ -128,7 +168,7 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 			}
 		}
 	}
-	cout << tetrahedra.size() << endl;
+	cout << "NUMBER OF TETRAHEDRA: " << tetrahedra.size() << endl;
 	system("PAUSE");
 /*	for (int i = 0; i < tetrahedra.size(); i++)
 	{
