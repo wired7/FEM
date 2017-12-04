@@ -215,7 +215,7 @@ void ImportedMeshObject::loadFile(const char* filePath)
 				normal = vec3(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z);
 			}
 
-			addVertex(pos, (1.0f - 2.0f * (i % 2)) * normalize(normal));
+			addVertex(pos, normalize(normal));
 		}
 
 		for (int j = 0; j < mesh->mNumFaces; j++)
