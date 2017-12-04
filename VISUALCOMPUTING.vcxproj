@@ -132,6 +132,7 @@
     <ClCompile Include="HalfSimplices.cpp" />
     <ClCompile Include="ImplicitGeometry.cpp" />
     <ClCompile Include="LinearAlgebraUtils.cpp" />
+    <ClCompile Include="MeshGraph.cpp" />
     <ClCompile Include="OpenCLContext.cpp" />
     <ClCompile Include="PointSamplingContext.cpp" />
     <ClCompile Include="PointSamplingController.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="HalfSimplices.h" />
     <ClInclude Include="ImplicitGeometry.h" />
     <ClInclude Include="LinearAlgebraUtils.h" />
+    <ClInclude Include="MeshGraph.h" />
     <ClInclude Include="OpenCLContext.h" />
     <ClInclude Include="PointSamplingContext.h" />
     <ClInclude Include="PointSamplingController.h" />

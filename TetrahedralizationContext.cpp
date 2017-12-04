@@ -6,6 +6,9 @@
 #include "HalfEdgeUtils.h"
 
 #include "FPSCameraControls.h"
+#include "VoronoiDiagramUtils.h"
+#include "MeshGraph.h"
+#include <algorithm>    // std::sort
 
 using namespace Geometry;
 
@@ -29,7 +32,129 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	}
 
 
+	vector<pair<int, vec3>> mappedPositions;
 
+	for (int i = 0; i < _points.size(); i++)
+	{
+		mappedPositions.push_back(pair<int, vec3>(i, _points[i]));
+	}
+
+	vector<function<bool(pair<int, vec3>, pair<int, vec3>)>> functors;
+	vector<vector<pair<int, vec3>>> indexedByN {mappedPositions, mappedPositions, mappedPositions};
+	vector <vector<int>> mapFromOriginalToSorted(3);
+	
+
+	for (int i = 0; i < 3; i++)
+	{
+		functors.push_back([&](pair<int, vec3> a, pair<int, vec3> b) { return a.second[i] < b.second[i]; });
+		sort(indexedByN[i].begin(), indexedByN[i].end(), functors[i]);
+
+		mapFromOriginalToSorted[i].resize(_points.size());
+		for (int j = 0; j < indexedByN[i].size(); j++)
+		{
+			mapFromOriginalToSorted[i][indexedByN[i][j].first] = j;
+		}
+	}
+
+	cout << "BEGIN" << endl;
+	vector<ivec4> tetrahedra;
+#undef max
+#undef min
+	int windowSize = 10;
+	for (int i = 0; i < _points.size(); i++)
+	{
+		vector<int> closeSpaceIndices;
+
+		int iMappedToX = mapFromOriginalToSorted[0][i];
+		int iMappedToY = mapFromOriginalToSorted[1][i];
+		int iMappedToZ = mapFromOriginalToSorted[2][i];
+		for (int j = std::max(iMappedToX - windowSize, 0); j <= std::min(iMappedToX + windowSize, (int)indexedByN[0].size() - 1); j++)
+		{
+			if (j == iMappedToX)
+			{
+				continue;
+			}
+
+			int jMappedToY = mapFromOriginalToSorted[1][indexedByN[0][j].first];
+			int jMappedToZ = mapFromOriginalToSorted[2][indexedByN[0][j].first];
+
+			if (jMappedToY < iMappedToY - windowSize || jMappedToY > iMappedToY + windowSize || jMappedToZ < iMappedToZ - windowSize || jMappedToZ > iMappedToZ > iMappedToZ + windowSize)
+			{
+				closeSpaceIndices.push_back(indexedByN[0][j].first);
+			}
+		}
+
+//		cout << closeSpaceIndices.size() << endl;
+		for (int j = 0; j < closeSpaceIndices.size(); j++)
+		{
+			for (int k = j + 1; k < closeSpaceIndices.size(); k++)
+			{
+				for (int l = k + 1; l < closeSpaceIndices.size(); l++)
+				{
+					for (int m = l + 1; m < closeSpaceIndices.size(); m++)
+					{
+						if (closeSpaceIndices[m] == closeSpaceIndices[l] || closeSpaceIndices[m] == closeSpaceIndices[k] || closeSpaceIndices[m] == closeSpaceIndices[j])
+						{
+							continue;
+						}
+
+						vec3 tPoints[4] = { _points[closeSpaceIndices[j]], _points[closeSpaceIndices[k]], _points[closeSpaceIndices[l]], _points[closeSpaceIndices[m]] };
+						auto sphere = VoronoiDiagramUtils::getCircumsphere(tPoints);
+						bool success = true;
+
+						vec3 minBounds = sphere.center - sphere.radius;
+						vec3 maxBounds = sphere.center + sphere.radius;
+
+						for (int a = 0; a < _points.size(); a++)
+						{
+							if (a == j || a == k || a == l || a == m)
+							{
+								continue;
+							}
+
+							if (length(sphere.center - _points[a]) < sphere.radius)
+							{
+								success = false;
+								break;
+							}
+						}
+
+						if (success)
+						{
+							tetrahedra.push_back(ivec4(j, k, l, m));
+						}
+					}
+				}
+			}
+		}
+	}
+	cout << tetrahedra.size() << endl;
+	system("PAUSE");
+/*	for (int i = 0; i < tetrahedra.size(); i++)
+	{
+		for (int c = 0; c < 4; c++)
+		{
+			cout << tetrahedra[i][c] << " ";
+		}
+		cout << endl;
+	}*/
+	auto meshGraph = new MeshGraph();
+	for (int i = 0; i < _points.size(); i++)
+	{
+		meshGraph->nodes.push_back(new VertexNode(new Geometry::Vertex(i)));
+	}
+
+	for (int i = 0; i < tetrahedra.size(); i++)
+	{
+		for (int j = 0; j < tetrahedra[i].length() - 1; j++)
+		{
+			for (int k = j + 1; k < tetrahedra[i].length(); k++)
+			{
+				meshGraph->nodes[j]->neighbors.push_back(meshGraph->nodes[k]);
+				meshGraph->nodes[k]->neighbors.push_back(meshGraph->nodes[j]);
+			}
+		}
+	}
 
 	initialTetrahedralization();
 

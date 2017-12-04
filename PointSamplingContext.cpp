@@ -1,13 +1,13 @@
 #pragma once
 #include "PointSamplingContext.h"
 #include "ImplicitGeometry.h"
-#include <thread>
 #include "FPSCameraControls.h"
+#include <thread>
 
 using namespace std;
 using namespace Graphics;
 
-#define NUM_POINTS 5000
+#define NUM_POINTS 500
 #define POINT_SCALE 0.01f
 PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPSCamera* cam)
 {
