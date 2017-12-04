@@ -93,6 +93,25 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 		}
 	}
 
+	if (key == GLFW_KEY_U && action == GLFW_PRESS)
+	{
+		if (!controller->context->tetrahedralizationReady)
+		{
+			thread t([&] {
+		//		for (int i = 0; i < controller->numberOfIterations; i++)
+		//		{
+				for (int i = 0; i < controller->context->volume.meshes.size();i++) {
+					if (controller->context->fillUpGaps(controller->context->volume.meshes[i]).size() == 0)break;
+
+				}
+		//		}
+				controller->context->tetrahedralizationReady = true;
+			});
+			t.detach();
+		}
+	}
+
+
 	if (key == GLFW_KEY_UP && action != GLFW_RELEASE)
 	{
 		if (controller->numberOfIterations < 100)

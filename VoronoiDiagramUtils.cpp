@@ -119,6 +119,7 @@ Geometry::Facet* VoronoiDiagramUtils::getVoronoiFacetFromEdge(pair<Geometry::Ver
 			}
 		}
 	}
+	return nullptr;
 }
 
 Geometry::VolumetricMesh* VoronoiDiagramUtils::getVoronoiDiagram(Geometry::VolumetricMesh* volumetricMesh, const vector<vec3>& positions)
@@ -130,6 +131,6 @@ Geometry::VolumetricMesh* VoronoiDiagramUtils::getVoronoiDiagram(Geometry::Volum
 	{
 		voronoiVertices[volumetricMesh->meshes[i]] = getVoronoiPointFromTetrahedron(volumetricMesh->meshes[i], positions, outputPositions);
 	}
-
+	return nullptr;
 	
 }

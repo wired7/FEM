@@ -20,8 +20,15 @@ namespace Geometry {
 		int externalIndex;
 		Vertex(int externalIndex) : externalIndex(externalIndex) {};
 		Vertex() {};
-	};
+		bool operator<(const Vertex* v) {
+			return externalIndex < v->externalIndex;
+		}
+		bool operator=(const Vertex* v) {
+			return externalIndex == v->externalIndex;
+		}
 
+
+	};
 
 	typedef Facet Hole;
 

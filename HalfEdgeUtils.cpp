@@ -5,6 +5,7 @@
 #include "GeometricalMeshObjects.h"
 #include <gtc/matrix_transform.hpp>
 #include <gtx/rotate_vector.hpp>
+#include <algorithm>
 
 using namespace Geometry;
 vector<Geometry::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(Geometry::Facet* facet)
@@ -160,6 +161,7 @@ float HalfEdgeUtils::distanceToFacet(vector<vec3> & positions, Geometry::Vertex 
 
 	return dist;
 }
+
 
 vec3 HalfEdgeUtils::getFacetCentroid(Geometry::Facet* facet, const vector<vec3>& positions, const mat4& parentTransform)
 {
@@ -521,6 +523,28 @@ bool HalfEdgeUtils::findHalfEdgeTwin(Geometry::Facet* facet, Geometry::HalfEdge*
 	return false;
 }
 
+bool HalfEdgeUtils::areTwins(Facet* facet1, Facet* facet2) {
+	vector<Geometry::Vertex*> vertexIntersection = getVertexIntersection(facet1, facet2);
+	if (vertexIntersection.size() == getFacetVertices(facet1).size() && vertexIntersection.size() == getFacetVertices(facet2).size())
+		return true;
+	else
+		return false;
+
+}
+
+// returns facet of mesh1 that has a twin in mesh2
+Facet* HalfEdgeUtils::findFacetWithTwin(Geometry::Mesh* mesh1, Geometry::Mesh* mesh2) {
+	for(int i = 0; i < mesh1->facets.size();i++)
+	{
+		for (int j = 0; j < mesh2->facets.size();j++) {
+			if (areTwins(mesh1->facets[i], mesh2->facets[j])) {
+				return mesh1->facets[i];
+			}
+		}
+	}
+	return nullptr;
+}
+
 bool HalfEdgeUtils::facetPointsTo(Geometry::Facet & facet, Geometry::Vertex & vertex, vector<vec3> & positions) {
 	mat4 mat(1.0f);
 	vec3 facetDirection = HalfEdgeUtils::getFacetDirection(&facet, positions);
@@ -544,7 +568,21 @@ vec3 HalfEdgeUtils::getFacetDirection(Geometry::Facet* facet, const vector<vec3>
 	vec3 p2 = positions[halfedge->end];
 	vec3 p3 = positions[halfedge->next->end];
 
-	return cross(p1 - p2, p3 - p2);
+	return normalize(cross(p1 - p2, p3 - p2));
+
+}
+vec3 HalfEdgeUtils::getCorrectedFacetDirection(Geometry::Facet* facet, const vector<vec3> & positions) {
+
+	HalfEdge* halfedge = getFacetHalfEdges(facet)[0];
+
+	vec3 p1 = positions[halfedge->start];
+	vec3 p2 = positions[halfedge->end];
+	vec3 p3 = positions[halfedge->next->end];
+
+	vec3 res = cross(p1 - p2, p3 - p2);
+	if (!facet->mesh->isOutsideOrientated) res *= -1.0f;
+
+	return res;
 
 }
 bool HalfEdgeUtils::getOrientation(Geometry::Mesh* mesh, const vector<vec3>& positions) {
@@ -558,6 +596,21 @@ bool HalfEdgeUtils::getOrientation(Geometry::Mesh* mesh, const vector<vec3>& pos
 	vec3 facetDirection = getFacetDirection(facet, positions);
 
 	return dot(outDirection, facetDirection) > 0;
+}
+
+
+bool HalfEdgeUtils::facetsFaceEachother(Geometry::Facet* facet1, Geometry::Facet* facet2, vector<vec3> &positions) {
+	vec3 v1 = getCorrectedFacetDirection(facet1,positions);
+	vec3 v2 = getCorrectedFacetDirection(facet2, positions);
+
+	vec3 p1 = getFacetCentroid(facet1, positions);
+	vec3 p2 = getFacetCentroid(facet2, positions);
+
+	if (dot(v1, p2 - p1) <0) return false;
+	else if (dot(v2, p1 - p2) <0) return false;
+	else return true;
+
+
 }
 
 vector<int> HalfEdgeUtils::makeFacetPartition(Geometry::Facet * facet, vector<vec3> & positions, vector<int> currentPartition) {
@@ -579,6 +632,115 @@ vector<int> HalfEdgeUtils::makeFacetPartition(Geometry::Facet * facet, vector<ve
 	}
 	return partition;
 }
+
+// the partitions should already be sorted, but if not then add sort to this
+vector<int> HalfEdgeUtils::getPartitionIntersection(vector<int> & partition1, vector<int> & partition2) {
+	
+	vector<int> intersection;
+
+	int cursor1 = 0;
+	int cursor2 = 0;
+
+	while (cursor1 != partition1.size()-1 && cursor2 != partition2.size()-1) {
+		if (partition1[cursor1] < partition2[cursor2]) cursor1++;
+		else if (partition2[cursor2] < partition1[cursor1]) cursor2++;
+		else {
+			intersection.push_back(partition1[cursor1]);
+			cursor1++;
+			cursor2++;
+		}
+	}
+	return intersection;
+}
+vector<int> HalfEdgeUtils::getPartitionUnion(vector<int> & partition1, vector<int> & partition2) {
+	vector<int> partitionUnion(partition2.size() + partition1.size());
+	vector<int> p1 = partition1;
+	vector<int> p2 = partition2;
+
+	vector<int>::iterator it = set_union(p1.begin(), p1.end(), p2.begin(), p2.end(), partitionUnion.begin());
+	partitionUnion.resize(it - partitionUnion.begin());
+	return partitionUnion;
+}
+
+vector<Geometry::Vertex*> HalfEdgeUtils::getVertexIntersection(vector<Geometry::Vertex*>& vertices1, vector<Geometry::Vertex*>& vertices2) {
+
+	auto sortFunc = [&](Geometry::Vertex* v1, Geometry::Vertex* v2) ->bool
+	{
+		return v1->externalIndex < v2->externalIndex;
+	};
+	vector<Geometry::Vertex*> verts1 = vertices1;
+	vector<Geometry::Vertex*> verts2 = vertices2;
+
+	sort(verts1.begin(), verts1.end(), sortFunc);
+	sort(verts2.begin(), verts2.end(), sortFunc);
+
+	vector<Geometry::Vertex*> intersection;
+
+	vector<Geometry::Vertex*>::iterator v1Ite = verts1.begin();
+	vector<Geometry::Vertex*>::iterator v2Ite = verts2.begin();
+
+	
+	while (v1Ite != verts1.end() && v2Ite != verts2.end())
+	{
+		if ((*v1Ite)->externalIndex<(*v2Ite)->externalIndex) ++v1Ite;
+		else if ((*v2Ite)->externalIndex<(*v1Ite)->externalIndex) ++v2Ite;
+		else {
+			intersection.push_back(*v1Ite);
+			++v1Ite; ++v2Ite;
+		}
+	}
+
+	return intersection;
+
+}
+
+vector<Geometry::Vertex*> HalfEdgeUtils::getVertexDifference(vector<Geometry::Vertex*> &vertices1, vector<Geometry::Vertex*> & vertices2) {
+	auto sortFunc = [&](Geometry::Vertex* v1, Geometry::Vertex* v2) ->bool
+	{
+		return v1->externalIndex < v2->externalIndex;
+	};
+	vector<Geometry::Vertex*> verts1 = vertices1;
+	vector<Geometry::Vertex*> verts2 = vertices2;
+
+	sort(verts1.begin(), verts1.end(), sortFunc);
+	sort(verts2.begin(), verts2.end(), sortFunc);
+
+	vector<Geometry::Vertex*> difference;
+
+	vector<Geometry::Vertex*>::iterator v1Ite = verts1.begin();
+	vector<Geometry::Vertex*>::iterator v2Ite = verts2.begin();
+
+
+	while (v1Ite != verts1.end() && v2Ite != verts2.end())
+	{
+		if ((*v1Ite)->externalIndex < (*v2Ite) ->externalIndex) 
+		{ 
+			difference.push_back( *v1Ite ); 
+			++v1Ite; 
+		}
+		else if ((*v2Ite)->externalIndex <(*v1Ite)->externalIndex)
+			++v2Ite;
+		else {
+			++v1Ite; 
+			++v2Ite; 
+		}
+	}
+	difference.insert(difference.end(), v1Ite, verts1.end());
+
+	return difference;
+}
+
+vector<Geometry::Vertex*> HalfEdgeUtils::getVertexIntersection(Geometry::Mesh* mesh1, Geometry::Mesh* mesh2) {
+	return getVertexIntersection(mesh1->vertices, mesh2->vertices);
+}
+
+vector<Geometry::Vertex*> HalfEdgeUtils::getVertexIntersection(Geometry::Facet* facet1, Geometry::Facet* facet2) {
+	return getVertexIntersection(getFacetVertices(facet1), getFacetVertices(facet2));
+}
+
+
+
+
 
 // this connects halfedges in the orther they are in the vector... it will not ensure that they connected correctly
 vector<Geometry::Vertex*> HalfEdgeUtils::connectHalfEdges(std::vector<HalfEdge*> & halfedges) {
@@ -666,7 +828,8 @@ Facet* HalfEdgeUtils::constructTwinFacet(Facet* facet) {
 	return twin;
 }
 
-Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Facet & facet, vector<Geometry::Vertex*> vertices, const vector<vec3>& positions) {
+
+Geometry::Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Geometry::Facet & facet, vector<Geometry::Vertex*> &vertices, const vector<vec3>& positions) {
 
 
 	vector<Facet*> facets;
@@ -704,6 +867,29 @@ Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Facet & fac
 	return mesh;
 }
 
+Geometry::Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Geometry::Facet  & facet1, Geometry::Facet & facet2, vector<Geometry::Vertex*> & vertices, const vector<vec3>& positions) {
+	Mesh* mesh = constructTetrahedron(vertex, facet1, vertices, positions);
+	for (int i = 0; i < mesh->facets.size();i++){
+		Facet& facet = *mesh->facets[i];
+		if (facet.twin != nullptr) continue;
+		if (areTwins(&facet, &facet2)) {
+			facet.twin = &facet2;
+			facet2.twin = &facet;
+			cout << "\nmade twins " << facet2.externalIndex << " and " << facet.externalIndex << std::endl;
+
+			break;
+		}
+	}
+	return mesh;
+}
+
+
+
+
+
+
+
+//Printouts
 void HalfEdgeUtils::printEdge(HalfEdge* he) {
 	std::cout <<"HE "<< he->internalIndex << " : " << he->externalIndex;
 	std::cout << " -> ( " << he->start << ", " << he->end<<" ) ";
@@ -714,7 +900,11 @@ void HalfEdgeUtils::printEdge(HalfEdge* he) {
 void HalfEdgeUtils::printFacet(Facet * facet) {
 
 	vector<HalfEdge*> halfedges = getFacetHalfEdges(facet);
-	std::cout << "FACET   "<<facet->internalIndex<<" : "<<facet->externalIndex<<"    { ";
+	std::cout << "FACET   " << facet->externalIndex;
+	if (facet->twin != nullptr) {
+		cout<< " : " << facet->twin->externalIndex;
+	}
+	cout << "    { ";
 	for (int i = 0; i < halfedges.size();i++) {
 		printEdge(halfedges[i]);
 		std::cout << ", ";

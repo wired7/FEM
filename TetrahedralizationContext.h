@@ -18,7 +18,6 @@ protected:
 
 private:
 	void initialTetrahedralization();
-	Geometry::VolumetricMesh   volume;
 	vector<glm::vec3>		 & positions;
 	vector<Geometry::Facet*>   openFacets;
 	vector<bool>			   usedVertices;
@@ -30,9 +29,10 @@ public:
 	~TetrahedralizationContext() {};
 	virtual void update(void);
 	bool addNextTetra();
-	bool fillUpGaps();
+	vector<Geometry::Mesh*> fillUpGaps(Geometry::Mesh* mesh);
 	void updateGeometries();
 
+	Geometry::VolumetricMesh   volume;
 
 
 };
