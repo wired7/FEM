@@ -1,13 +1,13 @@
 #pragma once
 #include "PointSamplingContext.h"
 #include "ImplicitGeometry.h"
-#include <thread>
 #include "FPSCameraControls.h"
+#include <thread>
 
 using namespace std;
 using namespace Graphics;
 
-#define NUM_POINTS 1000
+#define NUM_POINTS 10
 #define POINT_SCALE 0.01f
 PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPSCamera* cam)
 {
@@ -106,8 +106,8 @@ vector<vec3> PointSamplingContext::sampleSurface(int sampleSize, DecoratedGraphi
 
 	vector<Triangle> triangles;
 	vec3 dir(1, 0, 0);
-	vec3 min(INFINITY);
-	vec3 max(-INFINITY);
+	vec3 minN(INFINITY);
+	vec3 maxN(-INFINITY);
 
 	for (int i = 0; i < transforms.size(); i++)
 	{
@@ -120,13 +120,13 @@ vector<vec3> PointSamplingContext::sampleSurface(int sampleSize, DecoratedGraphi
 
 			for (int k = 0; k < 3; k++)
 			{
-				if (transformedPts[transformedPts.size() - 1][k] < min[k])
+				if (transformedPts[transformedPts.size() - 1][k] < minN[k])
 				{
-					min[k] = transformedPts[transformedPts.size() - 1][k];
+					minN[k] = transformedPts[transformedPts.size() - 1][k];
 				}
-				else if (transformedPts[transformedPts.size() - 1][k] > max[k])
+				else if (transformedPts[transformedPts.size() - 1][k] > maxN[k])
 				{
-					max[k] = transformedPts[transformedPts.size() - 1][k];
+					maxN[k] = transformedPts[transformedPts.size() - 1][k];
 				}
 			}
 		}
@@ -138,8 +138,8 @@ vector<vec3> PointSamplingContext::sampleSurface(int sampleSize, DecoratedGraphi
 		}
 	}
 
-	vec3 boundSize = max - min;
-	vec3 center = (max + min) / 2.0f;
+	vec3 boundSize = maxN - minN;
+	vec3 center = (maxN + minN) / 2.0f;
 
 #pragma omp parallel for schedule(dynamic, 500)
 	for (int i = 0; i < sampleSize;)

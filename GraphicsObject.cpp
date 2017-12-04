@@ -188,7 +188,7 @@ ImportedMeshObject::ImportedMeshObject(const char* string) : MeshObject()
 	for (int i = 0; i < vertices.size(); i++)
 	{
 		vertices[i].position -= avg;
-		vertices[i].position /= diff.length();
+		vertices[i].position /= (20.0f * diff.length());
 	}
 
 	bindBuffers();
@@ -215,7 +215,7 @@ void ImportedMeshObject::loadFile(const char* filePath)
 				normal = vec3(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z);
 			}
 
-			addVertex(pos, (1.0f - 2.0f * (i % 2)) * normalize(normal));
+			addVertex(pos, normalize(normal));
 		}
 
 		for (int j = 0; j < mesh->mNumFaces; j++)

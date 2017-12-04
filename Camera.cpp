@@ -101,6 +101,8 @@ FPSCamera::FPSCamera(GLFWwindow* window, vec2 relativePosition, vec2 relativeDim
 	usingCamera = false;
 	MouseSensitivity = SENSITIVTY;
 	Up = up;
+	camPosVector = pos;
+	lookAtVector = lookAt;
 
 }
 
@@ -113,21 +115,21 @@ void FPSCamera::changeSpeed() {
 
 void FPSCamera::processKeyInput(glm::vec3 direction) {
 
-	float velocity = -MovementSpeed;
-
-	if (direction == FRONT)
+	float velocity = -MovementSpeed;// *direction;
+	
+	if (direction.z == 1)
 		camPosVector -= lookAtVector * velocity;
-	if (direction == BACK)
+	if (direction.z == -1)
 		camPosVector += lookAtVector * velocity;
-	if (direction == LEFT)
+	if (direction.x == -1)
 		camPosVector += Right * velocity;
-	if (direction == RIGHT)
+	if (direction.x == 1)
 		camPosVector -= Right * velocity;
-	if (direction == UP)
+	if (direction.y == 1)
 		camPosVector -= UP * velocity;
-	if (direction == DOWN)
+	if (direction.y == -1)
 		camPosVector += UP * velocity;
-
+		
 //	View = lookAt(camPosVector, lookAtVector, upVector);
 
 

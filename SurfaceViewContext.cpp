@@ -103,7 +103,7 @@ void SurfaceViewContext::setupRenderableVertices(const vector<vec3>& positions, 
 	{
 		for (int i = 0; i < positions.size(); i++)
 		{
-			pTransforms.push_back(transform[j] * translate(mat4(1.0f), positions[i]) * scale(mat4(1.0f), vec3(0.02f)));
+			pTransforms.push_back(transform[j] * scale(mat4(1.0f), vec3(0.8f)) * translate(mat4(1.0f), positions[i]) * scale(mat4(1.0f), vec3(0.002f)));
 		}
 	}
 
