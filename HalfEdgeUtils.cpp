@@ -98,6 +98,16 @@ vector<Geometry::Mesh*> HalfEdgeUtils::getNeighbouringMeshes(Geometry::Mesh* mes
 	}
 	return meshes;
 }
+vector<Geometry::Facet*> HalfEdgeUtils::getNeighbouringFacets(Geometry::Facet* facet) {
+	vector<Facet*> facets;
+	vector<HalfEdge*> halfedges = getFacetHalfEdges(facet);
+
+	for (int i = 0; i < halfedges.size();i++) {
+		if (halfedges[i]->twin != nullptr &&halfedges[i]->twin->facet!= nullptr)
+			facets.push_back(halfedges[i]->twin->facet);
+	}
+	return facets;
+}
 
 vector<Geometry::Mesh*> HalfEdgeUtils::getVertexMeshes(Geometry::Vertex* vertex)
 {
@@ -175,6 +185,40 @@ vector<vector<Geometry::Mesh*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Mesh
 	return result;
 
 }
+
+vector<vector<Geometry::Facet*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Facet* facet, int depth) {
+
+	vector<vector<Facet*>> result(depth + 1);
+	result[0].push_back(facet);
+	vector<bool> visited(facet->mesh->facets.size(), false);
+	visited[facet->internalIndex] = true;
+
+	for (int i = 1; i < depth;i++) {
+
+		vector<Facet*> & previous = result[i - 1];
+		vector<Facet*> & facets = result[i];
+
+		for (int j = 0; j < previous.size();j++) {
+
+			Facet* currentFacet = previous[j];
+			vector<Facet*> currentNeighbours = getNeighbouringFacets(currentFacet);
+
+			for (int k = 0; k < currentNeighbours.size();k++) {
+
+				if (!visited[currentNeighbours[k]->internalIndex]) {
+
+					visited[currentNeighbours[k]->internalIndex] = true;
+					facets.push_back(currentNeighbours[k]);
+				}
+			}
+
+		}
+	}
+
+	return result;
+
+}
+
 
 float HalfEdgeUtils::distanceToHalfEdge(vector<vec3> & positions, Geometry::Vertex & vertex, Geometry::HalfEdge & halfedge) {
 

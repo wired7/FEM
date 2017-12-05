@@ -11,9 +11,12 @@ public:
 	static vector<Geometry::Vertex*> getFacetVertices(Geometry::Facet* facet);
 	static vector<Geometry::Facet*> GetOpenFacets(Geometry::Mesh* mesh);
 	static vector<Geometry::Mesh*> getNeighbouringMeshes(Geometry::Mesh* mesh);
+	static vector<Geometry::Facet*> getNeighbouringFacets(Geometry::Facet* facet);
+
 	static vector<Geometry::Mesh*> getVertexMeshes(Geometry::Vertex* vertex);
 	static vector<Geometry::Mesh*> getEdgeMeshes(pair<Geometry::Vertex*, Geometry::Vertex*> edge);
 	static vector<vector<Geometry::Mesh*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Mesh* mesh, int depth);
+	static vector<vector<Geometry::Facet*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Facet* facet, int depth);
 
 	static Triangle* facetToTriangle(Geometry::Facet* facet, vector<vec3> & positions);
 	static bool vertexSeesFacet(Geometry::Vertex* vertex, Geometry::Facet* facet, vector<Triangle*> & triangles, vector<vec3>& positions);
