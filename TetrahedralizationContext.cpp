@@ -14,9 +14,19 @@
 using namespace Geometry;
 
 #define MIN_VOLUME 0.1
+#define LARGE_DISTANCE 10
+#define MAX_VERTEX_USE 30
 
 TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, FPSCamera* cam) : positions(_points)
 {
+	surfaceMesh = (MeshObject*)(surface->signatureLookup("VERTEX"));
+	auto indices = surfaceMesh->indices;
+	auto surfaceVertices = surfaceMesh->vertices;
+
+	for (int i = 0; i < indices.size(); i += 3)
+	{
+		triangles.push_back(new Triangle(surfaceVertices[indices[i]].position, surfaceVertices[indices[i + 1]].position, surfaceVertices[indices[i + 2]].position));
+	}
 
 	cameras.push_back(cam);
 
@@ -30,6 +40,7 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	for (int i = 0; i < vertices.size();i++) {
 		vertices[i] = new Geometry::Vertex(i);
 		usedVertices.push_back(false);
+		usedVertexCount.push_back(0);
 		volume.vertexMeshMapping.push_back(vector<Mesh*>(0));
 
 	}
@@ -213,16 +224,18 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 			}
 		}
 	}
-
 	Mesh* mesh = HalfEdgeUtils::constructTetrahedron(*finalVertex, *facet,vertices,positions);
+	firstOrientation = mesh->isOutsideOrientated;
 	for (int i = 0; i < mesh->vertices.size();i++) {
 		usedVertices[mesh->vertices[i]->externalIndex] = true;
+		usedVertexCount[mesh->vertices[i]->externalIndex]++;
+
 	}
 #pragma endregion
 
 	openFacets.insert(openFacets.begin(), mesh->facets.begin(), mesh->facets.end());
 	HalfEdgeUtils::addMeshToVolume(mesh, &volume);
-
+	
 	std::cout << "SEED Tetra: ";
 	HalfEdgeUtils::printMesh(mesh);
 	std::cout<< std::endl;
@@ -263,7 +276,8 @@ bool TetrahedralizationContext::addNextTetra(bool checkifUsed) {
 		for (int j = 0; j < facetPartition.size();j++) {
 			int vertexIndex = facetPartition[j];
 			Geometry::Vertex* vertex = totalMesh->vertices[vertexIndex];
-			if (!usedVertices[vertex->externalIndex] || !checkifUsed) {
+			if ((!usedVertices[vertex->externalIndex] ||!checkifUsed) && usedVertexCount[vertex->externalIndex] <= MAX_VERTEX_USE) {
+
 				float vol = HalfEdgeUtils::getFacetPointVolume(testFacet, vertex, positions);
 				
 				if (HalfEdgeUtils::facetPointsTo(*testFacet, *vertex, positions) && vol > MIN_VOLUME) {
@@ -273,6 +287,9 @@ bool TetrahedralizationContext::addNextTetra(bool checkifUsed) {
 						
 	#pragma omp critical
 						{
+
+							vector<Geometry::Vertex*> facetVertices = HalfEdgeUtils::getFacetVertices(facet);
+
 							shortestDistance = distance;
 							closest = vertex;
 							facet = testFacet;
@@ -283,6 +300,7 @@ bool TetrahedralizationContext::addNextTetra(bool checkifUsed) {
 
 				}
 			}
+			//else if(!checkifUsed){}
 		}
 
 	}
@@ -298,35 +316,36 @@ bool TetrahedralizationContext::addNextTetra(bool checkifUsed) {
 
 		for (int i = 0; i < m->vertices.size();i++) {
 			usedVertices[m->vertices[i]->externalIndex] = true;
+			usedVertexCount[m->vertices[i]->externalIndex]++;
 		}
-		HalfEdgeUtils::addMeshToVolume(m, &volume);
-	//	std::cout << "Adding mesh" << m->internalIndex << " from facet " << facet->externalIndex << std::endl;
-	//	HalfEdgeUtils::printMesh(m);
-	//	std::cout << std::endl;
+		if (m->isOutsideOrientated == firstOrientation) {
+			HalfEdgeUtils::addMeshToVolume(m, &volume);
+		
 
 
-		for (int i = 0; i < m->facets.size();i++) {
-			Facet* f = m->facets[i];
-			if (f != twinFacet) {
-				openFacets.push_back(f);
-			}
-			partitions.push_back(HalfEdgeUtils::makeFacetPartition(f, positions, partitions[facet->externalIndex]));
-			std::cout << "PARTITION: " << std::endl;
+			for (int i = 0; i < m->facets.size();i++) {
+				Facet* f = m->facets[i];
+				if (f != twinFacet) {
+					openFacets.push_back(f);
+				}
+				partitions.push_back(HalfEdgeUtils::makeFacetPartition(f, positions, partitions[facet->externalIndex]));
 
-			for (int i = 0; i < partitions[f->externalIndex].size();i++) {
-				std::cout << partitions[f->externalIndex][i] << " ";
-			}
-			std::cout << "\n\n: " << std::endl;
-
-		}
-	
-		if (m != nullptr && !checkifUsed) {
-
-			vector<Facet*>::iterator ite = remove_if(openFacets.begin(), openFacets.end(), [&](Facet* f)->bool {
-				return (f->twin != nullptr);
-			});
-			openFacets.erase(ite, openFacets.end());
 			
+				if (partitions[f->externalIndex].size() == 0 && f->twin == nullptr) {
+					f->twin = dummyFacet;
+				}
+
+			}
+	
+			if (m != nullptr && !checkifUsed) {
+
+				vector<Facet*>::iterator ite = remove_if(openFacets.begin(), openFacets.end(), [&](Facet* f)->bool {
+					return (f->twin != nullptr);
+				});
+				openFacets.erase(ite, openFacets.end());
+
+				return false;
+			}
 			return false;
 		}
 		else return false;

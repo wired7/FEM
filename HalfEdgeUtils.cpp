@@ -78,6 +78,23 @@ bool HalfEdgeUtils::vertexSeesFacet(Geometry::Vertex* vertex, Geometry::Facet* f
 }
 
 
+int HalfEdgeUtils::fireRay(vec3 source, vec3 destination, vector<Triangle*> & triangles, int exitNumber)
+{
+	int sum = 0;
+
+	for (int j = 0; j < triangles.size(); j++)
+	{
+		if (triangles[j]->intersection(source, destination -source) > 0.0f)
+		{
+			sum++;
+			if (sum == exitNumber)
+				return sum;
+		}
+	}
+	return sum;
+	
+}
+
 vector<vec3> HalfEdgeUtils::getVolumeVertices(Geometry::Mesh* mesh, const vector<vec3>& positions)
 {
 	vector<vec3> pos;
@@ -97,6 +114,16 @@ vector<Geometry::Mesh*> HalfEdgeUtils::getNeighbouringMeshes(Geometry::Mesh* mes
 			meshes.push_back(mesh->facets[i]->twin->mesh);
 	}
 	return meshes;
+}
+vector<Geometry::Facet*> HalfEdgeUtils::getNeighbouringFacets(Geometry::Facet* facet) {
+	vector<Facet*> facets;
+	vector<HalfEdge*> halfedges = getFacetHalfEdges(facet);
+
+	for (int i = 0; i < halfedges.size();i++) {
+		if (halfedges[i]->twin != nullptr &&halfedges[i]->twin->facet!= nullptr)
+			facets.push_back(halfedges[i]->twin->facet);
+	}
+	return facets;
 }
 
 vector<Geometry::Mesh*> HalfEdgeUtils::getVertexMeshes(Geometry::Vertex* vertex)
@@ -176,6 +203,40 @@ vector<vector<Geometry::Mesh*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Mesh
 
 }
 
+vector<vector<Geometry::Facet*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Facet* facet, int depth) {
+
+	vector<vector<Facet*>> result(depth + 1);
+	result[0].push_back(facet);
+	vector<bool> visited(facet->mesh->facets.size(), false);
+	visited[facet->internalIndex] = true;
+
+	for (int i = 1; i < depth;i++) {
+
+		vector<Facet*> & previous = result[i - 1];
+		vector<Facet*> & facets = result[i];
+
+		for (int j = 0; j < previous.size();j++) {
+
+			Facet* currentFacet = previous[j];
+			vector<Facet*> currentNeighbours = getNeighbouringFacets(currentFacet);
+
+			for (int k = 0; k < currentNeighbours.size();k++) {
+
+				if (!visited[currentNeighbours[k]->internalIndex]) {
+
+					visited[currentNeighbours[k]->internalIndex] = true;
+					facets.push_back(currentNeighbours[k]);
+				}
+			}
+
+		}
+	}
+
+	return result;
+
+}
+
+
 float HalfEdgeUtils::distanceToHalfEdge(vector<vec3> & positions, Geometry::Vertex & vertex, Geometry::HalfEdge & halfedge) {
 
 	const vec3 & vPos = positions[vertex.externalIndex];
@@ -229,6 +290,17 @@ vec3 HalfEdgeUtils::getMeshCentroid(Geometry::Mesh* mesh, const vector<vec3>& po
 
 	return center;
 }
+vector<vec3> HalfEdgeUtils::getFacetVertexPositions(Geometry::Facet* facet, vector<vec3> & positions) {
+	vector<Geometry::Vertex*> vertices = getFacetVertices(facet);
+	vector<vec3> pos;
+	for (int i = 0; i < vertices.size();i++) {
+		pos.push_back(positions[vertices[i]->externalIndex]);
+	}
+	return pos;
+
+}
+
+
 mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, const vector<vec3>& positions, const mat4& parentTransform, const vec3& centroid)
 {
 	vec3 point[2];
@@ -495,8 +567,6 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 
 	auto meshObject = new Graphics::MeshObject(vertices, indices);
 
-	
-
 	auto pickable = new Graphics::ExtendedMeshObject<GLuint, GLuint>(meshObject, pickableIndices, "INSTANCEID");
 
 	vector<GLbyte> selectedC;
@@ -508,11 +578,20 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 
 	auto selectable = new Graphics::ExtendedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION");
 
+	vector<vec4> colors;
+	
+	for (int i = 0; i < pickableIndices.size(); i++)
+	{
+		colors.push_back(vec4(0, 1, 0, 1));
+	}
+
+	auto colorBuffer = new Graphics::ExtendedMeshObject<vec4, float>(selectable, colors, "COLOR");
+
 	vector<mat4> parentTransforms;
 
 	parentTransforms.push_back(mat4(1.0f));
 
-	auto g = new Graphics::MatrixInstancedMeshObject<mat4, float>(selectable, parentTransforms, "TRANSFORM");
+	auto g = new Graphics::MatrixInstancedMeshObject<mat4, float>(colorBuffer, parentTransforms, "TRANSFORM");
 
 	return g;
 }

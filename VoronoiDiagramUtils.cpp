@@ -62,7 +62,7 @@ Sphere VoronoiDiagramUtils::getCircumsphere(vec3 points[4])
 
 	for (int j = 0; j < 4; j++)
 	{
-		lengths[j] = length(points[j]);
+		lengths[j] = pow(length(points[j]), 2.0f);
 	}
 
 	int indices[3][2] = { {1, 2}, {0, 2}, {0, 1} };

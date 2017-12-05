@@ -91,30 +91,37 @@ ClusteringStageContext::ClusteringStageContext(Graphics::DecoratedGraphicsObject
 
 	geometries.push_back(renderableData);
 
-	setupPasses();
-
 	auto bfsOutput = HalfEdgeUtils::BreadthFirstSearch(mesh->meshes[0], 10000);
 
 	int returnedSize = bfsOutput.size();
 
-	auto colorBuffer = ((ExtendedMeshObject<vec4, float>*)volume->signatureLookup("COLORS"));
+	auto colorBuffer = ((ExtendedMeshObject<vec4, float>*)renderableData->signatureLookup("COLOR"));
 	auto colors = colorBuffer->extendedData;
 
+	cout << "BFS SIZE " << bfsOutput.size() << endl;
 	int gapSize = 12;
-	for (int i = 0; i < bfsOutput.size(); i++)
+/*	for (int i = 0; i < bfsOutput.size(); i++)
 	{
-		float color = (float)i / bfsOutput.size();
+		float color =  1.0f;// ((float)i) / (bfsOutput.size() - 1);
 		for (int j = 0; j < bfsOutput[i].size(); j++)
 		{
+			cout << "AHHHH" << endl;
 			int meshIndex = bfsOutput[i][j]->internalIndex * gapSize;
 			for (int k = 0; k < gapSize; k++)
 			{
 				colors[meshIndex + k][0] += color;
 			}
 		}
-	}
+	}*/
 
+	for (int i = 0; i < colors.size(); i++)
+	{
+		colors[i][0] = 1.0f;
+	}
+	cout << colors[0][0] << endl;
 	colorBuffer->updateBuffers();
+
+	setupPasses();
 }
 
 

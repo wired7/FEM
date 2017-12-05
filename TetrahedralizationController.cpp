@@ -3,6 +3,9 @@
 #include "FPSCameraControls.h"
 #include <thread>
 
+#define REFRESH_RATE 0.1
+bool TetrahedralizationController::stopUpdate = false;
+bool TetrahedralizationController::isWorking = false;
 TetrahedralizationController::TetrahedralizationController() {
 	key_callback = kC;
 	scroll_callback = sC;
@@ -34,6 +37,10 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 			auto geo1 = controller->context->geometries[4];
 			pass->addRenderableObjects(geo1, 0);
 		}
+	}
+	if (key == GLFW_KEY_P && action == GLFW_PRESS)
+	{
+		stopUpdate = true;
 	}
 
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
@@ -80,47 +87,77 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 
 	if (key == GLFW_KEY_I && action == GLFW_PRESS)
 	{
-		if (!controller->context->tetrahedralizationReady)
-		{
-			controller->context->tetrahedralizationReady = false;
+		if (!isWorking) {
+			isWorking = true;
+			if (!controller->context->tetrahedralizationReady)
+			{
 
-			thread t([&] {
+				thread t([&] {
+					double startTime = glfwGetTime();
 
-				std::cout << "Triangulating... " << std::endl;
+					std::cout << "Triangulating... " << std::endl;
 
-				for (int i = 0; i < controller->numberOfIterations; i++)
-				{
-					if (controller->context->addNextTetra(true)) {
-						break;
+					for (int i = 0; i < controller->numberOfIterations; i++)
+					{
+						if (controller->context->addNextTetra(true) || stopUpdate) {
+							stopUpdate = false;
+							isWorking = false;
+							break;
+						}
+						if (glfwGetTime() - startTime > REFRESH_RATE) {
+							controller->context->tetrahedralizationReady = true;
+
+							startTime = glfwGetTime();
+						}
 					}
-				}
-				std::cout << "done" << std::endl;
+					std::cout << "done" << std::endl;
 
-				controller->context->tetrahedralizationReady = true;
-			});
-			t.detach();
+					controller->context->tetrahedralizationReady = true;
+					isWorking = false;
+				});
+				t.detach();
+			}
 		}
+
 	}
 
 	if (key == GLFW_KEY_U && action == GLFW_PRESS)
 	{
-		if (!controller->context->tetrahedralizationReady)
-		{
-			controller->context->tetrahedralizationReady = false;
-			thread t([&] {
-				std::cout << "Triangulating... " << std::endl;
 
-				for (int i = 0; i < controller->numberOfIterations; i++)
-				{
-					if (controller->context->addNextTetra(false))
-						break;
-				}
-				std::cout << "done " << std::endl;
 
-				controller->context->tetrahedralizationReady = true;
-			});
-			t.detach();
+		if (!isWorking) {
+			isWorking = true;
+			if (!controller->context->tetrahedralizationReady)
+			{
+
+				thread t([&] {
+					double startTime = glfwGetTime();
+
+					std::cout << "Triangulating... " << std::endl;
+
+					for (int i = 0; i < controller->numberOfIterations; i++)
+					{
+
+						if (controller->context->addNextTetra(false) || stopUpdate) {
+							stopUpdate = false;
+							isWorking = false;
+							break;
+						}
+						if (glfwGetTime() - startTime > REFRESH_RATE) {
+							controller->context->tetrahedralizationReady = true;
+							startTime = glfwGetTime();
+
+						}
+					}
+					std::cout << "done " << std::endl;
+
+					controller->context->tetrahedralizationReady = true;
+					isWorking = false;
+				});
+				t.detach();
+			}
 		}
+
 	}
 
 

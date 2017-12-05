@@ -20,12 +20,15 @@ private:
 	vector<glm::vec3>		 & positions;
 	vector<Geometry::Facet*>   openFacets;
 	vector<bool>			   usedVertices;
+	vector<int>				   usedVertexCount;
+	bool firstOrientation;
 	ReferenceManager* refMan;
 	vector<vector<int>> partitions;
 	int currentInd;
 	vector<ivec4> tetrahedra;
 	vector<Triangle*> triangles;
 	vector<int> triangleIndecies;
+	MeshObject* surfaceMesh;
 
 public:
 	bool tetrahedralizationReady = false;
@@ -33,14 +36,10 @@ public:
 	~TetrahedralizationContext() {};
 	virtual void update(void);
 	bool addNextTetra(bool checkIfUsed);
-	bool addTetraFromGraph();
-	vector<Geometry::Mesh*> fillUpGaps(Geometry::Mesh* mesh);
 	void updateGeometries();
+	Geometry::Facet* dummyFacet;
 
-	Geometry::VolumetricMesh   volume;
+	Geometry::VolumetricMesh  volume;
 
-	int sweepIndex;
-	void sweepInit();
-	void sweep();
 
 };
