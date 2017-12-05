@@ -6,7 +6,7 @@
 
 class TetrahedralizationController;
 
-
+class Triangle;
 class TetrahedralizationContext : public GraphicsSceneContext<TetrahedralizationController, FPSCamera, TetrahedralizationContext>
 {
 
@@ -24,17 +24,23 @@ private:
 	vector<vector<int>> partitions;
 	int currentInd;
 	vector<ivec4> tetrahedra;
+	vector<Triangle*> triangles;
+	vector<int> triangleIndecies;
+
 public:
 	bool tetrahedralizationReady = false;
 	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, FPSCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);
-	bool addNextTetra();
+	bool addNextTetra(bool checkIfUsed);
 	bool addTetraFromGraph();
 	vector<Geometry::Mesh*> fillUpGaps(Geometry::Mesh* mesh);
 	void updateGeometries();
 
 	Geometry::VolumetricMesh   volume;
 
+	int sweepIndex;
+	void sweepInit();
+	void sweep();
 
 };

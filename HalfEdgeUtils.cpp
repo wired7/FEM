@@ -7,6 +7,8 @@
 #include <gtx/rotate_vector.hpp>
 #include <algorithm>
 
+#include "ImplicitGeometry.h"
+
 using namespace Geometry;
 vector<Geometry::HalfEdge*> HalfEdgeUtils::getFacetHalfEdges(Geometry::Facet* facet)
 {
@@ -36,6 +38,45 @@ vector<Geometry::Vertex*> HalfEdgeUtils::getFacetVertices(Geometry::Facet* facet
 
 	return vertices;
 }
+
+vector<Geometry::Facet*> HalfEdgeUtils::GetOpenFacets(Geometry::Mesh* mesh) {
+	vector<Facet*> facets = mesh->facets;
+	facets.erase(std::remove_if(facets.begin(), facets.end(), [&](Facet* f) ->bool {return f->twin != nullptr;}), facets.end());
+	return facets;
+}
+
+Triangle* HalfEdgeUtils::facetToTriangle(Geometry::Facet* facet, vector<vec3> & positions) {
+	vector<Geometry::Vertex*> verts = HalfEdgeUtils::getFacetVertices(facet);
+	return new Triangle(positions[verts[0]->externalIndex], positions[verts[1]->externalIndex], positions[verts[2]->externalIndex]);
+
+
+}
+bool HalfEdgeUtils::vertexSeesFacet(Geometry::Vertex* vertex, Geometry::Facet* facet, vector<Triangle*> & triangles, vector<vec3>& positions) {
+
+	vector<Geometry::Vertex*> vertices = HalfEdgeUtils::getFacetVertices(facet);
+	vec3 vertexPos = positions[vertex->externalIndex];
+	bool isGood = true;
+	for (int i = 0; i < vertices.size();i++)
+	{
+		vec3 point = positions[vertices[i]->externalIndex];
+		//#pragma omp parallel for
+		for (int j = 0; j < triangles.size(); j++)
+		{
+			vec3 dir = normalize(vertexPos - point);
+			if (triangles[j]->intersection(point + dir*0.0001f, dir) > 0.0f)
+			{
+				//#pragma omp critical{
+				isGood = false;
+				//i = vertices.size();
+				return false;
+				//}
+			}
+		}
+	}
+
+	return isGood;
+}
+
 
 vector<vec3> HalfEdgeUtils::getVolumeVertices(Geometry::Mesh* mesh, const vector<vec3>& positions)
 {
@@ -532,17 +573,20 @@ bool HalfEdgeUtils::areTwins(Facet* facet1, Facet* facet2) {
 
 }
 
-// returns facet of mesh1 that has a twin in mesh2
-Facet* HalfEdgeUtils::findFacetWithTwin(Geometry::Mesh* mesh1, Geometry::Mesh* mesh2) {
+// returns facet of mesh1 that has a twin in mesh2 and the twin
+pair<Facet*,Facet*> HalfEdgeUtils::findFacetWithTwin(Geometry::Mesh* mesh1, Geometry::Mesh* mesh2) {
 	for(int i = 0; i < mesh1->facets.size();i++)
 	{
 		for (int j = 0; j < mesh2->facets.size();j++) {
-			if (areTwins(mesh1->facets[i], mesh2->facets[j])) {
-				return mesh1->facets[i];
+			if (mesh1->facets[i] != nullptr && mesh1->facets[j] != nullptr) {
+				if (areTwins(mesh1->facets[i], mesh2->facets[j])) {
+
+					return  pair<Facet*, Facet*>(mesh1->facets[i], mesh2->facets[j]);
+				}
 			}
 		}
 	}
-	return nullptr;
+	return pair<Facet*,Facet*>();
 }
 
 bool HalfEdgeUtils::facetPointsTo(Geometry::Facet & facet, Geometry::Vertex & vertex, vector<vec3> & positions) {
@@ -866,6 +910,21 @@ Geometry::Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, G
 	mesh->isOutsideOrientated = getOrientation(mesh, positions );
 	return mesh;
 }
+Geometry::Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex* v1, Geometry::Vertex* v2, Geometry::Vertex* v3, Geometry::Vertex* v4, vector<Geometry::Vertex*> & vertices, const vector<vec3>& positions) {
+	
+	HalfEdge* HEab = new HalfEdge(v1, v2);
+	HalfEdge* HEbc = new HalfEdge(v2, v3);
+	HalfEdge* HEca = new HalfEdge(v3, v1);
+
+	vector<HalfEdge*> HEchain = { HEab,HEbc,HEca };
+
+	HalfEdgeUtils::connectHalfEdges(HEchain);
+	Facet * facet = new Facet(HEab);
+
+	return HalfEdgeUtils::constructTetrahedron(*v4, *facet, vertices, positions);
+
+}
+
 
 Geometry::Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, Geometry::Facet  & facet1, Geometry::Facet & facet2, vector<Geometry::Vertex*> & vertices, const vector<vec3>& positions) {
 	Mesh* mesh = constructTetrahedron(vertex, facet1, vertices, positions);
@@ -885,7 +944,39 @@ Geometry::Mesh* HalfEdgeUtils::constructTetrahedron(Geometry::Vertex & vertex, G
 
 
 
+void HalfEdgeUtils::addMeshToVolume(Mesh * mesh, VolumetricMesh * volume) {
+	mesh->internalIndex = volume->meshes.size();
+	volume->meshes.push_back(mesh);
+	mesh->volume = volume;
 
+
+	for (int i = 0; i < mesh->facets.size();i++) {
+		mesh->facets[i]->externalIndex = volume->totalMesh->facets.size();
+		volume->totalMesh->facets.push_back(mesh->facets[i]);
+	}
+	for (int i = 0; i < mesh->halfEdges.size();i++) {
+		mesh->halfEdges[i]->externalIndex = volume->totalMesh->halfEdges.size();
+		volume->totalMesh->halfEdges.push_back(mesh->halfEdges[i]);
+	}
+	vector<Mesh*> meshesSharingVertex(0);
+	for (int i = 0; i < mesh->vertices.size();i++) {
+		vector<Mesh*> &row = volume->vertexMeshMapping[mesh->vertices[i]->externalIndex];
+		meshesSharingVertex.insert(meshesSharingVertex.end(), row.begin(), row.end());
+	}
+#pragma omp paralle for
+	for (int x = 0; x < meshesSharingVertex.size();x++) {
+		pair<Facet*, Facet*> facetPair = HalfEdgeUtils::findFacetWithTwin(mesh, meshesSharingVertex[x]);
+		if (facetPair.first != nullptr && facetPair.second != nullptr && facetPair.first != facetPair.second) {
+			facetPair.first->twin = facetPair.second;
+			facetPair.second->twin = facetPair.first;
+			//std::cout << "connected facet" << facetPair.first->externalIndex << " to " << facetPair.second->externalIndex << std::endl;
+		}
+	}
+	for (int i = 0; i < mesh->vertices.size();i++) {
+		volume->vertexMeshMapping[mesh->vertices[i]->externalIndex].push_back(mesh);
+	}
+
+}
 
 
 
