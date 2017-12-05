@@ -11,28 +11,30 @@ class TetrahedralizationContext : public GraphicsSceneContext<Tetrahedralization
 {
 
 protected:
-	vector<mat4> tetrahedra;
 	virtual void setupCameras(void) {};
 	virtual void setupGeometries(void);
 	virtual void setupPasses(void);
 
 private:
 	void initialTetrahedralization();
-	Geometry::VolumetricMesh   volume;
 	vector<glm::vec3>		 & positions;
 	vector<Geometry::Facet*>   openFacets;
 	vector<bool>			   usedVertices;
 	ReferenceManager* refMan;
 	vector<vector<int>> partitions;
+	int currentInd;
+	vector<ivec4> tetrahedra;
 public:
 	bool tetrahedralizationReady = false;
 	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, FPSCamera* cam);
 	~TetrahedralizationContext() {};
 	virtual void update(void);
 	bool addNextTetra();
-	bool fillUpGaps();
+	bool addTetraFromGraph();
+	vector<Geometry::Mesh*> fillUpGaps(Geometry::Mesh* mesh);
 	void updateGeometries();
 
+	Geometry::VolumetricMesh   volume;
 
 
 };

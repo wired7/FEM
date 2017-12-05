@@ -34,6 +34,9 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 			auto geo1 = controller->context->geometries[4];
 			pass->addRenderableObjects(geo1, 0);
 		}
+
+//		auto geo2 = controller->context->geometries[5];
+//		pass->addRenderableObjects(geo2, 4);
 	}
 
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
@@ -85,7 +88,7 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 			thread t([&] {
 				for (int i = 0; i < controller->numberOfIterations; i++)
 				{
-					controller->context->addNextTetra();
+					controller->context->addTetraFromGraph();
 				}
 				controller->context->tetrahedralizationReady = true;
 			});
@@ -93,11 +96,30 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 		}
 	}
 
+	if (key == GLFW_KEY_U && action == GLFW_PRESS)
+	{
+		if (!controller->context->tetrahedralizationReady)
+		{
+			thread t([&] {
+		//		for (int i = 0; i < controller->numberOfIterations; i++)
+		//		{
+				for (int i = 0; i < controller->context->volume.meshes.size();i++) {
+					if (controller->context->fillUpGaps(controller->context->volume.meshes[i]).size() == 0)break;
+
+				}
+		//		}
+				controller->context->tetrahedralizationReady = true;
+			});
+			t.detach();
+		}
+	}
+
+
 	if (key == GLFW_KEY_UP && action != GLFW_RELEASE)
 	{
-		if (controller->numberOfIterations < 100)
+		if (controller->numberOfIterations < 10000)
 		{
-			controller->numberOfIterations++;
+			controller->numberOfIterations += 20;
 			cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
 		}
 	}
@@ -110,7 +132,7 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 			cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
 		}
 	}
-
+	/*
 	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
 	{
 		if (controller->context->nextContext == nullptr)
@@ -127,7 +149,7 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 		((GeometryPass*)((ClusteringStageContext*)controller->context->nextContext)->passRootNode)->addRenderableObjects(controller->context->geometries[0], 0);
 		((ClusteringStageContext*)controller->context->nextContext)->setAsActiveContext();
 	}
-
+	*/
 	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
 			((PointSamplingContext*)controller->context->prevContext)->setAsActiveContext();
 	}
@@ -135,6 +157,7 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 	FPSCameraControls::cameraKeyboardControls<TetrahedralizationContext>(controller->context, key, action);
 	
 	controller->context->dirty = true;
+	
 }
 
 void TetrahedralizationController::sC(GLFWwindow* window, double xOffset, double yOffset)

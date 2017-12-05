@@ -9,6 +9,7 @@
 #include "WindowContext.h"
 #include "ShaderProgramPipeline.h"
 #include "SurfaceViewContext.h"
+#include "VoronoiDiagramUtils.h"
 
 using namespace std;
 using namespace glm;
@@ -48,6 +49,9 @@ int init() {
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\vGPass.VERTEXSHADER", { tuple<const GLchar*, UniformType>("View", MATRIX4FV),
 		tuple<const GLchar*, UniformType>("Projection", MATRIX4FV),  tuple<const GLchar*, UniformType>("Model", MATRIX4FV), tuple<const GLchar*, UniformType>("selectedRef", ONEUI) }, "VOLUMEGPASSVS");
 
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\delaunaySphereGPass.VERTEXSHADER", { tuple<const GLchar*, UniformType>("View", MATRIX4FV),
+		tuple<const GLchar*, UniformType>("Projection", MATRIX4FV),  tuple<const GLchar*, UniformType>("Model", MATRIX4FV), tuple<const GLchar*, UniformType>("selectedRef", ONEUI) }, "DSGPASSVS");
+
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\lightPass.VERTEXSHADER", {}, "LPASSVS");
 	
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("shaders\\pointGPass.VERTEXSHADER", { tuple<const GLchar*, UniformType>("View", MATRIX4FV),
@@ -79,7 +83,11 @@ int init() {
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("VOLUMEGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V"));
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V"));
-//	ShaderProgramPipeline::getPipeline("V")->alphaRendered = true;
+	//	ShaderProgramPipeline::getPipeline("V")->alphaRendered = true;
+
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("DSGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("DS"));
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("DS"));
+	ShaderProgramPipeline::getPipeline("DS")->alphaRendered = true;
 
 	return 1;
 }

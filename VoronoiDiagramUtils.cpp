@@ -4,14 +4,24 @@
 Sphere VoronoiDiagramUtils::getCircumcircle(vec3 points[3])
 {
 	// center is the point equidistant from 3 non-colinear vertices
-	vec3 edgeDir[2];
+	vec3 edgeDir[3];
 
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i <= 3; i++)
 	{
-		edgeDir[i] = points[i + 1] - points[i];
+		edgeDir[i] = points[(i + 1) % 3] - points[i];
 	}
 
 	vec3 normal = normalize(cross(normalize(edgeDir[0]), normalize(edgeDir[1])));
+
+	if (length(normal) == 0.0f)
+	{
+		normal = normalize(cross(normalize(edgeDir[1]), normalize(edgeDir[2])));
+
+		if (length(normal) == 0.0f)
+		{
+			normal = normalize(cross(normalize(edgeDir[0]), normalize(edgeDir[2])));
+		}
+	}
 
 	vec3 perpDir[2];
 	vec3 midPoint[2];
@@ -22,10 +32,16 @@ Sphere VoronoiDiagramUtils::getCircumcircle(vec3 points[3])
 		midPoint[i] = edgeDir[i] / 2.0f + points[i];
 	}
 
-	float radius;
+	float radius = 0;
+	float diff = 0;
+
 	for (int i = 0; i < 3; i++)
 	{
-		float diff = perpDir[1][i] - perpDir[0][i];
+		diff += pow(perpDir[1][i] - perpDir[0][i], 2.0f);
+	}
+	diff = sqrt(diff);
+	for (int i = 0; i < 3; i++)
+	{
 		if (diff != 0.0f)
 		{
 			radius = (midPoint[1][i] - midPoint[0][i]) / diff;
@@ -38,36 +54,39 @@ Sphere VoronoiDiagramUtils::getCircumcircle(vec3 points[3])
 
 Sphere VoronoiDiagramUtils::getCircumsphere(vec3 points[4])
 {
-	// center is the point equidistant from 4 non-coplanar vertices
+	mat4 a(vec4(points[0], 1), vec4(points[1], 1), vec4(points[2], 1), vec4(points[3], 1));
+	mat4 x[3];
+	mat4 c;
+	vec3 detx;
+	double lengths[4];
 
-	Sphere circumCircles[2] = { getCircumcircle(points), getCircumcircle(&points[1]) };
-
-	vec3 edgeDirs[3];
-
-	for (int i = 0; i < 3; i++)
+	for (int j = 0; j < 4; j++)
 	{
-		edgeDirs[i] = points[i + 1] - points[i];
+		lengths[j] = length(points[j]);
 	}
 
-	vec3 normals[2];
-
-	for (int i = 0; i < 2; i++)
-	{
-		normals[i] = normalize(cross(normalize(edgeDirs[i]), normalize(edgeDirs[i + 1])));
-	}
-
-	float radius;
+	int indices[3][2] = { {1, 2}, {0, 2}, {0, 1} };
 	for (int i = 0; i < 3; i++)
-	{
-		float diff = normals[1][i] - normals[0][i];
-		if (diff != 0.0f)
+	{		
+		for (int j = 0; j < 4; j++)
 		{
-			radius = (circumCircles[1].center[i] - circumCircles[0].center[i]) / diff;
-			break;
+			x[i][j] = vec4(lengths[j], points[j][indices[i][0]], points[j][indices[i][1]], 1);
+			c[j] = vec4(lengths[j], points[j][0], points[j][1], points[j][2]);
 		}
+
+		detx[i] = determinant(x[i]);
+//		cout << detx[i] << endl;
 	}
 
-	return Sphere(circumCircles[0].center + normals[0] * radius, length(circumCircles[0].center + normals[0] * radius - points[0]));
+	detx[1] *= -1.0f;
+	double detA = determinant(a);
+	double detC = determinant(c);
+
+	vec3 center = detx / (float)(2.0 * detA);
+	double radius = sqrt(length(detx) - 4.0f * detA * detC) / (2.0f * abs(detA));
+//	cout << detA << endl;
+//	system("PAUSE");
+	return Sphere(center, radius);
 }
 
 Geometry::Vertex* VoronoiDiagramUtils::getVoronoiPointFromTetrahedron(Geometry::Mesh* mesh, const vector<vec3>& inputPositions, vector<vec3>& outputPositions)
@@ -119,6 +138,7 @@ Geometry::Facet* VoronoiDiagramUtils::getVoronoiFacetFromEdge(pair<Geometry::Ver
 			}
 		}
 	}
+	return nullptr;
 }
 
 Geometry::VolumetricMesh* VoronoiDiagramUtils::getVoronoiDiagram(Geometry::VolumetricMesh* volumetricMesh, const vector<vec3>& positions)
@@ -130,6 +150,6 @@ Geometry::VolumetricMesh* VoronoiDiagramUtils::getVoronoiDiagram(Geometry::Volum
 	{
 		voronoiVertices[volumetricMesh->meshes[i]] = getVoronoiPointFromTetrahedron(volumetricMesh->meshes[i], positions, outputPositions);
 	}
-
+	return nullptr;
 	
 }
