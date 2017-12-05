@@ -82,11 +82,20 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 	{
 		if (!controller->context->tetrahedralizationReady)
 		{
+			controller->context->tetrahedralizationReady = false;
+
 			thread t([&] {
+
+				std::cout << "Triangulating... " << std::endl;
+
 				for (int i = 0; i < controller->numberOfIterations; i++)
 				{
-					controller->context->addTetraFromGraph();
+					if (controller->context->addNextTetra(true)) {
+						break;
+					}
 				}
+				std::cout << "done" << std::endl;
+
 				controller->context->tetrahedralizationReady = true;
 			});
 			t.detach();
@@ -97,14 +106,17 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 	{
 		if (!controller->context->tetrahedralizationReady)
 		{
+			controller->context->tetrahedralizationReady = false;
 			thread t([&] {
-		//		for (int i = 0; i < controller->numberOfIterations; i++)
-		//		{
-				for (int i = 0; i < controller->context->volume.meshes.size();i++) {
-					if (controller->context->fillUpGaps(controller->context->volume.meshes[i]).size() == 0)break;
+				std::cout << "Triangulating... " << std::endl;
 
+				for (int i = 0; i < controller->numberOfIterations; i++)
+				{
+					if (controller->context->addNextTetra(false))
+						break;
 				}
-		//		}
+				std::cout << "done " << std::endl;
+
 				controller->context->tetrahedralizationReady = true;
 			});
 			t.detach();
@@ -112,23 +124,45 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 	}
 
 
+	if (key == GLFW_KEY_PAGE_UP && action != GLFW_RELEASE)
+	{
+		if (!controller->context->tetrahedralizationReady) {
+			controller->numberOfIterations *= 2;
+		}
+		cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
+
+	}
 	if (key == GLFW_KEY_UP && action != GLFW_RELEASE)
 	{
-		if (controller->numberOfIterations < 100)
-		{
-			controller->numberOfIterations++;
-			cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
+
+		if (!controller->context->tetrahedralizationReady) {
+			controller->numberOfIterations ++;
+		}			
+		cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
+	}
+
+	if (key == GLFW_KEY_PAGE_DOWN && action != GLFW_RELEASE)
+	{
+		if (!controller->context->tetrahedralizationReady) {
+
+			controller->numberOfIterations /= 2;
+			if (controller->numberOfIterations < 1)
+				controller->numberOfIterations;
 		}
+		cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
 	}
 
 	if (key == GLFW_KEY_DOWN && action != GLFW_RELEASE)
 	{
-		if (controller->numberOfIterations > 1)
-		{
+		if (!controller->context->tetrahedralizationReady) {
+
 			controller->numberOfIterations--;
-			cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
+			if (controller->numberOfIterations < 1)
+				controller->numberOfIterations;
 		}
+			cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
 	}
+
 	/*
 	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
 	{

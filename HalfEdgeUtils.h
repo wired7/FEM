@@ -3,15 +3,20 @@
 #include "GraphicsObject.h"
 #include "ReferencedGraphicsObject.h"
 
+class Triangle;
 static class HalfEdgeUtils
 {
 public:
 	static vector<Geometry::HalfEdge*> getFacetHalfEdges(Geometry::Facet* facet);
 	static vector<Geometry::Vertex*> getFacetVertices(Geometry::Facet* facet);
+	static vector<Geometry::Facet*> GetOpenFacets(Geometry::Mesh* mesh);
 	static vector<Geometry::Mesh*> getNeighbouringMeshes(Geometry::Mesh* mesh);
 	static vector<Geometry::Mesh*> getVertexMeshes(Geometry::Vertex* vertex);
 	static vector<Geometry::Mesh*> getEdgeMeshes(pair<Geometry::Vertex*, Geometry::Vertex*> edge);
 	static vector<vector<Geometry::Mesh*>> HalfEdgeUtils::BreadthFirstSearch(Geometry::Mesh* mesh, int depth);
+
+	static Triangle* facetToTriangle(Geometry::Facet* facet, vector<vec3> & positions);
+	static bool vertexSeesFacet(Geometry::Vertex* vertex, Geometry::Facet* facet, vector<Triangle*> & triangles, vector<vec3>& positions);
 
 	static vector<vec3> getVolumeVertices(Geometry::Mesh* mesh, const vector<vec3>& positions);
 
@@ -36,7 +41,7 @@ public:
 	static bool containsHalfEdge(Geometry::HalfEdge & halfedge, Geometry::Facet & facet);
 	static bool findHalfEdgeTwin(Geometry::Facet* facet, Geometry::HalfEdge* halfedge);
 	static bool areTwins(Geometry::Facet* facet1, Geometry::Facet* facet2);
-	static Geometry::Facet* findFacetWithTwin(Geometry::Mesh* mesh1, Geometry::Mesh* mesh2);
+	static pair<Geometry::Facet*,Geometry::Facet*> findFacetWithTwin(Geometry::Mesh* mesh1, Geometry::Mesh* mesh2);
 
 
 	static bool facetPointsTo(Geometry::Facet & facet, Geometry::Vertex & vertex, vector<vec3> & positions);
@@ -68,7 +73,9 @@ public:
 
 
 	static Geometry::Mesh* constructTetrahedron(Geometry::Vertex & vertex, Geometry::Facet & facet,  vector<Geometry::Vertex*> & vertices, const vector<vec3>& positions);
+	static Geometry::Mesh* constructTetrahedron( Geometry::Vertex* v1, Geometry::Vertex* v2, Geometry::Vertex* v3, Geometry::Vertex *v4, vector<Geometry::Vertex*> & allVertices, const vector<vec3>& positions);
 	static Geometry::Mesh* constructTetrahedron(Geometry::Vertex & vertex, Geometry::Facet  & facet1, Geometry::Facet & facet2, vector<Geometry::Vertex*> & vertices, const vector<vec3>& positions);
 
+	static void addMeshToVolume(Geometry::Mesh* mesh, Geometry::VolumetricMesh *volume);
 };
 

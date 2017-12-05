@@ -2,10 +2,10 @@
 #include <vector>
 #include <glew.h>
 #include <glm.hpp>
-
 using namespace std;
 using namespace glm;
 #define dDEBUG_HALFSIMPLICES 
+
 namespace Geometry {
 
 	struct HalfEdge;
@@ -101,24 +101,10 @@ namespace Geometry {
 	struct VolumetricMesh {
 	public:
 		vector<Mesh*> meshes;
-		void addMesh(Mesh * mesh) {
-			mesh->internalIndex = meshes.size();
-			meshes.push_back(mesh);
-			mesh->volume = this;
-
-
-			for (int i = 0; i < mesh->facets.size();i++) {
-				mesh->facets[i]->externalIndex = totalMesh->facets.size();
-				totalMesh->facets.push_back(mesh->facets[i]);
-			}
-			for (int i = 0; i < mesh->halfEdges.size();i++) {
-				mesh->halfEdges[i]->externalIndex = totalMesh->halfEdges.size();
-				totalMesh->halfEdges.push_back(mesh->halfEdges[i]);
-			}
-		}
-
 		Mesh* totalMesh;
 		vector<glm::vec3> positions;
+		vector<vector<Mesh*>> vertexMeshMapping;
+
 	};
 
 }

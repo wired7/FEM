@@ -9,14 +9,16 @@
 #include "VoronoiDiagramUtils.h"
 #include "MeshGraph.h"
 #include <algorithm>    // std::sort
-
-
+#include "ImplicitGeometry.h"
+#include <omp.h>
 using namespace Geometry;
 
-#define MIN_VOLUME 0.000000000
+#define MIN_VOLUME 0.1
 
 TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, FPSCamera* cam) : positions(_points)
 {
+	sweepIndex = 0;
+
 	currentInd = 0;
 	cameras.push_back(cam);
 
@@ -26,31 +28,23 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 	Mesh* totalMesh = volume.totalMesh;
 	totalMesh->volume = &volume;
 	vector<Geometry::Vertex*>& vertices = totalMesh->vertices;
-
 	vertices.resize(positions.size());
 	for (int i = 0; i < vertices.size();i++) {
 		vertices[i] = new Geometry::Vertex(i);
 		usedVertices.push_back(false);
+		volume.vertexMeshMapping.push_back(vector<Mesh*>(0));
+
 	}
 
 
 	auto sortFunc = [&](vec3 & v1, vec3 v2) -> bool{
 		return v1.y < v2.y;
 	};
-	std::cout << "Before: " << std::endl;;
-	for (int i = 0; i < _points.size();i++) {
-		std::cout<< _points[i].y
-	}
-	std::sort(_points.beging(), _points.end(), sortFunc);
-	
 
-	std::cout << "After: " << std::endl;;
-	for (int i = 0; i < _points.size();i++) {
-		std::cout << _points[i].y
-	}
+	std::sort(_points.begin(), _points.end(), sortFunc);
+
+
 	vector<pair<int, vec3>> mappedPositions;
-
-
 
 	for (int i = 0; i < _points.size(); i++)
 	{
@@ -74,7 +68,7 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 		}
 	}
 
-	cout << "BEGIN" << endl;
+	std::cout << "BEGIN" << endl;
 #undef max
 #undef min
 	int windowSize = 10;
@@ -145,7 +139,7 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 			}
 		}
 	}
-	cout << tetrahedra.size() << endl;
+	std::cout << tetrahedra.size() << endl;
 /*	for (int i = 0; i < tetrahedra.size(); i++)
 	{
 		for (int c = 0; c < 4; c++)
@@ -154,10 +148,10 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 		}
 		cout << endl;
 	}*/
-	auto meshGraph = new MeshGraph();
+/*	auto meshGraph = new MeshGraph();
 	for (int i = 0; i < _points.size(); i++)
 	{
-		meshGraph->nodes.push_back(new VertexNode(new Geometry::Vertex(i)));
+		meshGraph->nodes.push_back(new VertexNode(new Geometry::Vertex(i) ));
 	}
 
 	for (int i = 0; i < tetrahedra.size(); i++)
@@ -172,8 +166,8 @@ TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphics
 		}
 	}
 
-
-	//initialTetrahedralization();
+	*/
+	initialTetrahedralization();
 
 	auto volumes = HalfEdgeUtils::getRenderableVolumesFromMesh(&volume, positions, refMan);
 	geometries.push_back(volumes);
@@ -253,6 +247,94 @@ void TetrahedralizationContext::setupPasses(void)
 
 	passRootNode = gP;
 }
+
+
+
+void TetrahedralizationContext::sweepInit() {
+
+	if ( positions.size()>=4) {
+		Geometry::Mesh* totalMesh = volume.totalMesh;
+		vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
+		vector<Geometry::Vertex*> tetraVerts(0);
+
+
+
+		Geometry::Vertex * v1 = vertices[sweepIndex++];
+		Geometry::Vertex * v2 = vertices[sweepIndex++];
+		Geometry::Vertex * v3 = vertices[sweepIndex++];
+		Geometry::Vertex * v4 = vertices[sweepIndex++];
+
+
+
+		Geometry::Mesh* mesh = HalfEdgeUtils::constructTetrahedron(v1,v2,v3,v4,vertices,positions);
+		HalfEdgeUtils::addMeshToVolume(mesh,&volume);
+		for (int i = 0; i < mesh->facets.size();i++) {
+			openFacets.push_back(mesh->facets[i]);
+			triangles.push_back(HalfEdgeUtils::facetToTriangle(mesh->facets[i], positions));
+			triangleIndecies.push_back(mesh->facets[i]->externalIndex);
+		}
+	}
+	else
+		std::cout << "Couldnt generate another tetrahedron" << std::endl;
+
+}
+
+void TetrahedralizationContext::sweep() {
+	vector<Mesh*> newMeshes;
+
+	if (sweepIndex > 3) {
+		Geometry::Vertex* nextSweep = volume.totalMesh->vertices[sweepIndex];
+		vector<Mesh*> newMeshes;
+		vector<Geometry::Facet*> facets;
+		for (int i = 0; i < openFacets.size();i++) {
+
+			Geometry::Facet* facet = openFacets[i];
+
+				bool isGood = HalfEdgeUtils::vertexSeesFacet(nextSweep, facet, triangles, positions);
+				if (isGood) {
+					std::cout << "Can see facet " << facet->externalIndex << std::endl;
+					Facet* twin = HalfEdgeUtils::constructTwinFacet(facet);
+					Mesh*m = HalfEdgeUtils::constructTetrahedron(*nextSweep, *twin, volume.totalMesh->vertices, positions);
+					newMeshes.push_back(m);
+					for (int x = 0; x < volume.meshes.size();x++) {
+						pair<Facet*,Facet*> facetPair = HalfEdgeUtils::findFacetWithTwin(m, volume.meshes[x]);
+						if (facetPair.first != nullptr && facetPair.second != nullptr) {
+							facetPair.first->twin = facetPair.second;
+							facetPair.second->twin = facetPair.first;
+							std::cout << "Found pair" << std::endl;
+						}
+					}
+					newMeshes.push_back(m);
+					std::cout << "New mesh!" << std::endl;
+					for (int x = 0; x < m->facets.size();x++) {
+						triangles.push_back(HalfEdgeUtils::facetToTriangle(m->facets[x], positions));
+					}
+				}
+				else
+					std::cout << "Cannot see facet " << facet->externalIndex << std::endl;
+		}
+
+		for (int i = 0; i < newMeshes.size();i++) {
+			HalfEdgeUtils::addMeshToVolume(newMeshes[i], &volume);
+			for (int j = 0; j < newMeshes[j]->facets.size();j++) {
+				if (newMeshes[i]->facets[j]->twin == nullptr)
+					openFacets.push_back(newMeshes[i]->facets[j]);
+			}
+
+			vector<Facet*>::iterator ite = remove_if(openFacets.begin(), openFacets.end(), [&](Facet* f)->bool {
+				return (f->twin != nullptr);
+			});
+			openFacets.erase(ite, openFacets.end());
+		}
+	}
+	sweepIndex++;
+	std::cout << "could not generate mesh!" << std::endl;
+	std::cout << sweepIndex;
+}
+
+
+
+
 
 void TetrahedralizationContext::initialTetrahedralization(void) {
 	Mesh* totalMesh = volume.totalMesh;
@@ -360,8 +442,7 @@ void TetrahedralizationContext::initialTetrahedralization(void) {
 #pragma endregion
 
 	openFacets.insert(openFacets.begin(), mesh->facets.begin(), mesh->facets.end());
-
-	volume.addMesh(mesh);
+	HalfEdgeUtils::addMeshToVolume(mesh, &volume);
 
 	std::cout << "SEED Tetra: ";
 	HalfEdgeUtils::printMesh(mesh);
@@ -411,8 +492,7 @@ bool TetrahedralizationContext::addTetraFromGraph() {
 		Mesh* mesh = HalfEdgeUtils::constructTetrahedron(*v4, *facet, vertices, positions);
 
 
-
-		volume.addMesh(mesh);
+		HalfEdgeUtils::addMeshToVolume(mesh, &volume);
 
 		//	std::cout << "Tetra: ";
 		//	HalfEdgeUtils::printMesh(mesh);
@@ -422,10 +502,10 @@ bool TetrahedralizationContext::addTetraFromGraph() {
 	else
 		std::cout << "Couldnt generate another tetrahedron" << std::endl;
 
-
+	return nullptr;
 }
-bool TetrahedralizationContext::addNextTetra() {
-/*	Mesh* totalMesh = volume.totalMesh;
+bool TetrahedralizationContext::addNextTetra(bool checkifUsed) {
+	Mesh* totalMesh = volume.totalMesh;
 
 	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
 
@@ -433,7 +513,9 @@ bool TetrahedralizationContext::addNextTetra() {
 	Facet* facet = openFacets[0];
 	int facetIndex = 0;
 	float shortestDistance = -1;
-
+	Mesh* m = nullptr;
+	float bestVol = -1;
+#pragma omp paralllel for
 	for (int i = 0; i < openFacets.size();i++) {
 
 		Geometry::Facet* testFacet = openFacets[i];
@@ -442,16 +524,22 @@ bool TetrahedralizationContext::addNextTetra() {
 		for (int j = 0; j < facetPartition.size();j++) {
 			int vertexIndex = facetPartition[j];
 			Geometry::Vertex* vertex = totalMesh->vertices[vertexIndex];
-			if (!usedVertices[vertex->externalIndex]) {
-
-				if (HalfEdgeUtils::facetPointsTo(*testFacet, *vertex, positions) && HalfEdgeUtils::getFacetPointVolume(testFacet, vertex, positions) > MIN_VOLUME) {
+			if (!usedVertices[vertex->externalIndex] || !checkifUsed) {
+				float vol = HalfEdgeUtils::getFacetPointVolume(testFacet, vertex, positions);
+				
+				if (HalfEdgeUtils::facetPointsTo(*testFacet, *vertex, positions) && vol > MIN_VOLUME) {
 
 					float distance = HalfEdgeUtils::distanceToFacet(positions, *vertex, *testFacet);
 					if (distance < shortestDistance || shortestDistance == -1) {
-						shortestDistance = distance;
-						closest = vertex;
-						facet = testFacet;
-						facetIndex = i;
+						
+	#pragma omp critical
+						{
+							shortestDistance = distance;
+							closest = vertex;
+							facet = testFacet;
+							facetIndex = i;
+							bestVol = vol;
+						}
 					}
 
 				}
@@ -461,26 +549,21 @@ bool TetrahedralizationContext::addNextTetra() {
 	}
 
 	if (shortestDistance == -1) {
-		std::cout << "Could not add another face"<<std::endl;
+	//	std::cout << "Could not add another face"<<std::endl;
 		return true;
 	}
 	else {
 		
 		Facet* twinFacet = HalfEdgeUtils::constructTwinFacet(facet);
-		openFacets.erase(openFacets.begin()+facetIndex);
 		Mesh* m = HalfEdgeUtils::constructTetrahedron(*closest, *twinFacet,totalMesh->vertices, positions);
-		
+
 		for (int i = 0; i < m->vertices.size();i++) {
 			usedVertices[m->vertices[i]->externalIndex] = true;
 		}
-
-		volume.addMesh(m);		
-		std::cout << "Adding mesh" << m->internalIndex << " from facet " << facet->externalIndex << std::endl;
-
-		std::cout << "NEW Tetra: ";
-		HalfEdgeUtils::printMesh(m);
-		std::cout << std::endl;
-
+		HalfEdgeUtils::addMeshToVolume(m, &volume);
+	//	std::cout << "Adding mesh" << m->internalIndex << " from facet " << facet->externalIndex << std::endl;
+	//	HalfEdgeUtils::printMesh(m);
+	//	std::cout << std::endl;
 
 
 		for (int i = 0; i < m->facets.size();i++) {
@@ -490,21 +573,25 @@ bool TetrahedralizationContext::addNextTetra() {
 			}
 			partitions.push_back(HalfEdgeUtils::makeFacetPartition(f, positions, partitions[facet->externalIndex]));
 		}
+	
+		if (m != nullptr && !checkifUsed) {
 
-
-
-	//	fillUpGaps(m);
-
+			vector<Facet*>::iterator ite = remove_if(openFacets.begin(), openFacets.end(), [&](Facet* f)->bool {
+				return (f->twin != nullptr);
+			});
+			openFacets.erase(ite, openFacets.end());
+			
+			return false;
+		}
+		else return false;
 
 	}
-	*/
-	return nullptr;
 }
 
 vector<Geometry::Mesh*> TetrahedralizationContext::fillUpGaps(Geometry::Mesh* mesh) {
 	return vector<Geometry::Mesh*>(0);
 	
-	/*// use index 2 becasue we are lookinf for teatras 2 tetras away
+	// use index 2 becasue we are lookinf for teatras 2 tetras away
 	vector<Mesh*> newMeshes;
 	vector<vector<Mesh*>> bfsResult = HalfEdgeUtils::BreadthFirstSearch(mesh,3);
 	vector<Mesh*> tetras = bfsResult[1];
@@ -543,7 +630,7 @@ vector<Geometry::Mesh*> TetrahedralizationContext::fillUpGaps(Geometry::Mesh* me
 						newMeshes.push_back( m );
 						
 
-						volume.addMesh(m);
+						HalfEdgeUtils::addMeshToVolume(m, &volume);
 						std::cout << "Filled mesh\n";
 						HalfEdgeUtils::printMesh(m);
 						cout << endl;
@@ -595,7 +682,7 @@ vector<Geometry::Mesh*> TetrahedralizationContext::fillUpGaps(Geometry::Mesh* me
 	}
 
 	return newMeshes;
-	*/
+	
 }
 void TetrahedralizationContext::updateGeometries()
 {

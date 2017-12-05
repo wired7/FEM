@@ -7,8 +7,8 @@
 using namespace std;
 using namespace Graphics;
 
-#define NUM_POINTS 10
-#define POINT_SCALE 0.01f
+#define NUM_POINTS 300
+#define POINT_SCALE 0.1f
 PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPSCamera* cam)
 {
 	cameras.push_back(cam);
