@@ -78,6 +78,23 @@ bool HalfEdgeUtils::vertexSeesFacet(Geometry::Vertex* vertex, Geometry::Facet* f
 }
 
 
+int HalfEdgeUtils::fireRay(vec3 source, vec3 destination, vector<Triangle*> & triangles, int exitNumber)
+{
+	int sum = 0;
+
+	for (int j = 0; j < triangles.size(); j++)
+	{
+		if (triangles[j]->intersection(source, destination -source) > 0.0f)
+		{
+			sum++;
+			if (sum == exitNumber)
+				return sum;
+		}
+	}
+	return sum;
+	
+}
+
 vector<vec3> HalfEdgeUtils::getVolumeVertices(Geometry::Mesh* mesh, const vector<vec3>& positions)
 {
 	vector<vec3> pos;
@@ -273,6 +290,17 @@ vec3 HalfEdgeUtils::getMeshCentroid(Geometry::Mesh* mesh, const vector<vec3>& po
 
 	return center;
 }
+vector<vec3> HalfEdgeUtils::getFacetVertexPositions(Geometry::Facet* facet, vector<vec3> & positions) {
+	vector<Geometry::Vertex*> vertices = getFacetVertices(facet);
+	vector<vec3> pos;
+	for (int i = 0; i < vertices.size();i++) {
+		pos.push_back(positions[vertices[i]->externalIndex]);
+	}
+	return pos;
+
+}
+
+
 mat4 HalfEdgeUtils::getHalfEdgeTransform(Geometry::HalfEdge* halfEdge, const vector<vec3>& positions, const mat4& parentTransform, const vec3& centroid)
 {
 	vec3 point[2];

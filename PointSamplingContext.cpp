@@ -8,7 +8,7 @@ using namespace std;
 using namespace Graphics;
 
 #define NUM_POINTS 300
-#define POINT_SCALE 0.1f
+#define POINT_SCALE 0.05f
 PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPSCamera* cam)
 {
 	cameras.push_back(cam);
@@ -166,6 +166,14 @@ vector<vec3> PointSamplingContext::sampleSurface(int sampleSize, DecoratedGraphi
 			}
 		}
 	}
+	//for (int i = 0; i < transforms.size(); i++)
+	//{
+	//	mat4 t = transforms[i];
+	//	for (int j = 0; j < vertices.size();j+=50) {
+	//		samples.push_back(vec3(t * vec4(vertices[j].position, 1)));
+	//	}
+	//}
+
 
 	return samples;
 }

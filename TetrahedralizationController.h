@@ -16,6 +16,9 @@ public:
 	int numberOfIterations = 1;
 
 	bool firstMouse = false;
+	static bool stopUpdate;
+	static bool isWorking;
+
 	float lastX = 0;
 	float lastY = 0;
 
