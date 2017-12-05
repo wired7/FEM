@@ -1,6 +1,6 @@
 
 
-__kernel void update_volume(__global int* offsets, __global int* size, __global float* renderable, __global float* vertices, __constant float* cameraPos, __constant float* cameraDir)
+__kernel void update_volume(__global int* offsets, __global int* size, __global float* renderable, __global float* vertices, __constant float* cameraPos, __constant float* cameraDir, __constant float* separationDistance)
 {
     // Get the index of the current element
     int i = get_global_id(0);
@@ -19,7 +19,7 @@ __kernel void update_volume(__global int* offsets, __global int* size, __global 
 			distance += cameraDir[k] * (vertices[vertexPosition + k] - cameraPos[k]);
 		}
 		
-		if(distance < 3)
+		if(distance < separationDistance[0])
 		{
 			render = false;
 			break;

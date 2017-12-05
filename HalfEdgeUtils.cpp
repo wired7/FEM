@@ -495,6 +495,8 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 
 	auto meshObject = new Graphics::MeshObject(vertices, indices);
 
+	
+
 	auto pickable = new Graphics::ExtendedMeshObject<GLuint, GLuint>(meshObject, pickableIndices, "INSTANCEID");
 
 	vector<GLbyte> selectedC;

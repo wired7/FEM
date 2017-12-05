@@ -76,7 +76,7 @@ public:
 private:
 	// Calculates the front vector from the Camera's (updated) Eular Angles
 
-	const float YAW = 90.0f;
+	const float YAW = -90.0f;
 	const float PITCH = 0.0f;
 	const float SENSITIVTY = 0.05f;
 	const float ZOOM = 45.0f;

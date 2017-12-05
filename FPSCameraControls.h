@@ -38,9 +38,9 @@ template <class T> void FPSCameraControls::cameraKeyboardControls(T* context, in
 	if (key == GLFW_KEY_S)
 	{
 		if (action == GLFW_PRESS)
-			context->cameras[0]->velocity += glm::vec3(0, 0, -1);
+			context->cameras[0]->velocity -= glm::vec3(0, 0, 1);
 		if (action == GLFW_RELEASE)
-			context->cameras[0]->velocity -= glm::vec3(0, 0, -1);
+			context->cameras[0]->velocity += glm::vec3(0, 0, 1);
 
 	}
 	if (key == GLFW_KEY_A)

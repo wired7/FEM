@@ -163,7 +163,7 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 			cout << "NUMBER OF ITERATIONS PER CALL: " << controller->numberOfIterations << endl;
 	}
 
-	/*
+	
 	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
 	{
 		if (controller->context->nextContext == nullptr)
@@ -171,7 +171,7 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 			auto geo = controller->context->geometries[0];
 			auto cam = controller->context->cameras[0];
 
-			controller->context->nextContext = new ClusteringStageContext(geo, cam);
+			controller->context->nextContext = new ClusteringStageContext(geo, &(((TetrahedralizationContext*)(controller->context))->volume), cam);
 			((ClusteringStageContext*)controller->context->nextContext)->prevContext = controller->context;
 		}
 
@@ -180,7 +180,7 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 		((GeometryPass*)((ClusteringStageContext*)controller->context->nextContext)->passRootNode)->addRenderableObjects(controller->context->geometries[0], 0);
 		((ClusteringStageContext*)controller->context->nextContext)->setAsActiveContext();
 	}
-	*/
+	
 	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
 			((PointSamplingContext*)controller->context->prevContext)->setAsActiveContext();
 	}

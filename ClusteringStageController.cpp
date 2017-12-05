@@ -3,6 +3,8 @@
 #include "SurfaceViewController.h"
 #include "FPSCameraControls.h"
 
+#define MAX_SEPARATION_DISTANCE 20
+
 ClusteringStageController::ClusteringStageController()
 {
 	key_callback = kC;
@@ -22,6 +24,28 @@ void ClusteringStageController::kC(GLFWwindow* window, int key, int scancode, in
 
 	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
 		((TetrahedralizationContext*)controller->context->prevContext)->setAsActiveContext();
+	}
+
+	if (key == GLFW_KEY_UP && action != GLFW_RELEASE)
+	{
+		ClusteringStageContext* context = controller->context;
+		if (context->separationDistanceBuffer->bufferData[0] < MAX_SEPARATION_DISTANCE)
+		{
+			context->separationDistanceBuffer->bufferData[0] += 0.2f;
+			context->updateDistanceBuffer = true;
+			context->dirty = true;
+		}
+	}
+
+	if (key == GLFW_KEY_DOWN && action != GLFW_RELEASE)
+	{
+		ClusteringStageContext* context = controller->context;
+		if (context->separationDistanceBuffer->bufferData[0] > 0)
+		{
+			context->separationDistanceBuffer->bufferData[0] -= 0.2f;
+			context->updateDistanceBuffer = true;
+			context->dirty = true;
+		}
 	}
 
 	FPSCameraControls::cameraKeyboardControls<ClusteringStageContext>(controller->context, key, action);
