@@ -66,5 +66,5 @@ public:
 	PickingBuffer(DecoratedFrameBuffer* child, int width, int height, string signature);
 	~PickingBuffer() {};
 
-	GLuint* getValues(int x, int y);
+	GLuint* getValues(int x, int y, int sampleW = 1, int sampleH = 1);
 };

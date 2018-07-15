@@ -61,32 +61,41 @@ public:
 	void execute(size_t global_item_size, size_t local_item_size);
 };
 
-template<class T> class CLBuffer
+class AbstractCLBuffer
 {
 public:
-	vector<T> bufferData;
 	cl_mem bufferPointer;
 	OpenCLContext* context;
 	cl_int ret;
+	AbstractCLBuffer() {};
+	AbstractCLBuffer(OpenCLContext* context) : context(context) {};
+	virtual void bindBuffer() = 0;
+	virtual void updateBuffer() = 0;
+	virtual void enableBuffer(CLKernel* kernel, int argumentIndex) = 0;
+	virtual void readBuffer() = 0;
+};
+
+template<class T> class CLBuffer : public AbstractCLBuffer
+{
+public:
+	vector<T> bufferData;
 	int readWrite;
 	CLBuffer() {};
 	CLBuffer(OpenCLContext* context, vector<T>& data, int readOnly = CL_MEM_READ_ONLY);
 	~CLBuffer();
-	void bindBuffer();
-	void updateBuffer();
+	virtual void bindBuffer();
+	virtual void updateBuffer();
 	virtual void enableBuffer(CLKernel* kernel, int argumentIndex);
-	void readBuffer();
+	virtual void readBuffer();
 };
 
 template<class T> CLBuffer<T>::CLBuffer(OpenCLContext* context, vector<T>& data, int readWrite) :
-	context(context), bufferData(data), readWrite(readWrite)
+	AbstractCLBuffer(context), bufferData(data), readWrite(readWrite)
 {
-	
 }
 
 template<class T> CLBuffer<T>::~CLBuffer()
 {
-
 }
 
 template<class T> void CLBuffer<T>::bindBuffer()
@@ -132,5 +141,4 @@ template<class T> CLGLBuffer<T>::CLGLBuffer(OpenCLContext* context, GLuint VBO, 
 
 template<class T> CLGLBuffer<T>::~CLGLBuffer()
 {
-
 }

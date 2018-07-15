@@ -1,11 +1,12 @@
-#version 450 core
+ #version 450 core
 
 // Input vertex data, different for all executions of this shader.
 layout(location = 0) in vec3 vertexPos;
 layout(location = 1) in vec3 normal;
-layout(location = 2) in uint objectID;
-layout(location = 3) in uint selectable;
-layout(location = 4) in mat4 transform;
+layout(location = 2) in mat4 triangleTransform;
+layout(location = 6) in uint objectID;
+layout(location = 7) in uint selectable;
+layout(location = 8) in mat4 transform;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -30,7 +31,7 @@ void main(){
 
 	if(selectable > 0 && (objectID == selectedRef))
 	{
-		vertexOutput = vertexPos * 1.005f;
+		vertexOutput = vertexPos + 0.5f * normal;
 		vColor = vec4(0, 1, 0, 1);
 	}
 	else
@@ -39,12 +40,12 @@ void main(){
 		vColor = vec4(1, 0.3, 0, 1);
 	}
 
-	gl_Position = Projection * View * Model * transform * vec4(vertexOutput, 1);
+	gl_Position = Projection * View * Model * transform  * triangleTransform * vec4(vertexOutput, 1);
 
 	pos = gl_Position.xyz;
 
-	n = (transpose(inverse(View * Model * transform)) * vec4(normal,0)).xyz;
-	n = -normalize(n);
+	n = (transpose(inverse(View * Model * transform * triangleTransform)) * vec4(normal, 0)).xyz;
+	n = normalize(n);
 
 	oID = objectID;
 }

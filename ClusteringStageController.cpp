@@ -60,13 +60,38 @@ void ClusteringStageController::sC(GLFWwindow* window, double xOffset, double yO
 
 void ClusteringStageController::mC(GLFWwindow* window, int button, int action, int mods)
 {
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS)
+	{
+		double xpos;
+		double ypos;
+		glfwGetCursorPos(WindowContext::window, &xpos, &ypos);
+//		unsigned int index = SurfaceViewController::getPickingID((GeometryPass*)controller->context->passRootNode, xpos, ypos);
+//		cout << endl << index << endl;
+
+		auto stencil = (PickingBuffer*)((GeometryPass*)controller->context->passRootNode->signatureLookup("GEOMETRYPASS0"))->frameBuffer->signatureLookup("STENCIL0");
+
+		if (stencil)
+		{
+			int width, height;
+			glfwGetWindowSize(WindowContext::window, &width, &height);
+
+			auto data = stencil->getValues(xpos, height - ypos);
+
+			int d = data[0];
+
+			delete[] data;
+
+			cout << endl << d << endl;
+		}
+	}
 }
 
 void ClusteringStageController::mPC(GLFWwindow* window, double xpos, double ypos)
 {
 	FPSCameraControls::mousePositionControls<ClusteringStageController>(controller, xpos, ypos);
 
-	SurfaceViewController::getPickingID((GeometryPass*)controller->context->passRootNode, xpos, ypos);
+	SurfaceViewController::getPickingID((GeometryPass*)controller->context->passRootNode->signatureLookup("GEOMETRYPASS0"), xpos, ypos);
+
 	controller->context->dirty = true;
 }
 

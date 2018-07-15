@@ -21,10 +21,11 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 	{
 		if (controller->context->nextContext == nullptr)
 		{
-			auto geo = controller->context->geometries[0];
+			auto geo = controller->context->geometries["VOLUME"];
 			auto cam = controller->context->cameras[0];
+			auto refMan = controller->context->refMan;
 
-			controller->context->nextContext = new PointSamplingContext(geo, cam);
+			controller->context->nextContext = new PointSamplingContext(geo, cam, refMan);
 			((PointSamplingContext*)controller->context->nextContext)->prevContext = controller->context;
 		}
 
@@ -39,12 +40,12 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 
 		if (controller->edgeRendering)
 		{
-			auto geo1 = controller->context->geometries[1];
-			pass->addRenderableObjects(geo1, 1);
+			auto geo1 = controller->context->geometries["EDGES"];
+			pass->addRenderableObjects(geo1, "EdgeA");
 		}
 		else
 		{
-			pass->clearRenderableObjects(1);
+			pass->clearRenderableObjects("EdgeA");
 		}
 	}
 
@@ -73,12 +74,12 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 
 		if (controller->pointRendering)
 		{
-			auto geo0 = controller->context->geometries[2];
-			pass->addRenderableObjects(geo0, 2);
+			auto geo0 = controller->context->geometries["VERTICES"];
+			pass->addRenderableObjects(geo0, "C");
 		}
 		else
 		{
-			pass->clearRenderableObjects(2);
+			pass->clearRenderableObjects("C");
 		}
 	}
 
@@ -90,12 +91,12 @@ void SurfaceViewController::kC(GLFWwindow* window, int key, int scancode, int ac
 
 		if (controller->facetRendering)
 		{
-			auto geo0 = controller->context->geometries[3];
-			pass->addRenderableObjects(geo0, 3);
+			auto geo0 = controller->context->geometries["FACETS"];
+			pass->addRenderableObjects(geo0, "D");
 		}
 		else
 		{
-			pass->clearRenderableObjects(3);
+			pass->clearRenderableObjects("D");
 		}
 	}
 
@@ -127,6 +128,16 @@ void SurfaceViewController::mC(GLFWwindow* window, int button, int action, int m
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	}
+
+/*	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS)
+	{
+		double xpos;
+		double ypos;
+		glfwGetCursorPos(WindowContext::window, &xpos, &ypos);
+		unsigned int index = SurfaceViewController::getPickingID((GeometryPass*)controller->context->passRootNode, xpos, ypos);
+		cout << endl << index << endl;
+		((SurfaceViewContext*)controller->context)->facetBFS(((SurfaceViewContext*)controller->context)->vMesh->meshes[0]->facets[0], 4);
+	}*/
 }
 
 void SurfaceViewController::mPC(GLFWwindow* window, double xpos, double ypos)
@@ -155,15 +166,17 @@ void SurfaceViewController::cameraMovement(SphericalCamera* cam, glm::vec3 direc
 	cam->update();
 }
 
-void SurfaceViewController::getPickingID(GeometryPass* gP, double xpos, double ypos)
+unsigned int SurfaceViewController::getPickingID(GeometryPass* gP, double xpos, double ypos)
 {
 	int width, height;
 	glfwGetWindowSize(WindowContext::window, &width, &height);
-	auto picking = (PickingBuffer*)gP->frameBuffer->signatureLookup("PICKING");
+	auto picking = (PickingBuffer*)gP->frameBuffer->signatureLookup("PICKING0");
 	auto data = picking->getValues(xpos, height - ypos);
 	gP->setupOnHover(data[0]);
-
+	int d = data[0];
 //	cout << data[0] << endl;
 
 	delete[] data;
+
+	return d;
 }

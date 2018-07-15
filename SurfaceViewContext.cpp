@@ -1,6 +1,6 @@
 #pragma once
 #include "SurfaceViewContext.h"
-#include "HalfEdgeUtils.h"
+#include "HalfSimplexRenderingUtils.h"
 #include "FPSCameraControls.h"
 
 using namespace Graphics;
@@ -8,7 +8,7 @@ SurfaceViewContext::SurfaceViewContext() : GraphicsSceneContext()
 {
 	setupCameras();
 	setupGeometries();
-	setupPasses();
+	setupPasses({ "A", "EdgeA", "C", "D" }, {"B"});
 }
 
 void SurfaceViewContext::setupCameras(void)
@@ -23,17 +23,18 @@ void SurfaceViewContext::setupCameras(void)
 void SurfaceViewContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
+	makeQuad();
+
 	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
-//	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
+//	auto m = new Cylinder(10);//Polyhedron(10, vec3(), vec3(1.0f));
+//	auto m = new Tetrahedron();
 
 	vector<mat4> transform;
 
 	vec3 pos = vec3(0, 0, 0);
 	transform.push_back(translate(mat4(1.0f), pos) * scale(mat4(1.0f), vec3(10.0f)));
 
-	Geometry::Mesh * hSimp = new Geometry::Mesh(m->indices, 3);
-	Geometry::VolumetricMesh* vMesh = new Geometry::VolumetricMesh();
-	vMesh->meshes.push_back(hSimp);
+	Geometry::Manifold2<GLuint>* manifold = new Geometry::Manifold2<GLuint>(m->indices);
 
 	vector<vec3> positions;
 	for (int i = 0; i < m->vertices.size(); i++)
@@ -41,58 +42,41 @@ void SurfaceViewContext::setupGeometries(void)
 		positions.push_back(m->vertices[i].position);
 	}
 
-	auto outputGeometry = HalfEdgeUtils::getRenderableVolumesFromMesh(vMesh, positions, refMan, transform);
-
-	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)outputGeometry->signatureLookup("INSTANCEID"));
-	auto objectIDs = instanceIDs->extendedData;
-
-	int currentIndex = objectIDs[0];
-	int currentManagedIndex = refMan->assignNewGUID();
-	for (int i = 0; i < objectIDs.size(); i++)
-	{
-		if (objectIDs[i] != currentIndex)
-		{
-			currentIndex = objectIDs[i];
-			currentManagedIndex = refMan->assignNewGUID();
-		}
-
-		objectIDs[i] = currentManagedIndex;
-	}
-
-	instanceIDs->extendedData = objectIDs;
-	instanceIDs->updateBuffers();
-
-	geometries.push_back(outputGeometry);
-
-	setupRenderableHalfEdges(vMesh, positions, transform);
 	setupRenderableVertices(positions, transform);
-	setupRenderableFacets(vMesh, positions, transform);
 
-	makeQuad();
+	Graphics::DecoratedGraphicsObject* outputGeometry = HalfSimplexRenderingUtils::getRenderableVolumesFromManifold(manifold,
+																												   positions,
+																												   transform,
+																												   refMan);
+
+	geometries["VOLUME"] = outputGeometry;
+
+	setupRenderableHalfEdges(manifold, positions, transform);
+	setupRenderableFacets(manifold, positions, transform);
 }
 
-void SurfaceViewContext::setupPasses(void)
+void SurfaceViewContext::setupPasses(const std::vector<std::string>& gProgramSignatures, const std::vector<std::string>& lProgramSignatures)
 {
-	// TODO: might want to manage passes as well
-	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA"), ShaderProgramPipeline::getPipeline("C"), ShaderProgramPipeline::getPipeline("D")});
-	gP->addRenderableObjects(geometries[0], 0);
-	gP->addRenderableObjects(geometries[1], 1);
-	gP->addRenderableObjects(geometries[2], 2);
-	gP->addRenderableObjects(geometries[3], 3);
-	gP->setupCamera(cameras[0]);
+	GraphicsSceneContext::setupPasses(gProgramSignatures, lProgramSignatures);
 
-	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[4], 0);
-	gP->addNeighbor(lP);
-
-	passRootNode = gP;
+	auto gP = ((GeometryPass*)passRootNode->signatureLookup("GEOMETRYPASS"));
+	
+	gP->addRenderableObjects(geometries["VOLUME"], "A");
+	gP->addRenderableObjects(geometries["VERTICES"], "C");
+	gP->addRenderableObjects(geometries["EDGES"], "EdgeA");
+	gP->addRenderableObjects(geometries["FACETS"], "D");
+	
+	((LightPass*)((GeometryPass*)passRootNode)->signatureLookup("LIGHTPASS"))->addRenderableObjects(geometries["DISPLAYQUAD"], "B");
 }
 
-void SurfaceViewContext::setupRenderableHalfEdges(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions, const vector<mat4>& transform)
+void SurfaceViewContext::setupRenderableHalfEdges(Geometry::Manifold2<GLuint>* manifold, const vector<vec3>& positions, const vector<mat4>& transform)
 {
-	auto outputGeometry = HalfEdgeUtils::getRenderableEdgesFromMesh(hSimp, positions, refMan, transform);
+	Graphics::DecoratedGraphicsObject* outputGeometry = HalfSimplexRenderingUtils::getRenderableEdgesFromManifold(manifold,
+																												  positions,
+																												  transform,
+																												  refMan);
 
-	geometries.push_back(outputGeometry);
+	geometries["EDGES"] = outputGeometry;
 }
 
 void SurfaceViewContext::setupRenderableVertices(const vector<vec3>& positions, const vector<mat4>& transform)
@@ -103,7 +87,7 @@ void SurfaceViewContext::setupRenderableVertices(const vector<vec3>& positions, 
 	{
 		for (int i = 0; i < positions.size(); i++)
 		{
-			pTransforms.push_back(transform[j] * scale(mat4(1.0f), vec3(0.8f)) * translate(mat4(1.0f), positions[i]) * scale(mat4(1.0f), vec3(0.002f)));
+			pTransforms.push_back(transform[j] * scale(mat4(1.0f), vec3(1.0f)) * translate(mat4(1.0f), positions[i]) * scale(mat4(1.0f), vec3(0.002f)));
 		}
 	}
 
@@ -122,33 +106,17 @@ void SurfaceViewContext::setupRenderableVertices(const vector<vec3>& positions, 
 
 	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
 
-	geometries.push_back(selectable);
+	geometries["VERTICES"] = selectable;
 }
 
-void SurfaceViewContext::setupRenderableFacets(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions, const vector<mat4>& transform)
+void SurfaceViewContext::setupRenderableFacets(Geometry::Manifold2<GLuint>* manifold, const vector<vec3>& positions, const vector<mat4>& transform)
 {
-	auto outputGeometry = HalfEdgeUtils::getRenderableFacetsFromMesh(hSimp, positions, transform);
+	Graphics::DecoratedGraphicsObject* outputGeometry = HalfSimplexRenderingUtils::getRenderableFacetsFromManifold(manifold,
+																												   positions,
+																												   transform,
+																												   refMan);
 
-	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)outputGeometry->signatureLookup("INSTANCEID"));
-	auto objectIDs = instanceIDs->extendedData;
-
-	int currentIndex = objectIDs[0];
-	int currentManagedIndex = refMan->assignNewGUID();
-	for (int i = 0; i < objectIDs.size(); i++)
-	{
-		if (objectIDs[i] != currentIndex)
-		{
-			currentIndex = objectIDs[i];
-			currentManagedIndex = refMan->assignNewGUID();
-		}
-
-		objectIDs[i] = currentManagedIndex;
-	}
-
-	instanceIDs->extendedData = objectIDs;
-	instanceIDs->updateBuffers();
-
-	geometries.push_back(outputGeometry);
+	geometries["FACETS"] = outputGeometry;
 }
 
 void SurfaceViewContext::update(void)

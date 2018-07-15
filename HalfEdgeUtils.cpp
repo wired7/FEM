@@ -538,7 +538,6 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 
 				pickableIndices.push_back(guid);
 				int centroidIndex = vertices.size() - 1;
-
 				for (int k = 0; k <= facetVertices.size(); k++)
 				{
 					vec3 pos = vec3(transforms[j] * volumeTransform * vec4(positions[facetVertices[k % facetVertices.size()]->externalIndex], 1));
@@ -562,7 +561,6 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 		}
 		pickableIndices.push_back(guid);
 		pickableIndices.push_back(guid);
-
 	}
 
 	auto meshObject = new Graphics::MeshObject(vertices, indices);
@@ -582,7 +580,7 @@ Graphics::DecoratedGraphicsObject* HalfEdgeUtils::getRenderableVolumesFromMesh(G
 	
 	for (int i = 0; i < pickableIndices.size(); i++)
 	{
-		colors.push_back(vec4(0, 1, 0, 1));
+		colors.push_back(vec4(0, 0.8, 0, 1));
 	}
 
 	auto colorBuffer = new Graphics::ExtendedMeshObject<vec4, float>(selectable, colors, "COLOR");
@@ -775,6 +773,7 @@ vector<int> HalfEdgeUtils::getPartitionIntersection(vector<int> & partition1, ve
 			cursor2++;
 		}
 	}
+
 	return intersection;
 }
 vector<int> HalfEdgeUtils::getPartitionUnion(vector<int> & partition1, vector<int> & partition2) {
@@ -863,11 +862,7 @@ vector<Geometry::Vertex*> HalfEdgeUtils::getVertexIntersection(Geometry::Facet* 
 	return getVertexIntersection(getFacetVertices(facet1), getFacetVertices(facet2));
 }
 
-
-
-
-
-// this connects halfedges in the orther they are in the vector... it will not ensure that they connected correctly
+// this connects halfedges in the order they are in the vector... it will not ensure that they connected correctly
 vector<Geometry::Vertex*> HalfEdgeUtils::connectHalfEdges(std::vector<HalfEdge*> & halfedges) {
 	vector<Geometry::Vertex*> vertices;
 	 for (int i = 0; i < halfedges.size() - 1;i++) {

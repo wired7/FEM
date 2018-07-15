@@ -3,43 +3,31 @@
 #include "TetrahedralizationController.h"
 #include "Halfsimplices.h"
 #include "ReferencedGraphicsObject.h"
+#include "ImplicitGeometry.h"
 
 class TetrahedralizationController;
 
-class Triangle;
 class TetrahedralizationContext : public GraphicsSceneContext<TetrahedralizationController, FPSCamera, TetrahedralizationContext>
 {
 
 protected:
-	virtual void setupCameras(void) {};
-	virtual void setupGeometries(void);
-	virtual void setupPasses(void);
+	void setupCameras(void) override {};
+	void setupGeometries(void) override;
+	void setupPasses(const std::vector<std::string>& gProgramSignatures, const std::vector<std::string>& lProgramSignatures) override;
 
 private:
-	void initialTetrahedralization();
-	vector<glm::vec3>		 & positions;
-	vector<Geometry::Facet*>   openFacets;
-	vector<bool>			   usedVertices;
-	vector<int>				   usedVertexCount;
-	bool firstOrientation;
-	ReferenceManager* refMan;
-	vector<vector<int>> partitions;
-	int currentInd;
-	vector<ivec4> tetrahedra;
-	vector<Triangle*> triangles;
-	vector<int> triangleIndecies;
-	MeshObject* surfaceMesh;
-
+	vector<glm::vec3>& positions;
+	vector<mat4> tetraTransforms;
 public:
 	bool tetrahedralizationReady = false;
-	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> & _points, FPSCamera* cam);
+	ReferenceManager* refMan;
+	Geometry::Manifold3<GLuint> manifold;
+	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface,
+							  Graphics::DecoratedGraphicsObject* points,
+							  vector<vec3>& _points,
+							  FPSCamera* cam,
+							  ReferenceManager* refMan);
 	~TetrahedralizationContext() {};
-	virtual void update(void);
-	bool addNextTetra(bool checkIfUsed);
+	void update(void) override;
 	void updateGeometries();
-	Geometry::Facet* dummyFacet;
-
-	Geometry::VolumetricMesh  volume;
-
-
 };

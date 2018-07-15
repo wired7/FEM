@@ -21,22 +21,23 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 {
 	if (key == GLFW_KEY_R && action == GLFW_PRESS)
 	{
-		controller->surfaceRendering ^= true;
+		controller->volumeRendering ^= true;
 
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
-		pass->clearRenderableObjects(0);
+		pass->clearRenderableObjects("D");
 		if (controller->volumeRendering)
 		{
-			auto geo0 = controller->context->geometries[0];
-			pass->addRenderableObjects(geo0, 0);
+			auto geo0 = controller->context->geometries["VOLUMES"];
+			pass->addRenderableObjects(geo0, "D");
 		}
 
+/*		pass->clearRenderableObjects("A");
 		if (controller->surfaceRendering)
 		{
-			auto geo1 = controller->context->geometries[4];
-			pass->addRenderableObjects(geo1, 0);
-		}
+			auto geo1 = controller->context->geometries["SURFACE"];
+			pass->addRenderableObjects(geo1, "A");
+		}*/
 	}
 	if (key == GLFW_KEY_P && action == GLFW_PRESS)
 	{
@@ -45,30 +46,30 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
 	{
-		controller->facetRendering ^= true;
+/*		controller->facetRendering ^= true;
 
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
-		pass->clearRenderableObjects(3);
+		pass->clearRenderableObjects("D");
 		if (controller->facetRendering)
 		{
-			auto geo0 = controller->context->geometries[3];
-			pass->addRenderableObjects(geo0, 3);
-		}
+			auto geo0 = controller->context->geometries["FACETS"];
+			pass->addRenderableObjects(geo0, "D");
+		}*/
 	}
 
 	if (key == GLFW_KEY_E && action == GLFW_PRESS)
 	{
-		controller->edgeRendering ^= true;
+/*		controller->edgeRendering ^= true;
 
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
-		pass->clearRenderableObjects(1);
+		pass->clearRenderableObjects("EdgeA");
 		if (controller->edgeRendering)
 		{
-			auto geo0 = controller->context->geometries[1];
-			pass->addRenderableObjects(geo0, 1);
-		}
+			auto geo0 = controller->context->geometries["EDGES"];
+			pass->addRenderableObjects(geo0, "EdgeA");
+		}*/
 	}
 
 	if (key == GLFW_KEY_V && action == GLFW_PRESS)
@@ -77,87 +78,20 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
-		pass->clearRenderableObjects(2);
+		pass->clearRenderableObjects("C");
 		if (controller->pointRendering)
 		{
-			auto geo0 = controller->context->geometries[2];
-			pass->addRenderableObjects(geo0, 2);
+			auto geo0 = controller->context->geometries["POINTS"];
+			pass->addRenderableObjects(geo0, "C");
 		}
 	}
 
 	if (key == GLFW_KEY_I && action == GLFW_PRESS)
 	{
-		if (!isWorking) {
-			isWorking = true;
-			if (!controller->context->tetrahedralizationReady)
-			{
-
-				thread t([&] {
-					double startTime = glfwGetTime();
-
-					std::cout << "Triangulating... " << std::endl;
-
-					for (int i = 0; i < controller->numberOfIterations; i++)
-					{
-						if (controller->context->addNextTetra(true) || stopUpdate) {
-							stopUpdate = false;
-							isWorking = false;
-							break;
-						}
-						if (glfwGetTime() - startTime > REFRESH_RATE) {
-							controller->context->tetrahedralizationReady = true;
-
-							startTime = glfwGetTime();
-						}
-					}
-					std::cout << "done" << std::endl;
-
-					controller->context->tetrahedralizationReady = true;
-					isWorking = false;
-				});
-				t.detach();
-			}
-		}
-
 	}
 
 	if (key == GLFW_KEY_U && action == GLFW_PRESS)
 	{
-
-
-		if (!isWorking) {
-			isWorking = true;
-			if (!controller->context->tetrahedralizationReady)
-			{
-
-				thread t([&] {
-					double startTime = glfwGetTime();
-
-					std::cout << "Triangulating... " << std::endl;
-
-					for (int i = 0; i < controller->numberOfIterations; i++)
-					{
-
-						if (controller->context->addNextTetra(false) || stopUpdate) {
-							stopUpdate = false;
-							isWorking = false;
-							break;
-						}
-						if (glfwGetTime() - startTime > REFRESH_RATE) {
-							controller->context->tetrahedralizationReady = true;
-							startTime = glfwGetTime();
-
-						}
-					}
-					std::cout << "done " << std::endl;
-
-					controller->context->tetrahedralizationReady = true;
-					isWorking = false;
-				});
-				t.detach();
-			}
-		}
-
 	}
 
 
@@ -205,20 +139,18 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 	{
 		if (controller->context->nextContext == nullptr)
 		{
-			auto geo = controller->context->geometries[0];
+			auto geo = controller->context->geometries["VOLUMES"];
 			auto cam = controller->context->cameras[0];
 
-			controller->context->nextContext = new ClusteringStageContext(geo, &(((TetrahedralizationContext*)(controller->context))->volume), cam);
+			controller->context->nextContext = new ClusteringStageContext(geo, &(((TetrahedralizationContext*)(controller->context))->manifold), cam);
 			((ClusteringStageContext*)controller->context->nextContext)->prevContext = controller->context;
 		}
 
-		((ClusteringStageContext*)controller->context->nextContext)->geometries[0] = controller->context->geometries[0];
-		((GeometryPass*)((ClusteringStageContext*)controller->context->nextContext)->passRootNode)->clearRenderableObjects(0);
-		((GeometryPass*)((ClusteringStageContext*)controller->context->nextContext)->passRootNode)->addRenderableObjects(controller->context->geometries[0], 0);
 		((ClusteringStageContext*)controller->context->nextContext)->setAsActiveContext();
 	}
 	
-	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+	{
 			((PointSamplingContext*)controller->context->prevContext)->setAsActiveContext();
 	}
 

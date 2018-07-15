@@ -37,5 +37,5 @@ void main(){
 	n = (transpose(inverse(View * Model * transform)) * vec4(normal,0)).xyz;
 	n = normalize(n);
 
-	oID = 1;
+	oID = 100000000;
 }

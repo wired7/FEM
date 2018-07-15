@@ -3,394 +3,169 @@
 #include "TetrahedralizationController.h"
 
 #include "HalfSimplices.h"
-#include "HalfEdgeUtils.h"
-
 #include "FPSCameraControls.h"
 #include "VoronoiDiagramUtils.h"
-#include "MeshGraph.h"
+#include "LinearAlgebraUtils.h"
+#include "DiscreteGeometryUtils.h"
 #include <algorithm>    // std::sort
-#include "ImplicitGeometry.h"
 #include <omp.h>
+#include <map>
+
 using namespace Geometry;
 
-#define MIN_VOLUME 0.1
-#define LARGE_DISTANCE 10
-#define MAX_VERTEX_USE 30
-
-TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface, Graphics::DecoratedGraphicsObject* points, vector<vec3> &_points, FPSCamera* cam) : positions(_points)
+TetrahedralizationContext::TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface,
+													 Graphics::DecoratedGraphicsObject* points,
+													 vector<vec3>& _points,
+													 FPSCamera* cam,
+													 ReferenceManager* refMan) : positions(_points), refMan(refMan)
 {
-	surfaceMesh = (MeshObject*)(surface->signatureLookup("VERTEX"));
-	auto indices = surfaceMesh->indices;
-	auto surfaceVertices = surfaceMesh->vertices;
-
-	for (int i = 0; i < indices.size(); i += 3)
-	{
-		triangles.push_back(new Triangle(surfaceVertices[indices[i]].position, surfaceVertices[indices[i + 1]].position, surfaceVertices[indices[i + 2]].position));
-	}
-
 	cameras.push_back(cam);
-
+	geometries["SURFACE"] = surface;
+	geometries["POINTS"] = points;
 	setupGeometries();
+	setupPasses({ "A", "EdgeA", "C", "D" }, { "B" });
 
-	volume.totalMesh = new Mesh();
-	Mesh* totalMesh = volume.totalMesh;
-	totalMesh->volume = &volume;
-	vector<Geometry::Vertex*>& vertices = totalMesh->vertices;
-	vertices.resize(positions.size());
-	for (int i = 0; i < vertices.size();i++) {
-		vertices[i] = new Geometry::Vertex(i);
-		usedVertices.push_back(false);
-		usedVertexCount.push_back(0);
-		volume.vertexMeshMapping.push_back(vector<Mesh*>(0));
-
-	}
-
-	initialTetrahedralization();
-
-	auto volumes = HalfEdgeUtils::getRenderableVolumesFromMesh(&volume, positions, refMan);
-	geometries.push_back(volumes);
-
-	auto edges = HalfEdgeUtils::getRenderableEdgesFromMesh(&volume, positions, refMan);
-	geometries.push_back(edges);
-
-	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)points->signatureLookup("INSTANCEID"));
-	auto objectIDs = instanceIDs->extendedData;
-
-	int currentIndex = objectIDs[0];
-	int currentManagedIndex = refMan->assignNewGUID();
-	for (int i = 0; i < objectIDs.size(); i++)
+	thread t([&]
 	{
-		if (objectIDs[i] != currentIndex)
+		auto tetrahedraPoints = VoronoiDiagramUtils::calculateDelaunayTetrahedra(positions);
+
+		for (auto& tetra : tetrahedraPoints)
 		{
-			currentIndex = objectIDs[i];
-			currentManagedIndex = refMan->assignNewGUID();
+			vector<GLuint> volumeIndices;
+
+			for (int i = 0; i < tetra.length() - 2; ++i)
+			{
+				for (int j = i + 1; j < tetra.length() - 1; ++j)
+				{
+					for (int k = j + 1; k < tetra.length(); ++k)
+					{
+						int otherIndex;
+
+						for (int l = 0; l < tetra.length(); ++l)
+						{
+							if (l != i && l != j && l != k)
+							{
+								otherIndex = l;
+								break;
+							}
+						}
+
+						vec3 p = positions[tetra[j]] - positions[tetra[i]];
+						vec3 q = positions[tetra[k]] - positions[tetra[j]];
+
+						if (glm::dot(glm::cross(p, q), positions[otherIndex] - positions[i]) > 0)
+						{
+							volumeIndices.push_back(tetra[k]);
+							volumeIndices.push_back(tetra[j]);
+							volumeIndices.push_back(tetra[i]);
+						}
+						else
+						{
+							volumeIndices.push_back(tetra[i]);
+							volumeIndices.push_back(tetra[j]);
+							volumeIndices.push_back(tetra[k]);
+						}
+					}
+				}
+			}
 		}
 
-		objectIDs[i] = currentManagedIndex;
-	}
+		glm::vec3 centroid = (vec3(-1, 0, 0) + vec3(1, 0, 0) + vec3(0, 1, 0) + vec3(0, 0, 1)) / 4.0f;
+		vec4 v1(-1, 0, 0, 1);
+		vec4 v2(1, 0, 0, 1);
+		vec4 v3(0, 1, 0, 1);
+		vec4 v4(0, 0, 1, 1);
 
-	instanceIDs->extendedData = objectIDs;
-	instanceIDs->updateBuffers();
+		auto triangles = DiscreteGeometryUtils::getTrianglesFromMesh(geometries["SURFACE"]);
 
-	geometries.push_back(points);
-
-	auto faces = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
-
-	instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)faces->signatureLookup("INSTANCEID"));
-	objectIDs = instanceIDs->extendedData;
-
-	currentIndex = objectIDs[0];
-	currentManagedIndex = refMan->assignNewGUID();
-	for (int i = 0; i < objectIDs.size(); i++)
-	{
-		if (objectIDs[i] != currentIndex)
+//#pragma omp parallel for schedule(dynamic, 50)
+		for (int tIndex = 0; tIndex < tetrahedraPoints.size(); ++tIndex)
 		{
-			currentIndex = objectIDs[i];
-			currentManagedIndex = refMan->assignNewGUID();
+			auto tetraSet = tetrahedraPoints[tIndex];
+
+			bool isInsideVolume = true;
+			for (int i = 0; isInsideVolume && i < 2; ++i)
+			{
+				for (int j = i + 1; isInsideVolume && j < 3; ++j)
+				{
+					for (int k = j + 1; isInsideVolume && k < 4; ++k)
+					{
+						ImplicitGeo::Triangle triangle(positions[tetraSet[i]], positions[tetraSet[j]], positions[tetraSet[k]]);
+
+						for (int triIndex = 0; triIndex < triangles.size(); ++triIndex)
+						{
+							if (triangles[triIndex].intersects(triangle))
+							{
+								isInsideVolume = false;
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (isInsideVolume)
+			{
+				auto transform = LinearAlgebraUtils::getTransformFrom4Points(
+					positions[tetraSet[0]],
+					positions[tetraSet[1]],
+					positions[tetraSet[2]],
+					positions[tetraSet[3]]) *
+					translate(mat4(1.0f), centroid) *
+					scale(mat4(1.0f), vec3(1.0f)) *
+					translate(mat4(1.0f), -centroid);
+//#pragma omp critical
+				{
+					tetraTransforms.push_back(transform);
+				}
+			}
 		}
 
-		objectIDs[i] = currentManagedIndex;
-	}
-
-	instanceIDs->extendedData = objectIDs;
-	instanceIDs->updateBuffers();
-	geometries.push_back(faces);
-
-	geometries.push_back(surface);
-
-	setupPasses();
+		tetrahedralizationReady = true;
+	});
+	t.detach();
 }
 
 void TetrahedralizationContext::setupGeometries(void)
 {
-	refMan = new ReferenceManager();
-}
-
-void TetrahedralizationContext::setupPasses(void)
-{
-	// TODO: might want to manage passes as well
-	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("EdgeA"), ShaderProgramPipeline::getPipeline("C"), ShaderProgramPipeline::getPipeline("D") });
-	gP->addRenderableObjects(geometries[0], 0);
-	gP->addRenderableObjects(geometries[4], 0);
-	gP->addRenderableObjects(geometries[1], 1);
-	gP->addRenderableObjects(geometries[2], 2);
-	gP->addRenderableObjects(geometries[3], 3);
-	gP->setupCamera(cameras[0]);
-
 	makeQuad();
-	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[5], 0);
-
-	gP->addNeighbor(lP);
-
-	passRootNode = gP;
+	dirty = true;
 }
 
-void TetrahedralizationContext::initialTetrahedralization(void) {
-	Mesh* totalMesh = volume.totalMesh;
-	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
-		
-	vec3 centroid(0);
-	for (int i = 0; i < positions.size(); i++) {
-		centroid += positions[i];
-	}
-	centroid /= (float)positions.size();
-	int shortestIndex = 0;
-	float shortestDistance = distance(centroid,positions[0]);
+void TetrahedralizationContext::setupPasses(const std::vector<std::string>& gProgramSignatures, const std::vector<std::string>& lProgramSignatures)
+{
+	GraphicsSceneContext::setupPasses(gProgramSignatures, lProgramSignatures);
 
-	for (int i = 0; i < positions.size();i++) {
-		if (distance(positions[i], centroid) < shortestDistance) {
-			shortestDistance = distance(positions[i], centroid);
-			shortestIndex = i;
-		}
-	}
+	auto gP = (GeometryPass*)passRootNode->signatureLookup("GEOMETRYPASS");
+	gP->addRenderableObjects(geometries["SURFACE"], "A");
+	gP->addRenderableObjects(geometries["POINTS"], "C");
 
-	Geometry::Vertex * seed = vertices[0];
-	Geometry::Vertex * nearest = vertices[1];
-
-#pragma region first_halfedge
-	vec3 posSeed  = positions[seed->externalIndex];
-	vec3 posNearest = positions[nearest->externalIndex];
-
-	shortestDistance = -1;
-	// first first nearest neighbour;
-
-	for (int i = 0; i < vertices.size();i++) {
-		if (i!= seed->externalIndex) {
-			Geometry::Vertex* nextVert = vertices[i];
-			const vec3 & pos = positions[nextVert->externalIndex];
-			float distance = glm::distance(posSeed, pos);
-
-			if (distance < shortestDistance || shortestDistance == -1) {
-				shortestDistance = distance;
-				posNearest = pos;
-				nearest = nextVert;
-			}
-		}
-	}
-#pragma endregion
-
-#pragma region first_facet
-
-	Geometry::Vertex* a = seed;
-	Geometry::Vertex* b = nearest;
-	Geometry::Vertex* c = vertices[2];
-
-	HalfEdge* HEab = new HalfEdge(seed, nearest);
-	HalfEdge* HEbc;
-	HalfEdge* HEca;
-
-	shortestDistance = HalfEdgeUtils::distanceToHalfEdge(positions, *c, *HEab);
-
-	for (int i = 0; i < vertices.size();i++) 
-	{
-
-		Geometry::Vertex & nextVert = *vertices[i];
-		if (!HalfEdgeUtils::containsVertex(nextVert, *HEab)) {
-			float distance = HalfEdgeUtils::distanceToHalfEdge(positions, nextVert, *HEab);
-			if (distance == -1 || distance < shortestDistance)
-			{
-				shortestDistance = distance;
-				c = &nextVert;
-			}
-		}
-	}
-
-	HEbc = new HalfEdge(b, c);
-	HEca = new HalfEdge(c, a);
-
-	vector<HalfEdge*> HEchain = { HEab,HEbc,HEca };
-	
-	HalfEdgeUtils::connectHalfEdges(HEchain);
-	Facet * facet = new Facet(HEab);
-
-#pragma endregion
-
-#pragma region first_tetrahedron
-
-
-	Geometry::Vertex* finalVertex = vertices[3];
-	
-	shortestDistance = HalfEdgeUtils::distanceToFacet(positions, *finalVertex, *facet);
-
-	for (int i = 0; i < vertices.size();i++) {
-		Geometry::Vertex& nextVertex = *vertices[i];
-
-		if (!HalfEdgeUtils::containsVertex(nextVertex, *facet) && HalfEdgeUtils::getFacetPointVolume(facet,&nextVertex,positions) > MIN_VOLUME) {
-			float distance = HalfEdgeUtils::distanceToFacet(positions, nextVertex, *facet);
-			if (distance < shortestDistance) {
-				shortestDistance = distance;
-				finalVertex = &nextVertex;
-			}
-		}
-	}
-	Mesh* mesh = HalfEdgeUtils::constructTetrahedron(*finalVertex, *facet,vertices,positions);
-	firstOrientation = mesh->isOutsideOrientated;
-	for (int i = 0; i < mesh->vertices.size();i++) {
-		usedVertices[mesh->vertices[i]->externalIndex] = true;
-		usedVertexCount[mesh->vertices[i]->externalIndex]++;
-
-	}
-#pragma endregion
-
-	openFacets.insert(openFacets.begin(), mesh->facets.begin(), mesh->facets.end());
-	HalfEdgeUtils::addMeshToVolume(mesh, &volume);
-	
-	std::cout << "SEED Tetra: ";
-	HalfEdgeUtils::printMesh(mesh);
-	std::cout<< std::endl;
-
-
-
-	// partition data
-	vector<int> firstPartition;
-	firstPartition.resize(vertices.size());
-	for (int i = 0; i < vertices.size();i++) {
-		firstPartition[i] = i;
-	}
-
-
-	for (int i = 0; i < mesh->facets.size();i++) {
-		partitions.push_back(HalfEdgeUtils::makeFacetPartition(mesh->facets[i], positions, firstPartition));
-	}
-
-}
-
-bool TetrahedralizationContext::addNextTetra(bool checkifUsed) {
-	Mesh* totalMesh = volume.totalMesh;
-
-	vector<Geometry::Vertex*> &vertices = totalMesh->vertices;
-
-	Geometry::Vertex* closest = vertices[0];
-	Facet* facet = openFacets[0];
-	int facetIndex = 0;
-	float shortestDistance = -1;
-	Mesh* m = nullptr;
-	float bestVol = -1;
-#pragma omp paralllel for
-	for (int i = 0; i < openFacets.size();i++) {
-
-		Geometry::Facet* testFacet = openFacets[i];
-		vector<int> &facetPartition = partitions[testFacet->externalIndex];
-
-		for (int j = 0; j < facetPartition.size();j++) {
-			int vertexIndex = facetPartition[j];
-			Geometry::Vertex* vertex = totalMesh->vertices[vertexIndex];
-			if ((!usedVertices[vertex->externalIndex] ||!checkifUsed) && usedVertexCount[vertex->externalIndex] <= MAX_VERTEX_USE) {
-
-				float vol = HalfEdgeUtils::getFacetPointVolume(testFacet, vertex, positions);
-				
-				if (HalfEdgeUtils::facetPointsTo(*testFacet, *vertex, positions) && vol > MIN_VOLUME) {
-
-					float distance = HalfEdgeUtils::distanceToFacet(positions, *vertex, *testFacet);
-					if (distance < shortestDistance || shortestDistance == -1) {
-						
-	#pragma omp critical
-						{
-
-							vector<Geometry::Vertex*> facetVertices = HalfEdgeUtils::getFacetVertices(facet);
-
-							shortestDistance = distance;
-							closest = vertex;
-							facet = testFacet;
-							facetIndex = i;
-							bestVol = vol;
-						}
-					}
-
-				}
-			}
-			//else if(!checkifUsed){}
-		}
-
-	}
-
-	if (shortestDistance == -1) {
-	//	std::cout << "Could not add another face"<<std::endl;
-		return true;
-	}
-	else {
-		
-		Facet* twinFacet = HalfEdgeUtils::constructTwinFacet(facet);
-		Mesh* m = HalfEdgeUtils::constructTetrahedron(*closest, *twinFacet,totalMesh->vertices, positions);
-
-		for (int i = 0; i < m->vertices.size();i++) {
-			usedVertices[m->vertices[i]->externalIndex] = true;
-			usedVertexCount[m->vertices[i]->externalIndex]++;
-		}
-		if (m->isOutsideOrientated == firstOrientation) {
-			HalfEdgeUtils::addMeshToVolume(m, &volume);
-		
-
-
-			for (int i = 0; i < m->facets.size();i++) {
-				Facet* f = m->facets[i];
-				if (f != twinFacet) {
-					openFacets.push_back(f);
-				}
-				partitions.push_back(HalfEdgeUtils::makeFacetPartition(f, positions, partitions[facet->externalIndex]));
-
-			
-				if (partitions[f->externalIndex].size() == 0 && f->twin == nullptr) {
-					f->twin = dummyFacet;
-				}
-
-			}
-	
-			if (m != nullptr && !checkifUsed) {
-
-				vector<Facet*>::iterator ite = remove_if(openFacets.begin(), openFacets.end(), [&](Facet* f)->bool {
-					return (f->twin != nullptr);
-				});
-				openFacets.erase(ite, openFacets.end());
-
-				return false;
-			}
-			return false;
-		}
-		else return false;
-
-	}
+	((LightPass*)((GeometryPass*)passRootNode)->signatureLookup("LIGHTPASS"))->addRenderableObjects(geometries["DISPLAYQUAD"], "B");
 }
 
 void TetrahedralizationContext::updateGeometries()
 {
-	glFinish();
+	auto meshObject = new Tetrahedron();
+	auto instancedTetra = new MatrixInstancedMeshObject<mat4, float>(meshObject, tetraTransforms, "TETRAINSTANCES", 1);
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, instancedTetra, tetraTransforms.size(), "INSTANCEID", 1);
 
-	((GeometryPass*)passRootNode)->clearRenderableObjects(0);
-	delete geometries[0];
-	geometries[0] = HalfEdgeUtils::getRenderableVolumesFromMesh(&volume, positions, refMan);
-	
-	if (controller->volumeRendering)
+	vector<GLbyte> selectedC;
+
+	for (int i = 0; i < tetraTransforms.size(); ++i)
 	{
-		((GeometryPass*)passRootNode)->addRenderableObjects(geometries[0], 0);
+		selectedC.push_back(1);
 	}
 
-	if (controller->surfaceRendering)
-	{
-		((GeometryPass*)passRootNode)->addRenderableObjects(geometries[4], 0);
-	}
+	auto selectable = new Graphics::InstancedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION", 1);
 
-	((GeometryPass*)passRootNode)->clearRenderableObjects(1);
-	delete geometries[1];
-	geometries[1] = HalfEdgeUtils::getRenderableEdgesFromMesh(&volume, positions, refMan);
+	vector<mat4> parentTransforms;
 
-	if (controller->edgeRendering)
-	{
-		((GeometryPass*)passRootNode)->addRenderableObjects(geometries[1], 1);
-	}
+	parentTransforms.push_back(scale(mat4(1.0f), vec3(1.0f)));
 
-	((GeometryPass*)passRootNode)->clearRenderableObjects(3);
-	delete geometries[3];
-	geometries[3] = HalfEdgeUtils::getRenderableFacetsFromMesh(&volume, positions);
+	geometries["VOLUMES"] = new Graphics::MatrixInstancedMeshObject<mat4, float>(selectable, parentTransforms, "TRANSFORM", tetraTransforms.size());
 
-	if (controller->facetRendering)
-	{
-		((GeometryPass*)passRootNode)->addRenderableObjects(geometries[3], 3);
-	}
-
-	glFinish();
-
+	auto gP = (GeometryPass*)passRootNode->signatureLookup("GEOMETRYPASS");
+	gP->addRenderableObjects(geometries["VOLUMES"], "D");
 	dirty = true;
 }
 
@@ -404,7 +179,8 @@ void TetrahedralizationContext::update(void)
 		tetrahedralizationReady = false;
 	}
 
-	if (length(cameras[0]->velocity) > 0) {
+	if (length(cameras[0]->velocity) > 0)
+	{
 		FPSCameraControls::moveCamera(cameras[0], cameras[0]->velocity);
 		dirty = true;
 	}

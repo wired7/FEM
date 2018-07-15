@@ -2,34 +2,43 @@
 
 #include "GraphicsObject.h"
 
-class Quad : public Graphics::MeshObject
+namespace Graphics
 {
-public:
-	Quad();
-};
+	class Triangle : public Graphics::MeshObject
+	{
+	public:
+		Triangle();
+	};
 
-class Cylinder : public Graphics::MeshObject
-{
-public:
-	Cylinder(int resolution);
-};
+	class Quad : public Graphics::MeshObject
+	{
+	public:
+		Quad();
+	};
 
-class Polyhedron : public Graphics::MeshObject
-{
-public:
-	int resolution;
-	vec3 radii;
-	Polyhedron(int resolution, vec3 pos, vec3 radii);
-};
+	class Cylinder : public Graphics::MeshObject
+	{
+	public:
+		Cylinder(int resolution);
+	};
 
-class Tetrahedron : public Graphics::MeshObject
-{
-public:
-	Tetrahedron();
-};
+	class Polyhedron : public Graphics::MeshObject
+	{
+	public:
+		int resolution;
+		vec3 radii;
+		Polyhedron(int resolution, vec3 pos, vec3 radii);
+	};
 
-class Arrow : public Graphics::MeshObject
-{
-public:
-	Arrow();
-};
+	class Tetrahedron : public Graphics::MeshObject
+	{
+	public:
+		Tetrahedron();
+	};
+
+	class Arrow : public Graphics::MeshObject
+	{
+	public:
+		Arrow();
+	};
+}

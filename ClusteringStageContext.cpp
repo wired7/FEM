@@ -3,125 +3,42 @@
 #include "ClusteringStageController.h"
 
 #include "HalfSimplices.h"
-#include "HalfEdgeUtils.h"
-
 #include "FPSCameraControls.h"
 #include "WindowContext.h"
 
 
-ClusteringStageContext::ClusteringStageContext(Graphics::DecoratedGraphicsObject* volume, Geometry::VolumetricMesh* mesh, FPSCamera* cam)
+ClusteringStageContext::ClusteringStageContext(Graphics::DecoratedGraphicsObject* mesh, Geometry::Manifold3<GLuint>* manifold, FPSCamera* cam)
 {
-	dirty = true;
 	cameras.push_back(cam);
-
+	geometries["VOLUMES"] = mesh;
 	setupGeometries();
 
+	//////////////////////////////////////////////////////////////////////////////////////////////////
 	clContext = new OpenCLContext(WindowContext::window);
 	volumeUpdateKernel = new CLKernel("volume_update_kernel.cl", "update_volume", clContext);
-
-	vector<int> offsets = { 0 };
-	vector<int> sizes;
-	vector<float> renderable;
-
-	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)volume->signatureLookup("INSTANCEID"));
-	auto objectIDs = instanceIDs->extendedData;
-
-	int currentIndex = objectIDs[0];
-	int currentManagedIndex = refMan->assignNewGUID();
-	int sizeCount = 0;
-
-	for (int i = 0; i < objectIDs.size(); i++)
-	{
-		sizeCount++;
-
-		if (objectIDs[i] != currentIndex)
-		{
-			currentIndex = objectIDs[i];
-			currentManagedIndex = refMan->assignNewGUID();
-			sizes.push_back(sizeCount);
-			sizeCount = 0;
-			offsets.push_back(i);
-		}
-
-		objectIDs[i] = currentManagedIndex;
-		renderable.push_back(1.0f);
-	}
-
-	sizes.push_back(sizeCount);
-
-	instanceIDs->extendedData = objectIDs;
-	instanceIDs->updateBuffers();
 
 	vector<float> cameraPos = { 0, 0, 0 };
 	vector<float> cameraDir = { 1, 0, 0 };
 	vector<float> distance = { 3.0f };
-	offsetBuffer = new CLBuffer<int>(clContext, offsets, CL_MEM_READ_WRITE);
-	sizeBuffer = new CLBuffer<int>(clContext, sizes, CL_MEM_READ_WRITE);
 	cameraPosBuffer = new CLBuffer<float>(clContext, cameraPos, CL_MEM_READ_WRITE);
 	cameraDirBuffer = new CLBuffer<float>(clContext, cameraDir, CL_MEM_READ_WRITE);
 	separationDistanceBuffer = new CLBuffer<float>(clContext, distance, CL_MEM_READ_WRITE);
+	transformsBuffer = new CLGLBuffer<mat4>(
+		clContext,
+		geometries["VOLUMES"]->signatureLookup("TETRAINSTANCES")->VBO,
+		CL_MEM_READ_WRITE);
+	renderableBuffer = new CLGLBuffer<float>(clContext, geometries["VOLUMES"]->VBO, CL_MEM_READ_WRITE);
+	renderableBuffer->bufferData.resize(((InstancedMeshObject<float, float>*)geometries["VOLUMES"]->signatureLookup("RENDERABLE"))->extendedData.size());
 
-	offsetBuffer->bindBuffer();
-	sizeBuffer->bindBuffer();
+	auto vertices = (MeshObject*)geometries["VOLUMES"]->signatureLookup("VERTEX");
+	positionsBuffer = new CLGLBuffer<float>(clContext, vertices->VBO);
+	positionsBuffer->bufferData.resize(vertices->vertices.size());
+
 	cameraPosBuffer->bindBuffer();
 	cameraDirBuffer->bindBuffer();
 	separationDistanceBuffer->bindBuffer();
 
-	clFinish(clContext->commandQueues[0]);
-
-	auto renderableData = new ExtendedMeshObject<float, float>(volume, renderable, "RENDERABLE");
-	auto vertices = ((MeshObject*)volume->signatureLookup("VERTEX"));
-
-	glFinish();
-
-	renderableBuffer = new CLGLBuffer<float>(clContext, renderableData->VBO, CL_MEM_READ_WRITE);
-	renderableBuffer->bufferData.resize(renderable.size());
-
-	positionsBuffer = new CLGLBuffer<float>(clContext, vertices->VBO);
-	positionsBuffer->bufferData.resize(vertices->vertices.size());
-
-
-	offsetBuffer->enableBuffer(volumeUpdateKernel, 0);
-	sizeBuffer->enableBuffer(volumeUpdateKernel, 1);
-	renderableBuffer->enableBuffer(volumeUpdateKernel, 2);
-	positionsBuffer->enableBuffer(volumeUpdateKernel, 3);
-	cameraPosBuffer->enableBuffer(volumeUpdateKernel, 4);
-	cameraDirBuffer->enableBuffer(volumeUpdateKernel, 5);
-	separationDistanceBuffer->enableBuffer(volumeUpdateKernel, 6);
-
-	geometries.push_back(renderableData);
-
-	auto bfsOutput = HalfEdgeUtils::BreadthFirstSearch(mesh->meshes[0], 10000);
-
-	int returnedSize = bfsOutput.size();
-
-	auto colorBuffer = ((ExtendedMeshObject<vec4, float>*)renderableData->signatureLookup("COLOR"));
-	auto colors = colorBuffer->extendedData;
-
-	cout << "BFS SIZE " << bfsOutput.size() << endl;
-	int gapSize = 12;
-/*	for (int i = 0; i < bfsOutput.size(); i++)
-	{
-		float color =  1.0f;// ((float)i) / (bfsOutput.size() - 1);
-		for (int j = 0; j < bfsOutput[i].size(); j++)
-		{
-			cout << "AHHHH" << endl;
-			int meshIndex = bfsOutput[i][j]->internalIndex * gapSize;
-			for (int k = 0; k < gapSize; k++)
-			{
-				colors[meshIndex + k][0] += color;
-			}
-		}
-	}*/
-
-	for (int i = 0; i < colors.size(); i++)
-	{
-		colors[i][0] = 1.0f;
-	}
-	cout << colors[0][0] << endl;
-	colorBuffer->updateBuffers();
-
-	setupPasses();
+	setupPasses({ "V1", "V2" }, { "SB" });
 }
 
 
@@ -132,30 +49,76 @@ ClusteringStageContext::~ClusteringStageContext()
 void ClusteringStageContext::setupGeometries(void)
 {
 	refMan = new ReferenceManager();
+	makeQuad();
+
+	auto instanceIDs = ((ExtendedMeshObject<GLuint, GLuint>*)geometries["VOLUMES"]->signatureLookup("INSTANCEID"));
+	auto objectIDs = instanceIDs->extendedData;
+
+	vector<float> renderable;
+	for (int i = 0; i < objectIDs.size(); i++)
+	{
+		renderable.push_back(1.0f);
+	}
+
+	geometries["VOLUMES"] = new InstancedMeshObject<float, float>(geometries["VOLUMES"], renderable, "RENDERABLE", 1);
+	dirty = true;
 }
 
-void ClusteringStageContext::setupPasses(void)
+void ClusteringStageContext::setupPasses(const std::vector<std::string>& gProgramSignatures, const std::vector<std::string>& lProgramSignatures)
 {
-	// TODO: might want to manage passes as well
-	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("V") });
-	gP->addRenderableObjects(geometries[0], 0);
+	std::map<std::string, std::pair<CLKernel*, std::pair<int, int>>> clKMap;
+	clKMap["VOLUMEUPDATE"] = std::make_pair(volumeUpdateKernel, std::make_pair(renderableBuffer->bufferData.size(), 2));
+	CLPass* clP = new CLPass(clKMap);
 
-	gP->setupCamera(cameras[0]);
+	clP->addBuffer(renderableBuffer, "RENDERABLE", "VOLUMEUPDATE", 0, true);
+	clP->addBuffer(positionsBuffer, "POSITIONS", "VOLUMEUPDATE", 1, true);
+	clP->addBuffer(cameraPosBuffer, "CAMERAPOS", "VOLUMEUPDATE", 2);
+	clP->addBuffer(cameraDirBuffer, "CAMERADIR", "VOLUMEUPDATE", 3);
+	clP->addBuffer(separationDistanceBuffer, "SEPARATIONDISTANCE", "VOLUMEUPDATE", 4);
+	clP->addBuffer(transformsBuffer, "TRANSFORMS", "VOLUMEUPDATE", 5, true);
 
-	makeQuad();
-	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[1], 0);
+	map<string, ShaderProgramPipeline*> gPrograms1;
+	gPrograms1["V1"] = ShaderProgramPipeline::getPipeline("V1");
 
-	gP->addNeighbor(lP);
+	GeometryPass* gP1 = new GeometryPass(gPrograms1, "GEOMETRYPASS0", nullptr, 1, 1, false);
+	gP1->setupCamera(cameras[0]);
 
-	passRootNode = gP;
+	clP->addNeighbor(gP1);
+
+	map<string, ShaderProgramPipeline*> gPrograms2;
+	gPrograms2["V2"] = ShaderProgramPipeline::getPipeline("V2");
+
+	GeometryPass* gP2 = new GeometryPass(gPrograms2, "GEOMETRYPASS1");
+	gP2->setupCamera(cameras[0]);
+
+	clP->addNeighbor(gP2);
+
+	map<string, ShaderProgramPipeline*> lPrograms;
+
+	for (const auto& programSignature : lProgramSignatures)
+	{
+		lPrograms[programSignature] = ShaderProgramPipeline::getPipeline(programSignature);
+	}
+
+	LightPass* lP = new LightPass(lPrograms, true);
+
+	gP1->addNeighbor(lP);
+	gP2->addNeighbor(lP);
+
+	passRootNode = clP;
+
+	gP1->addRenderableObjects(geometries["VOLUMES"], "V1");
+	gP2->addRenderableObjects(geometries["VOLUMES"], "V2");
+	((LightPass*)((GeometryPass*)passRootNode)->signatureLookup("LIGHTPASS"))->addRenderableObjects(geometries["DISPLAYQUAD"], "SB");
+
+	gP1->setupVec4f(color1, "inputColor");
+	gP2->setupVec4f(color2, "inputColor");
 }
 
 void ClusteringStageContext::update(void)
 {
-	GraphicsSceneContext<ClusteringStageController, FPSCamera, ClusteringStageContext>::update();
-
-	if (length(cameras[0]->velocity) > 0) {
+	//	if (length(cameras[0]->velocity) > 0)
+	{
 		FPSCameraControls::moveCamera(cameras[0], cameras[0]->velocity);
 
 		for (int i = 0; i < 3; i++)
@@ -174,24 +137,7 @@ void ClusteringStageContext::update(void)
 		updateDistanceBuffer = false;
 	}
 
-	glFinish();
-
-	clEnqueueAcquireGLObjects(clContext->commandQueues[0], 1, &renderableBuffer->bufferPointer, 0, 0, 0);
-	clEnqueueAcquireGLObjects(clContext->commandQueues[0], 1, &positionsBuffer->bufferPointer, 0, 0, 0);
-
-	volumeUpdateKernel->execute(16 * (offsetBuffer->bufferData.size() / 8), 8);
-
-	clFinish(clContext->commandQueues[0]);
-
-	clEnqueueReleaseGLObjects(clContext->commandQueues[0], 1, &positionsBuffer->bufferPointer, 0, 0, 0);
-	clEnqueueReleaseGLObjects(clContext->commandQueues[0], 1, &renderableBuffer->bufferPointer, 0, 0, 0);
-
-	clFinish(clContext->commandQueues[0]);
+	GraphicsSceneContext<ClusteringStageController, FPSCamera, ClusteringStageContext>::update();
 
 	dirty = true;
-}
-
-void ClusteringStageContext::computeRenderableBuffer(DecoratedGraphicsObject* volume)
-{
-
 }

@@ -54,12 +54,13 @@ template<class ControllerType, class CameraType, class ContextType> class Graphi
 protected:
 	virtual void setupCameras(void) = 0;
 	virtual void setupGeometries(void) = 0;
-	virtual void setupPasses(void) = 0;
+	virtual void setupPasses(const std::vector<std::string>& gProgramSignatures,
+							 const std::vector<std::string>& lProgramSignatures);
 	virtual void makeQuad(void);
 public:
 	bool dirty = true;
 	Pass* passRootNode;
-	vector<Graphics::DecoratedGraphicsObject*> geometries;
+	map<string, Graphics::DecoratedGraphicsObject*> geometries;
 	GraphicsSceneContext() {};
 	~GraphicsSceneContext() {};
 	virtual void update(void);
@@ -67,7 +68,37 @@ public:
 
 #pragma region GraphicsSceneContextTemplate
 
-template<class ControllerType, class CameraType, class ContextType> void GraphicsSceneContext<ControllerType, CameraType, ContextType>::makeQuad(void)
+template<class ControllerType, class CameraType, class ContextType>
+void GraphicsSceneContext<ControllerType, CameraType, ContextType>::setupPasses(const std::vector<std::string>& gProgramSignatures,
+																				const std::vector<std::string>& lProgramSignatures)
+{
+	// TODO: might want to manage passes as well
+	map<string, ShaderProgramPipeline*> gPrograms;
+
+	for (const auto& programSignature : gProgramSignatures)
+	{
+		gPrograms[programSignature] = ShaderProgramPipeline::getPipeline(programSignature);
+	}
+
+	GeometryPass* gP = new GeometryPass(gPrograms, "GEOMETRYPASS", nullptr, 1);
+	gP->setupCamera(cameras[0]);
+
+	map<string, ShaderProgramPipeline*> lPrograms;
+
+	for (const auto& programSignature : lProgramSignatures)
+	{
+		lPrograms[programSignature] = ShaderProgramPipeline::getPipeline(programSignature);
+	}
+
+	LightPass* lP = new LightPass(lPrograms, true);
+
+	gP->addNeighbor(lP);
+
+	passRootNode = gP;
+}
+
+template<class ControllerType, class CameraType, class ContextType>
+void GraphicsSceneContext<ControllerType, CameraType, ContextType>::makeQuad(void)
 {
 	// TODO : not a big deal, but primitive vertices should only exist once on the GPU per program and transformed accordingly using Model matrix or instancing
 	auto displayQuad = new Quad();
@@ -80,10 +111,11 @@ template<class ControllerType, class CameraType, class ContextType> void Graphic
 
 	auto displayQuadUV = new Graphics::ExtendedMeshObject<vec2, float>(displayQuad, uvMap, "TEXTURECOORD");
 
-	geometries.push_back(displayQuadUV);
+	geometries["DISPLAYQUAD"] = displayQuadUV;
 }
 
-template<class ControllerType, class CameraType, class ContextType> void GraphicsSceneContext<ControllerType, CameraType, ContextType>::update(void)
+template<class ControllerType, class CameraType, class ContextType>
+void GraphicsSceneContext<ControllerType, CameraType, ContextType>::update(void)
 {
 	if (dirty)
 	{

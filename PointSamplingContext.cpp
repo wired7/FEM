@@ -1,21 +1,25 @@
 #pragma once
 #include "PointSamplingContext.h"
-#include "ImplicitGeometry.h"
+#include "DiscreteGeometryUtils.h"
 #include "FPSCameraControls.h"
 #include <thread>
+#include <random>
 
 using namespace std;
 using namespace Graphics;
 
-#define NUM_POINTS 300
+#define NUM_POINTS 100
 #define POINT_SCALE 0.05f
-PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPSCamera* cam)
+
+PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPSCamera* cam, ReferenceManager* refMan) : refMan(refMan)
 {
 	cameras.push_back(cam);
-	geometries.push_back(surface);
-	setupPasses();
+	geometries["SURFACE"] = surface;
+	makeQuad();
+	setupPasses({ "A", "C" }, {"B"});
 
-	thread t([&] {
+	thread t([&]
+	{
 		points = sampleSurface(NUM_POINTS, surface);
 		pointsReady = true;
 	});
@@ -24,7 +28,7 @@ PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPS
 
 void PointSamplingContext::setupGeometries(void)
 {
-	((GeometryPass*)passRootNode)->clearRenderableObjects(1);
+	((GeometryPass*)passRootNode)->clearRenderableObjects("C");
 
 	auto m = new Polyhedron(10, vec3(), vec3(1.0f));
 
@@ -32,19 +36,12 @@ void PointSamplingContext::setupGeometries(void)
 
 	for (int i = 0; i < points.size(); i++)
 	{
-		transform.push_back(translate(mat4(1.0f), points[i]) * scale(mat4(1.0f), glm::vec3(1,1,1)*POINT_SCALE));
+		transform.push_back(translate(mat4(1.0f), points[i]) * scale(mat4(1.0f), glm::vec3(1,1,1) * POINT_SCALE));
 	}
 
 	auto g = new MatrixInstancedMeshObject<mat4, float>(m, transform, "OFFSET");
 
-	vector<GLuint> instanceID;
-
-	for (int i = 1; i <= transform.size(); i++)
-	{
-		instanceID.push_back(i);
-	}
-
-	auto pickable = new InstancedMeshObject<GLuint, GLuint>(g, instanceID, "INSTANCEID", 1);
+	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, g, points.size(), "INSTANCEID", 1);
 
 	vector<GLbyte> selected;
 
@@ -55,33 +52,26 @@ void PointSamplingContext::setupGeometries(void)
 
 	auto selectable = new InstancedMeshObject<GLbyte, GLbyte>(pickable, selected, "SELECTION", 1);
 
-	geometries.push_back(selectable);
+	geometries["VERTICES"] = selectable;
 
-	((GeometryPass*)passRootNode)->addRenderableObjects(selectable, 1);
+	((GeometryPass*)passRootNode)->addRenderableObjects(selectable, "C");
 	dirty = true;
 }
 
-void PointSamplingContext::setupPasses(void)
+void PointSamplingContext::setupPasses(const std::vector<std::string>& gProgramSignatures, const std::vector<std::string>& lProgramSignatures)
 {
-	// TODO: might want to manage passes as well
-	GeometryPass* gP = new GeometryPass({ ShaderProgramPipeline::getPipeline("A"), ShaderProgramPipeline::getPipeline("C") });
-	gP->addRenderableObjects(geometries[0], 0);
-	gP->setupCamera(cameras[0]);
+	GraphicsSceneContext::setupPasses(gProgramSignatures, lProgramSignatures);
 
-	makeQuad();
-	LightPass* lP = new LightPass({ ShaderProgramPipeline::getPipeline("B") }, true);
-	lP->addRenderableObjects(geometries[1], 0);
-
-	gP->addNeighbor(lP);
-
-	passRootNode = gP;
+	((GeometryPass*)passRootNode->signatureLookup("GEOMETRYPASS"))->addRenderableObjects(geometries["SURFACE"], "A");
+	((LightPass*)((GeometryPass*)passRootNode)->signatureLookup("LIGHTPASS"))->addRenderableObjects(geometries["DISPLAYQUAD"], "B");
 }
 
 void PointSamplingContext::update(void)
 {
 	GraphicsSceneContext<PointSamplingController, FPSCamera, PointSamplingContext>::update();
 
-	if (length(cameras[0]->velocity) > 0) {
+	if (length(cameras[0]->velocity) > 0)
+	{
 		FPSCameraControls::moveCamera(cameras[0], cameras[0]->velocity);
 		dirty = true;
 	}
@@ -96,84 +86,33 @@ void PointSamplingContext::update(void)
 
 vector<vec3> PointSamplingContext::sampleSurface(int sampleSize, DecoratedGraphicsObject* object)
 {
+	auto boundingBox = DiscreteGeometryUtils::getBoundingBox(object);
+	vec3 boundSize = boundingBox.second - boundingBox.first;
+	vec3 center = (boundingBox.second + boundingBox.first) / 2.0f;
+
+	auto triangles = DiscreteGeometryUtils::getTrianglesFromMesh(object);
 	vector<vec3> samples;
-
-	auto vertexBuffer = (MeshObject*)object->signatureLookup("VERTEX");
-	auto vertices = vertexBuffer->vertices;
-	auto indices = vertexBuffer->indices;
-	auto transformBuffer = (MatrixInstancedMeshObject<mat4, float>*)object->signatureLookup("TRANSFORM");
-	auto transforms = transformBuffer->extendedData;
-
-	vector<Triangle> triangles;
-	vec3 dir(1, 0, 0);
-	vec3 minN(INFINITY);
-	vec3 maxN(-INFINITY);
-
-	for (int i = 0; i < transforms.size(); i++)
+	static thread_local std::mt19937 generator;
+	std::uniform_real_distribution<double> distribution(-0.5, 0.5);
+	while (samples.size() < NUM_POINTS)
 	{
-		mat4 t = transforms[i];
-		vector<vec3> transformedPts;
+		sampleSize = NUM_POINTS - samples.size();
 #pragma omp parallel for schedule(dynamic, 10)
-		for (int j = 0; j < vertices.size(); j++)
+		for (int i = 0; i < sampleSize; ++i)
 		{
-			transformedPts.push_back(vec3(t * vec4(vertices[j].position, 1)));
+			vec3 point(distribution(generator), distribution(generator), distribution(generator));
+			point *= boundSize;
+			point += center;
 
-			for (int k = 0; k < 3; k++)
+			if (DiscreteGeometryUtils::isPointInsideMesh(point, triangles))
 			{
-				if (transformedPts[transformedPts.size() - 1][k] < minN[k])
-				{
-					minN[k] = transformedPts[transformedPts.size() - 1][k];
-				}
-				else if (transformedPts[transformedPts.size() - 1][k] > maxN[k])
-				{
-					maxN[k] = transformedPts[transformedPts.size() - 1][k];
-				}
-			}
-		}
-
-#pragma omp parallel for schedule(dynamic, 10)
-		for (int j = 0; j < indices.size(); j += 3)
-		{
-			triangles.push_back(Triangle(transformedPts[indices[j]], transformedPts[indices[j + 1]], transformedPts[indices[j + 2]]));
-		}
-	}
-
-	vec3 boundSize = maxN - minN;
-	vec3 center = (maxN + minN) / 2.0f;
-
-#pragma omp parallel for schedule(dynamic, 500)
-	for (int i = 0; i < sampleSize;)
-	{
-		vec3 point(((float)rand()) / RAND_MAX - 0.5f, ((float)rand()) / RAND_MAX - 0.5f, ((float)rand()) / RAND_MAX - 0.5f);
-		point *= boundSize;
-		point += center;
-
-		int sum = 0;
-		for (int j = 0; j < triangles.size(); j++)
-		{
-			if (triangles[j].intersection(point, dir) > 0.0f)
-			{
-				sum++;
-			}
-		}
-
-		if (sum % 2 == 1)
-		{
 #pragma omp critical
-			{
-				samples.push_back(point);
-				i++;
+				{
+					samples.push_back(point);
+				}
 			}
 		}
 	}
-	//for (int i = 0; i < transforms.size(); i++)
-	//{
-	//	mat4 t = transforms[i];
-	//	for (int j = 0; j < vertices.size();j+=50) {
-	//		samples.push_back(vec3(t * vec4(vertices[j].position, 1)));
-	//	}
-	//}
-
 
 	return samples;
 }

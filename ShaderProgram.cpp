@@ -90,7 +90,8 @@ void ShaderProgram::bindShaderProgram(void)
 
 	glGetProgramiv(program, GL_ATTACHED_SHADERS, &Result);
 	glGetProgramiv(program, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if (InfoLogLength > 0) {
+	if (InfoLogLength > 0)
+	{
 		std::vector<char> errorMessage(InfoLogLength + 1);
 		glGetProgramInfoLog(program, InfoLogLength, NULL, &errorMessage[0]);
 		printf("%s\n", &errorMessage[0]);
@@ -133,6 +134,21 @@ FragmentShaderProgram::FragmentShaderProgram(string filePath, vector<tuple<const
 
 GeometryShaderProgram::GeometryShaderProgram(string filePath, vector<tuple<const GLchar*, UniformType>> uIDs, string signature) :
 	ShaderProgram(filePath, uIDs, signature, GL_GEOMETRY_SHADER, GL_GEOMETRY_SHADER_BIT)
+{
+
+}
+
+void GeometryShaderProgram::setGeometryInputType(GLuint type)
+{
+
+}
+
+void GeometryShaderProgram::setGeometryOutputType(GLuint type)
+{
+
+}
+
+void GeometryShaderProgram::setGeometryOutputVertexCount(GLuint count)
 {
 
 }

@@ -21,14 +21,14 @@ void PointSamplingController::kC(GLFWwindow* window, int key, int scancode, int 
 {
 	if (key == GLFW_KEY_R && action == GLFW_PRESS)
 	{
-		auto geo0 = controller->context->geometries[0];
-		auto geo2 = controller->context->geometries[2];
+		auto geo0 = controller->context->geometries["SURFACE"];
+		auto geo2 = controller->context->geometries["POINTS"];
 		auto pass = (GeometryPass*)controller->context->passRootNode;
 
-		pass->clearRenderableObjects(0);
+		pass->clearRenderableObjects("A");
 		if (controller->surfaceRendering)
 		{
-			pass->addRenderableObjects(geo0, 0);
+			pass->addRenderableObjects(geo0, "A");
 		}
 
 		controller->surfaceRendering ^= true;
@@ -39,12 +39,13 @@ void PointSamplingController::kC(GLFWwindow* window, int key, int scancode, int 
 		{
 			if (controller->context->nextContext == nullptr)
 			{
-				auto geo = controller->context->geometries[0];
-				auto geoPoints = controller->context->geometries[2];
+				auto geo = controller->context->geometries["SURFACE"];
+				auto geoPoints = controller->context->geometries["VERTICES"];
 				auto &points = controller->context->points;
 				auto cam = controller->context->cameras[0];
+				auto refMan = controller->context->refMan;
 
-				controller->context->nextContext = new TetrahedralizationContext(geo, geoPoints, points, cam);
+				controller->context->nextContext = new TetrahedralizationContext(geo, geoPoints, points, cam, refMan);
 				((TetrahedralizationContext*)controller->context->nextContext)->prevContext = controller->context;
 			}
 

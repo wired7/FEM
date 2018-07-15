@@ -13,20 +13,21 @@ protected:
 	ReferenceManager* refMan;
 	OpenCLContext* clContext;
 	CLKernel* volumeUpdateKernel;
-	CLBuffer<int>* offsetBuffer;
-	CLBuffer<int>* sizeBuffer;
 	CLBuffer<float>* cameraPosBuffer;
 	CLBuffer<float>* cameraDirBuffer;
 	CLGLBuffer<float>* renderableBuffer;
 	CLGLBuffer<float>* positionsBuffer;
-	virtual void setupCameras(void) {};
-	virtual void setupGeometries(void);
-	virtual void setupPasses(void);
-	virtual void update(void);
-	virtual void computeRenderableBuffer(DecoratedGraphicsObject* volume);
+	CLGLBuffer<mat4>* transformsBuffer;
+	vec4 color1 = vec4(0, 0, 1, 1);
+	vec4 color2 = vec4(1, 1, 0, 1);
+	void setupCameras(void) override {};
+	void setupGeometries(void) override;
+	void setupPasses(const std::vector<std::string>& programSignatures = {}, const std::vector<std::string>& lProgramSignatures = {}) override;
+	void update(void) override;
+
 public:
 	CLBuffer<float>* separationDistanceBuffer;
 	bool updateDistanceBuffer;
-	ClusteringStageContext(Graphics::DecoratedGraphicsObject* volume, Geometry::VolumetricMesh* mesh, FPSCamera* cam);
+	ClusteringStageContext(Graphics::DecoratedGraphicsObject* volume, Geometry::Manifold3<GLuint>* manifold, FPSCamera* cam);
 	~ClusteringStageContext();
 };

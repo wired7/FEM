@@ -44,17 +44,18 @@ void DecoratedFrameBuffer::drawBuffers(void)
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	vector<GLenum> buff;
 	DecoratedFrameBuffer* currentBuffer = this;
-	do {
+	do
+	{
 		buff.insert(buff.begin(), GL_COLOR_ATTACHMENT0 + currentBuffer->attachmentNumber);
 		currentBuffer = currentBuffer->child;
 	} while (currentBuffer != nullptr);
 
 	glDrawBuffers(buff.size(), &(buff[0]));
+
 }
 
 int DecoratedFrameBuffer::bindTexturesForPass(int textureOffset)
 {
-	vector<int> indices;
 	DecoratedFrameBuffer* currentBuffer = this;
 	int count = textureOffset;
 	for (; currentBuffer != nullptr; count++)
@@ -173,7 +174,7 @@ void PickingBuffer::bindTexture()
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentNumber, GL_TEXTURE_2D, texture, 0);
 }
 
-GLuint* PickingBuffer::getValues(int x, int y)
+GLuint* PickingBuffer::getValues(int x, int y, int sampleW, int sampleH)
 {
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
 	glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentNumber);
@@ -181,7 +182,7 @@ GLuint* PickingBuffer::getValues(int x, int y)
 
 	GLuint* data = new GLuint[4];
 
-	glReadPixels(x, y, 1, 1, GL_RGBA_INTEGER, GL_UNSIGNED_INT, data);
+	glReadPixels(x, y, sampleW, sampleH, GL_RGBA_INTEGER, GL_UNSIGNED_INT, data);
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 

@@ -78,9 +78,6 @@
     <ClCompile Include="TetrahedralizationController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HalfEdgeUtils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="LinearAlgebraUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -97,6 +94,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OpenCLContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HalfSimplexRenderingUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DiscreteGeometryUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -167,9 +170,6 @@
     <ClInclude Include="TetrahedralizationController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HalfEdgeUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="LinearAlgebraUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -185,10 +185,16 @@
     <ClInclude Include="ClusteringStageController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Downloads\TetrahedralizationContext.h">
+    <ClInclude Include="OpenCLContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OpenCLContext.h">
+    <ClInclude Include="KdTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HalfSimplexRenderingUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DiscreteGeometryUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -7,7 +7,7 @@ using namespace std;
 
 class ShaderProgramPipeline;
 
-enum UniformType {ONEUI, MATRIX4FV, TEXTURE};
+enum UniformType {ONEUI, TWOUI, MATRIX4FV, VECTOR4FV, TEXTURE};
 
 class ShaderProgram
 {
@@ -75,4 +75,7 @@ class GeometryShaderProgram : public ShaderProgram
 public:
 	GeometryShaderProgram(string filePath, vector<tuple<const GLchar*, UniformType>> uIDs, string signature);
 	~GeometryShaderProgram() {};
+	void setGeometryInputType(GLuint type);
+	void setGeometryOutputType(GLuint type);
+	void setGeometryOutputVertexCount(GLuint count);
 };

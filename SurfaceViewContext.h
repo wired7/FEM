@@ -10,16 +10,16 @@ class SurfaceViewController;
 class SurfaceViewContext : public GraphicsSceneContext<SurfaceViewController, FPSCamera, SurfaceViewContext>
 {
 private:
-	ReferenceManager* refMan;
-	void setupRenderableHalfEdges(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions, const vector<mat4>& transform);
+	void setupRenderableHalfEdges(Geometry::Manifold2<GLuint>* manifold, const vector<vec3>& positions, const vector<mat4>& transform);
 	void setupRenderableVertices(const vector<vec3>& positions, const vector<mat4>& transform);
-	void setupRenderableFacets(Geometry::VolumetricMesh* hSimp, const vector<vec3>& positions, const vector<mat4>& transform);
+	void setupRenderableFacets(Geometry::Manifold2<GLuint>* manifold, const vector<vec3>& positions, const vector<mat4>& transform);
 protected:
-	virtual void setupCameras(void);
-	virtual void setupGeometries(void);
-	virtual void setupPasses(void);
-	virtual void update(void);
+	void setupCameras(void) override;
+	void setupGeometries(void) override;
+	void setupPasses(const std::vector<std::string>& programSignatures = {}, const std::vector<std::string>& lProgramSignatures = {}) override;
+	void update(void) override;
 public:
+	ReferenceManager * refMan;
 	SurfaceViewContext();
 	~SurfaceViewContext() {};
 };
