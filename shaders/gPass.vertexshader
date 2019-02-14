@@ -15,7 +15,7 @@ out gl_PerVertex {
 
 // Output data ; will be interpolated for each fragment.
 out vec4 vColor;
-flat out vec3 n;
+out vec3 n;
 out vec3 pos;
 flat out uint oID;
 
@@ -40,9 +40,9 @@ void main(){
 
 	gl_Position = Projection * View * Model * transform * vec4(vertexOutput, 1);
 
-	pos = gl_Position.xyz;
+	pos = (View * Model * transform * vec4(vertexOutput, 1)).xyz;
 
-	n = (transpose(inverse(View * Model * transform)) * vec4(normal,0)).xyz;
+	n = (transpose(inverse(View * Model * transform)) * vec4(normal, 0)).xyz;
 	n = normalize(n);
 
 	oID = objectID;

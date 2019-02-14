@@ -92,73 +92,8 @@ bool VoronoiDiagramUtils::isPointWithinSphere(vec3 point, vec3 points[4])
 std::vector<glm::ivec4> VoronoiDiagramUtils::calculateDelaunayTetrahedra(const std::vector<glm::vec3>& points)
 {
 	DelaunayTree<glm::vec3, glm::ivec4> tree(points);
-	std::cout << "BEGIN" << std::endl;
+//	std::cout << "BEGIN" << std::endl;
 	auto output = tree.calculate();
-	std::cout << "END" << std::endl;
+//	std::cout << "END" << std::endl;
 	return output;
 }
-
-/*Geometry::Vertex* VoronoiDiagramUtils::getVoronoiPointFromTetrahedron(Geometry::Mesh* mesh, const vector<vec3>& inputPositions, vector<vec3>& outputPositions)
-{
-	auto vertices = HalfEdgeUtils::getVolumeVertices(mesh, inputPositions);
-
-	if (vertices.size() != 4)
-	{
-		cout << "INVALID NUMBER OF VERTICES IN VOLUME" << endl;
-		system("PAUSE");
-
-		return nullptr;
-	}
-
-	Geometry::Vertex* outputVertex = new Geometry::Vertex(outputPositions.size());
-
-	vec3 outputPos = getCircumsphere(&(vertices[0])).center;
-	outputPositions.push_back(outputPos);
-	
-	return outputVertex;
-}
-
-pair<Geometry::Vertex*, Geometry::Vertex*> VoronoiDiagramUtils::getVoronoiEdgeFromTetrahedraPair(Geometry::Mesh* mesh1, Geometry::Mesh* mesh2, const map<Geometry::Mesh*, Geometry::Vertex*>& voronoiVertices)
-{
-	auto point1 = voronoiVertices.find(mesh1)->second;
-	auto point2 = voronoiVertices.find(mesh2)->second;
-
-	return pair<Geometry::Vertex*, Geometry::Vertex*>(point1, point2);
-}
-
-Geometry::Facet* VoronoiDiagramUtils::getVoronoiFacetFromEdge(pair<Geometry::Vertex*, Geometry::Vertex*> edgeVertices, const map<Geometry::Mesh*, Geometry::Vertex*>& voronoiVertices)
-{
-	auto meshes = HalfEdgeUtils::getEdgeMeshes(edgeVertices);
-	vector<pair<Geometry::Vertex*, Geometry::Vertex*>> edges;
-
-	for (int i = 0; i < meshes.size() - 1; i++)
-	{
-		for (int j = 0; j < meshes[i]->facets.size(); j++)
-		{
-			for (int k = i + 1; k < meshes.size(); k++)
-			{
-				for (int l = 0; l < meshes[k]->facets.size(); l++)
-				{
-					if (meshes[i]->facets[j]->twin == meshes[k]->facets[l])
-					{
-						edges.push_back(getVoronoiEdgeFromTetrahedraPair(meshes[i], meshes[k], voronoiVertices));
-					}
-				}
-			}
-		}
-	}
-	return nullptr;
-}
-
-Geometry::VolumetricMesh* VoronoiDiagramUtils::getVoronoiDiagram(Geometry::VolumetricMesh* volumetricMesh, const vector<vec3>& positions)
-{
-	map<Geometry::Mesh*, Geometry::Vertex*> voronoiVertices;
-	vector<vec3> outputPositions;
-
-	for (int i = 0; i < volumetricMesh->meshes.size(); i++)
-	{
-		voronoiVertices[volumetricMesh->meshes[i]] = getVoronoiPointFromTetrahedron(volumetricMesh->meshes[i], positions, outputPositions);
-	}
-	return nullptr;
-	
-}*/

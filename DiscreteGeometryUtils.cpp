@@ -65,7 +65,7 @@ std::pair<glm::vec3, glm::vec3> DiscreteGeometryUtils::getBoundingBox(Graphics::
 	return std::make_pair(minN, maxN);
 }
 
-bool DiscreteGeometryUtils::isPointInsideMesh(glm::vec3 point, std::vector<ImplicitGeo::Triangle>& triangles)
+bool DiscreteGeometryUtils::isPointInsideMesh(glm::vec3 point, const std::vector<ImplicitGeo::Triangle>& triangles)
 {
 	vec3 dir(1, 0, 0);
 	int sum = 0;

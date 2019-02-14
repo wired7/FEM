@@ -27,7 +27,7 @@ template <typename VectorType, typename OutputVectorType> class DelaunayTree;
 
 template <typename VectorType, typename OutputType> class DelaunayNode : public Node<VectorType, OutputType, DelaunayNode<VectorType, OutputType>>
 {
-protected:
+public:
 	std::vector<OutputType> calculateDelaunaySimplices()
 	{
 		int size = pointOriginalIndices.size();
@@ -221,7 +221,7 @@ public:
 		children.clear();
 
 		((DelaunayTree<VectorType, OutputType>*)treeData)->printMutex.lock();
-		std::cout << "CALCULATED " << result.size() << " TETRA SO FAR" << std::endl;
+//		std::cout << "CALCULATED " << result.size() << " TETRA SO FAR" << std::endl;
 		((DelaunayTree<VectorType, OutputType>*)treeData)->printMutex.unlock();
 
 		return result;

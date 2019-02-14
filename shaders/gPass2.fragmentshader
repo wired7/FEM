@@ -14,7 +14,11 @@ layout(location = 3) out uint colorID;
 
 void main()
 {
-	color = vColor;
+	float contour = clamp(pow(5.0 * abs(dot(normalize(pos), n)), 4.0f), 0.0f, 1.0f);
+	if(contour < 1.0f)
+		color = vec4(vec3(contour), 1.0f / contour);
+	else
+		color = vColor;
 	colorNormal = n;
 	colorPosition = pos;
 	colorID = oID;

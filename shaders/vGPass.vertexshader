@@ -3,11 +3,11 @@
 // Input vertex data, different for all executions of this shader.
 layout(location = 0) in vec3 vertexPos;
 layout(location = 1) in vec3 normal;
-layout(location = 2) in mat4 tetraTransform;
-layout(location = 6) in uint objectID;
-layout(location = 7) in uint selectable;
-layout(location = 8) in mat4 transform;
-layout(location = 12) in float renderable;
+layout(location = 2) in uint objectID;
+layout(location = 3) in uint selectable;
+layout(location = 4) in mat4 tetraTransform;
+layout(location = 8) in vec4 tetraColor;
+layout(location = 9) in float renderable;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -49,11 +49,11 @@ void main(){
 		vertexOutput.x = 10000000;
 	}
 
-	gl_Position = Projection * View * Model * transform * tetraTransform * vec4(vertexOutput, 1);
+	gl_Position = Projection * View * Model * tetraTransform * vec4(vertexOutput, 1);
 
 	pos = gl_Position.xyz;
 
-	n = (transpose(inverse(View * Model * transform * tetraTransform)) * vec4(normal,0)).xyz;
+	n = (transpose(inverse(View * Model * tetraTransform)) * vec4(normal,0)).xyz;
 	n = normalize(n);
 
 	oID = objectID;

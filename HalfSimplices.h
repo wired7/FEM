@@ -1,13 +1,24 @@
 #pragma once
+#include <utility>
 #include <vector>
+#include <set>
 #include <unordered_set>
 #include <map>
 #include <algorithm>
 #include <boost/preprocessor/repeat.hpp>
+#include <boost/preprocessor/repeat_from_to.hpp>
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/if.hpp>
+#include <boost/preprocessor/comma_if.hpp>
 #include <boost/preprocessor/arithmetic/inc.hpp>
 #include <boost/preprocessor/arithmetic/dec.hpp>
+#include <boost/preprocessor/comparison/equal.hpp>
+#include <boost/preprocessor/comparison/less.hpp>
+#include <boost/preprocessor/comparison/greater.hpp>
+#include <iostream>
+#include <queue>
+
+#define MANIFOLD_LIM 6
 
 namespace Geometry
 {
@@ -26,16 +37,55 @@ namespace Geometry
 		return second_t<typename tMap::value_type>();
 	};
 
+	template<typename T>
+	std::vector<T> arrangeSimplexIndices(const std::vector<T>& input)
+{
+	T count = 0;
+	T minVal = UINT_MAX;
+	T minIndex = 0;
+	for (const auto& vertex : input)
+	{
+		if (vertex < minVal)
+		{
+			minVal = vertex;
+			minIndex = count;
+		}
+		count++;
+	}
+
+	T location = minIndex;
+
+	std::vector<T> arrangedFacetIndices;
+	for (int j = 0; j < input.size(); ++j, minIndex = ((minIndex + 1) % input.size()))
+	{
+		arrangedFacetIndices.push_back(input[minIndex]);
+	}
+
+	return arrangedFacetIndices;
+}
+
 	class TopologicalStruct
 	{
 	public:
-		virtual void getAllChildren(std::unordered_set<TopologicalStruct*>& children)
+		virtual void getAllChildren(std::vector<TopologicalStruct*>& childrenVector,
+									std::unordered_set<TopologicalStruct*>& childrenSet)
 		{
-			children.insert(this);
+			auto result = childrenSet.insert(this);
+
+			if (result.second)
+			{
+				childrenVector.push_back(this);
+			}
 		};
-		virtual void getAllNthChildren(std::unordered_set<TopologicalStruct*>& children, int childDim, bool isFirstLevel = true)
+		virtual void getAllNthChildren(std::vector<TopologicalStruct*>& childrenVector,
+									   std::unordered_set<TopologicalStruct*>& childrenSet, int childDim)
 		{
-			getAllChildren(children);
+			getAllChildren(childrenVector, childrenSet);
+		};
+
+		virtual std::unordered_set<TopologicalStruct*> getAdjacentSimplices()
+		{
+			return std::unordered_set<TopologicalStruct*>();
 		};
 	};
 
@@ -50,24 +100,37 @@ namespace Geometry
 		// order.
 		HalfSimplex<nDimensional - 1, T>* pointsTo;
 
-		void getAllChildren(std::unordered_set<TopologicalStruct*>& children) override
+		~HalfSimplexWithChildren()
 		{
-			auto first = pointsTo;
-			auto current = first;
+			if (pointsTo->belongsTo == this)
+				pointsTo->belongsTo = nullptr;
 
-			if (first == nullptr)
-			{
-				return;
-			}
+			// TODO: if twin DNE, it should be replaced by first incident simplex of same dimension
+		}
 
-			do
+		void getAllChildren(std::vector<TopologicalStruct*>& childrenVector,
+							std::unordered_set<TopologicalStruct*>& childrenSet) override
+		{
+			auto current = pointsTo;
+
+			std::unordered_set<TopologicalStruct*> visited;
+
+			while (current != nullptr && visited.find(current) == visited.end())
 			{
-				children.insert(reinterpret_cast<TopologicalStruct*>(current));
+				visited.insert(current);
+				auto result = childrenSet.insert(current);
+
+				if (result.second)
+				{
+					childrenVector.push_back(current);
+				}
+
 				current = current->next;
-			} while (current != nullptr && current != first);
+			}
 		};
 
-		void getAllNthChildren(std::unordered_set<TopologicalStruct*>& children, int childDim, bool isFirstLevel = true) override
+		void getAllNthChildren(std::vector<TopologicalStruct*>& childrenVector,
+							   std::unordered_set<TopologicalStruct*>& childrenSet, int childDim) override
 		{
 			if (childDim > nDimensional)
 			{
@@ -76,25 +139,53 @@ namespace Geometry
 
 			if (childDim == nDimensional)
 			{
-				children.insert(this);
+				auto result0 = childrenSet.insert(this);
+
+				if (result0.second)
+				{
+					childrenVector.push_back(this);
+				}
+
 				return;
 			}
 
-			std::unordered_set<TopologicalStruct*> immediateChildren;
+			std::vector<TopologicalStruct*> immediateChildrenVector;
+			std::unordered_set<TopologicalStruct*> immediateChildrenSet;
 
-			if (isFirstLevel)
+			if (nDimensional > 1)
 			{
-				getAllChildren(immediateChildren);
+				getAllChildren(immediateChildrenVector, immediateChildrenSet);
+
+				for (const auto& child : immediateChildrenVector)
+				{
+					child->getAllNthChildren(childrenVector, childrenSet, childDim);
+				}
 			}
-			else if(pointsTo != nullptr)
+			else if(nDimensional == 1)
 			{
-				immediateChildren.insert(pointsTo);
+				if(pointsTo != nullptr)
+					pointsTo->getAllNthChildren(childrenVector, childrenSet, childDim);
+			}
+		};
+
+		std::unordered_set<TopologicalStruct*> getAdjacentSimplices() override
+		{
+			std::unordered_set<TopologicalStruct*> adjacentSet;
+
+			std::vector<TopologicalStruct*> childrenVec;
+			std::unordered_set<TopologicalStruct*> childrenSet;
+			getAllChildren(childrenVec, childrenSet);
+//			std::cout << childrenVec.size() << " CHILDREN" << std::endl;
+			for (const auto& child : childrenVec)
+			{
+				auto childSimplex = reinterpret_cast<HalfSimplex<nDimensional - 1, T>*>(child);
+				if (childSimplex->twin)
+				{
+					adjacentSet.insert(childSimplex->twin->belongsTo);
+				}
 			}
 
-			for (const auto& child : immediateChildren)
-			{
-				child->getAllNthChildren(children, childDim, false);
-			}
+			return adjacentSet;
 		};
 
 		void setPointsTo(HalfSimplex<nDimensional - 1, T>* pointsTo)
@@ -103,11 +194,24 @@ namespace Geometry
 		};
 	};
 
+	template<const int nDimensional, typename T>
+	class FullSimplex
+	{
+	public:
+		std::unordered_set<HalfSimplex<nDimensional, T>*> halfSimplices;
+		std::vector<T> data;
+
+		FullSimplex(std::vector<T> newData) : data(newData) {};
+	};
+
 	template <const int nDimensional, typename T>
 	class HalfSimplex : public std::conditional<nDimensional, HalfSimplexWithChildren<nDimensional, T>, TopologicalStruct>::type
 	{
+	protected:
+		const int dimension = nDimensional;
 	public:
 		T halfSimplexData;
+		FullSimplex<nDimensional, T>* fullSimplex;
 		// must have opposite orientation (the loops of pointsTo objects must
 		// have opposite orders)
 		HalfSimplex<nDimensional, T>* twin;
@@ -119,7 +223,17 @@ namespace Geometry
 
 		HalfSimplex() {};
 		HalfSimplex(T halfSimplexData) : halfSimplexData(halfSimplexData) {};
-		~HalfSimplex() {};
+		~HalfSimplex()
+		{
+			if (twin != nullptr)
+				twin->twin = nullptr;
+			if (next != nullptr)
+				next->previous = nullptr;
+			if (previous != nullptr)
+				previous->next = nullptr;
+			if (fullSimplex != nullptr)
+				fullSimplex->halfSimplices.erase(this);
+		};
 
 		void setTwin(HalfSimplex<nDimensional, T>* twin)
 		{
@@ -142,11 +256,97 @@ namespace Geometry
 			this->belongsTo = belongsTo;
 		};
 
+		template <const int simplexDim, const int highestDim>
+		std::unordered_set<HalfSimplex<simplexDim, T>*> getIncidentSimplices(HalfSimplex<highestDim, T>* highestParent)
+		{
+			// get the set of lowest components in the structure
+			std::set<TopologicalStruct*> lowestChildrenSet;
+			if (nDimensional)
+			{
+				std::vector<TopologicalStruct*> lowestChildrenVec;				
+				getAllNthChildren(lowestChildrenVec, lowestChildrenSet, 0);
+			}
+			else
+			{
+				lowestChildrenSet.insert(this);
+			}
+
+			std::queue<HalfSimplex<highestDim, T>*> neighbourQueue;
+			neighbourQueue.push(highestParent);
+
+			std::set<HalfSimplex<simplexDim, T>*> incidentSet;
+			std::set<HalfSimplex<highestDim, T>*> visitedSet;
+
+			while (!neighbourQueue.empty())
+			{
+				auto currentHighestParent = neighbourQueue.front();
+				neighbourQueue.pop();
+
+				// if currentHighestParent has already been visited, skip
+				if (visitedSet.find(currentHighestParent) != visitedSet.end())
+				{
+					continue;
+				}
+
+				visitedSet.insert(currentHighestParent);
+
+				// get all the children of current highestParent matching the dimension of simplexDim.
+				std::set<TopologicalStruct*> simplexDimChildrenSet;
+				if (highestDim == simplexDim)
+				{
+					simplexDimChildrenSet.insert(currentHighestParent);
+				}
+				else if (highestDim > simplexDim)
+				{
+					std::vector<TopologicalStruct*> simplexDimChildrenVec;
+					getAllNthChildren(simplexDimChildrenVec, simplexDimChildrenSet, simplexDim);
+				}
+
+				bool checkNeighbours = false;
+				// for each of those children, find the lowest children of those in lowestChildrenSet
+				for (const auto& simplexDimChild : simplexDimChildrenSet)
+				{
+					auto child = reinterpret_cast<HalfSimplex<simplexDim, T>*>(simplexDimChild);
+
+					std::set<TopologicalStruct*> lowestSet;
+					std::vector<TopologicalStruct*> lowestVec;
+					reinterpret_cast<HalfSimplexWithChildren<simplexDim, T>*>(simplexDimChild)->
+														getAllNthChildren(lowestVec, lowestSet, 0);
+
+					// if even one of the tests returns true, the simplexDim objects are incident
+					for (const auto& lowestDimChild : lowestSet)
+					{
+						// if even one simplexDim object is incident in the currentHighestParent, then we the simplexDimChild is added
+						// to the list of incident simplices and we check the neighbours of currentHighestParent
+						if (lowestChildrenSet.find(lowestDimChild) != lowestChildrenSet.end())
+						{
+							checkNeighbours = true;
+							incidentSet.insert(child);
+							break;
+						}
+					}
+				}
+
+				// repeat process for each neighbour in queue
+				if (checkNeighbours)
+				{
+					auto adjacent = currentHighestParent->getAdjacentSimplices();
+
+					for (const auto& a : adjacent)
+					{
+						neighbourQueue.push(reinterpret_cast<HalfSimplex<simplexDim, T>*>(a));
+					}
+				}
+			}
+
+			return incidentSet;
+		};
+
 		std::map<HalfSimplex<nDimensional, T>*, HalfSimplex<nDimensional, T>*> getNeighbours()
 		{
 			std::map<HalfSimplex<nDimensional, T>*, HalfSimplex<nDimensional, T>*> neighbours;
 
-			auto higherUp = reinterpret_cast<HalfSimplexWithChildren<nDimensional + 1, T>*>(belongsTo->next);
+			auto higherUp = reinterpret_cast<HalfSimplexWithChildren<nDimensional + 1, T>*>(belongsTo->previous);
 			HalfSimplex<nDimensional, T>* neighbour = higherUp->pointsTo;
 
 			while(true)
@@ -158,7 +358,7 @@ namespace Geometry
 					break;
 				}
 
-				auto prev = twin->previous;
+				auto prev = twin->next;
 
 				if (neighbours[neighbour] == nullptr && prev != nullptr)
 				{
@@ -177,109 +377,237 @@ namespace Geometry
 		}
 	};
 
-#define DEF_MAP_TYPES(i) /* ... */														\
-		std::map<std::vector<T>, HalfSimplex<i, T>*> map ## i;							\
-		std::map<std::vector<T>, std::unordered_set<HalfSimplex<i, T>*>> twinMap ## i;	\
-
-#define DEF_POP_MAPS_RECURSE(dim) /* ... */									\
-	void populateMapsRecursively ## dim(const std::vector<T>& indices)		\
-	{																		\
-		if(map ## dim[indices] == nullptr)									\
-		{																	\
-			map ## dim[indices] = new HalfSimplex<dim, T>(indices[0]);		\
-			auto sortedIndices = indices;									\
-			std::sort(sortedIndices.begin(), sortedIndices.end());			\
-			twinMap ## dim[sortedIndices].insert(map ## dim[indices]);		\
-																			\
-			if(twinMap ## dim[sortedIndices].size() == 2)					\
-			{																\
-				(*twinMap ## dim[sortedIndices].begin())->setTwin(			\
-					*std::next(twinMap ## dim[sortedIndices].begin(), 1));	\
-			}																\
-		}																	\
-																			\
-		HalfSimplex<BOOST_PP_DEC(dim), T>* previous = nullptr;				\
-		HalfSimplex<BOOST_PP_DEC(dim), T>* first = nullptr;					\
-		for(int iter = 0; iter < indices.size(); ++iter)					\
-		{																	\
-			std::vector<T> newIndices;										\
-			for(int start = iter; start < iter + dim; ++start)				\
-			{																\
-				newIndices.push_back(indices[start % indices.size()]);		\
-			}																\
-																			\
-			if(dim % 2 && iter % 2)											\
-			{																\
-				/* reverse indices */										\
-			}																\
-																			\
-			BOOST_PP_IF(dim,												\
-				BOOST_PP_CAT(populateMapsRecursively, BOOST_PP_DEC(dim))(newIndices);				\
-				BOOST_PP_CAT(map, BOOST_PP_DEC(dim))[newIndices]->setBelongsTo(map ## dim[indices]);\
-				map ## dim[indices]->setPointsTo(BOOST_PP_CAT(map, BOOST_PP_DEC(dim))[newIndices]);	\
-				if(previous != nullptr)											\
-				{																\
-					previous->setNext(BOOST_PP_CAT(map, BOOST_PP_DEC(dim))[newIndices]);			\
-					BOOST_PP_CAT(map, BOOST_PP_DEC(dim))[newIndices]->setPrevious(previous);		\
-				}															\
-				else														\
-				{															\
-					first = BOOST_PP_CAT(map, BOOST_PP_DEC(dim))[newIndices];\
-				}															\
-				previous = BOOST_PP_CAT(map, BOOST_PP_DEC(dim))[newIndices];\
-			,)																\
-		}																	\
-		if(previous != nullptr)												\
-		{																	\
-			previous->setNext(first);										\
-			first->setPrevious(previous);									\
-		}																	\
-	};																		\
-
-#define DEF_CLEAR_MAPS(z, dim, _) /* ... */									\
-		twinMap ## dim.clear();												\
+#define DEF_MAP_TYPES(i) /* ... */																			\
+		std::map<std::pair<std::vector<T>, HalfSimplex<BOOST_PP_INC(i), T>*>, HalfSimplex<i, T>*> map ## i;	\
+		std::map<std::pair<std::vector<T>, HalfSimplex<BOOST_PP_INC(BOOST_PP_INC(i)), T>*>,					\
+			std::map<std::pair<std::vector<T>, HalfSimplex<BOOST_PP_INC(i), T>*>,							\
+				HalfSimplex<i, T>*>> twinMap ## i;															\
+		std::map<std::vector<T>, FullSimplex<i, T>*> fullSimplexMap ## i;									\
+		std::vector<std::pair<std::vector<T>, HalfSimplex<BOOST_PP_INC(i), T>*>> addedSimplices ## i;		\
 
 
-#define DEF_CALL_POP_MAPS_RECURSE(dim) /* ... */							\
-		populateMapsRecursively ## dim(newIndices);							\
-		BOOST_PP_REPEAT(dim, DEF_CLEAR_MAPS)								\
+#define DEF_POP_MAPS_RECURSE(dim) /* ... */																	\
+	std::pair<std::vector<T>, HalfSimplex<BOOST_PP_INC(dim), T>*> populateMapsRecursively ## dim(			\
+		const std::pair<std::vector<T>, HalfSimplex<BOOST_PP_INC(dim), T>*>& oldIndices)					\
+	{																										\
+		std::pair<std::vector<T>, HalfSimplex<BOOST_PP_INC(dim), T>*> indices;								\
+		indices.second = oldIndices.second;																	\
+		BOOST_PP_IF(BOOST_PP_GREATER(dim, 1),																\
+			int minVal = oldIndices.first[0];																\
+			int minIter = 0;																				\
+			for(int iter = 1; iter < oldIndices.first.size(); ++iter)										\
+			{																								\
+				if(oldIndices.first[iter] < minVal)															\
+				{																							\
+					minIter = iter;																			\
+					minVal = oldIndices.first[iter];														\
+				}																							\
+			}																								\
+			for(int iter = 0; iter < oldIndices.first.size();												\
+				++iter, minIter = (minIter + 1) % oldIndices.first.size())									\
+			{																								\
+				indices.first.push_back(oldIndices.first[minIter]);											\
+			},																								\
+			indices.first = oldIndices.first;)																\
+																											\
+		if(map ## dim.find(indices) == map ## dim.end())													\
+		{																									\
+			map ## dim[indices] = new HalfSimplex<dim, T>(indices.first[0]);								\
+			addedSimplices ## dim.push_back(indices);														\
+		}																									\
+		auto sortedIndices = indices.first;																	\
+		std::sort(sortedIndices.begin(), sortedIndices.end());												\
+																											\
+		if(fullSimplexMap ## dim.find(sortedIndices) == fullSimplexMap ## dim.end())						\
+		{																									\
+			fullSimplexMap ## dim[sortedIndices] = new FullSimplex<dim, T>(sortedIndices);					\
+		}																									\
+																											\
+		fullSimplexMap ## dim[sortedIndices]->halfSimplices.insert(map ## dim[indices]);					\
+		map ## dim[indices]->fullSimplex = fullSimplexMap ## dim[sortedIndices];							\
+		HalfSimplex<BOOST_PP_DEC(dim), T>* previous = nullptr;												\
+		HalfSimplex<BOOST_PP_DEC(dim), T>* first = nullptr;													\
+		std::vector<T> newIndices, previousIndices;															\
+		std::pair<std::vector<T>, HalfSimplex<dim, T>*> newIndicesPair, previousIndicesPair;				\
+		HalfSimplex<BOOST_PP_DEC(dim), T>* currentChild = nullptr;											\
+		HalfSimplex<BOOST_PP_DEC(dim), T>* previousChild = nullptr;											\
+		for(int iter = 0; iter < indices.first.size(); ++iter)												\
+		{																									\
+			previousIndices = newIndices;																	\
+			newIndices.clear();																				\
+																											\
+				for(int start = iter; start < iter + dim; ++start)											\
+				{																							\
+					newIndices.push_back(indices.first[start % indices.first.size()]);						\
+				}																							\
+																											\
+			if((dim % 2) && (iter % 2))																		\
+			{																								\
+				std::reverse(newIndices.begin(), newIndices.end());											\
+			}																								\
+/*			for(int i = 0; i < newIndices.size(); ++i)						\
+				std::cout << newIndices[i] << " ";							\
+			std::cout << std::endl;							\				*/								\
+			auto parent = map ## dim[indices];																\
+			newIndicesPair = std::make_pair(newIndices, BOOST_PP_IF(BOOST_PP_DEC(dim), parent, nullptr));	\
+			BOOST_PP_IF(dim,																				\
+				BOOST_PP_CAT(newIndicesPair = populateMapsRecursively, BOOST_PP_DEC(dim))(newIndicesPair);	\
+				newIndices = newIndicesPair.first;															\
+				currentChild = BOOST_PP_CAT(map, BOOST_PP_DEC(dim))[newIndicesPair];						\
+				currentChild->setBelongsTo(parent);															\
+				parent->setPointsTo(currentChild);															\
+				if(first == nullptr)																		\
+				{																							\
+					first = currentChild;																	\
+				}																							\
+				else																						\
+				{																							\
+					previousIndicesPair = std::make_pair(previousIndices,									\
+						BOOST_PP_IF(BOOST_PP_DEC(dim), parent, nullptr));									\
+					previousChild = BOOST_PP_CAT(map, BOOST_PP_DEC(dim))[previousIndicesPair];				\
+					previousChild->setNext(currentChild);													\
+					currentChild->setPrevious(previousChild);												\
+				}																							\
+			,)																								\
+		}																									\
+																											\
+		if(first != nullptr)																				\
+		{																									\
+			first->setPrevious(currentChild);																\
+			currentChild->setNext(first);																	\
+		}																									\
+		return indices;																						\
+	};																										\
+
+#define DEF_RESOLVE_TWINS(i) /* ... */																		\
+	void resolveTwins ## i()																				\
+	{																										\
+		for(const auto& indices : addedSimplices ## i)														\
+		{																									\
+			auto sortedIndices = indices.first;																\
+			std::sort(sortedIndices.begin(), sortedIndices.end());											\
+			auto parent = indices.second;																	\
+			HalfSimplex<BOOST_PP_INC(BOOST_PP_INC(i)), T>* grandParent = nullptr;							\
+			if(parent != nullptr)																			\
+			{																								\
+				grandParent = parent->belongsTo;															\
+			}																								\
+																											\
+			auto signaturePair = std::make_pair(sortedIndices, grandParent);								\
+			twinMap ## i[signaturePair][indices] = map ## i[indices];										\
+																											\
+			if(twinMap ## i[signaturePair].size() == 2)														\
+			{																								\
+				(*twinMap ## i[signaturePair].begin()).second->setTwin(										\
+					(*std::next(twinMap ## i[signaturePair].begin(), 1)).second);							\
+			}																								\
+		}																									\
+		addedSimplices ## i.clear();																		\
+	};																										\
+
+#define RESOLVE_TWINS(z, i, _) /* ... */																	\
+		resolveTwins ## i();																				\
+
+
+#define DEF_CALL_POP_MAPS_RECURSE(dim, indices) /* ... */													\
+		populateMapsRecursively ## dim(indices);															\
 		
-#define MANIFOLD_CLASS_TEMPLATE(z, i, _) /* ... */							\
-		template <typename T> class BOOST_PP_CAT(Manifold, BOOST_PP_CAT(i, BOOST_PP_IF(i, : public BOOST_PP_CAT(Manifold, BOOST_PP_DEC(i)) ## <T>,)))	\
-		{																	\
-		protected:															\
-			DEF_MAP_TYPES(i)												\
-			DEF_POP_MAPS_RECURSE(i)											\
-																			\
-			const int dimension = i;										\
-		public:																\
-		Manifold ## i() {};													\
-			/* assumes an n-dimensional, properly tesselated structure,					
-			and that winding has been taken care of. */						\
-		Manifold ## i(std::vector<T> indices)								\
-			{																\
-				for(int simplexPts = 0;										\
-					simplexPts < indices.size();							\
-					simplexPts += (dimension + 1))							\
-				{															\
-					std::vector<T> newIndices;								\
-					newIndices.insert(newIndices.end(),						\
-									  indices.begin() + simplexPts,			\
-									  indices.begin() + simplexPts + dimension + 1);	\
-					DEF_CALL_POP_MAPS_RECURSE(i)							\
-				}															\
-			};																\
-			~Manifold ## i() {};											\
-																			\
-			virtual std::vector<HalfSimplex<i, T>*> getHalfSimplices ## i()	\
-			{																\
-				std::vector<HalfSimplex<i, T>*> output;						\
-				std::transform(map ## i.begin(), map ## i.end(), std::back_inserter(output), second(map ## i));\
-				return output;												\
-			};																\
-		};			 														\
+#define MANIFOLD_CLASS_TEMPLATE(z, i, _) /* ... */															\
+		template <typename T> class BOOST_PP_CAT(Manifold, BOOST_PP_CAT(i, BOOST_PP_IF(i, :					\
+			public BOOST_PP_CAT(Manifold, BOOST_PP_DEC(i)) ## <T>,)))										\
+		{																									\
+		public:																								\
+			DEF_MAP_TYPES(i)																				\
+			DEF_POP_MAPS_RECURSE(i)																			\
+			DEF_RESOLVE_TWINS(i)																			\
+																											\
+			const int dimension = i;																		\
+		public:																								\
+			Manifold ## i() {};																				\
+				/* assumes an n-dimensional, properly tesselated structure,					
+				and that winding has been taken care of. */													\
+			Manifold ## i(std::vector<T> indices)															\
+			{																								\
+				for(int simplexPts = 0;																		\
+					simplexPts < indices.size();															\
+					simplexPts += (dimension + 1))															\
+				{																							\
+					std::vector<T> newIndices;																\
+					newIndices.insert(newIndices.end(),														\
+										indices.begin() + simplexPts,										\
+										indices.begin() + simplexPts +										\
+											dimension + 1);													\
+					add ## i(std::make_pair(newIndices, nullptr));											\
+				}																							\
+			};																								\
+																											\
+			~Manifold ## i() {};																			\
+																											\
+			void add ## i(const std::pair<std::vector<T>, HalfSimplex<BOOST_PP_INC(i), T>*>& indices)		\
+			{																								\
+				DEF_CALL_POP_MAPS_RECURSE(i, indices)														\
+				BOOST_PP_REPEAT(BOOST_PP_INC(i), RESOLVE_TWINS, _)											\
+			};																								\
+																											\
+			void erase ## i(HalfSimplex<i, T>* simplex)														\
+			{																								\
+				std::vector<Geometry::TopologicalStruct*> childrenVerticesVec;								\
+				std::unordered_set<Geometry::TopologicalStruct*> childrenVerticesSet;						\
+				simplex->getAllNthChildren(childrenVerticesVec, childrenVerticesSet, 0);					\
+				std::vector<T> indices;																		\
+				for(const auto& vertex : childrenVerticesVec)												\
+				{																							\
+					indices.push_back(reinterpret_cast<HalfSimplex<0, T>*>(vertex)->halfSimplexData);		\
+				}																							\
+				std::sort(indices.begin(), indices.end());													\
+				HalfSimplex<BOOST_PP_INC(BOOST_PP_INC(i)), T>* grandParent = nullptr;						\
+				auto parent = simplex->belongsTo;															\
+				if(parent)																					\
+				{																							\
+					grandParent = parent->belongsTo;														\
+				}																							\
+				auto signaturePair = std::make_pair(indices, grandParent);									\
+																											\
+				BOOST_PP_IF(BOOST_PP_GREATER(i, 1),															\
+					std::vector<Geometry::TopologicalStruct*> childrenVec;									\
+					std::unordered_set<Geometry::TopologicalStruct*> childrenSet;							\
+					simplex->getAllChildren(childrenVec, childrenSet);										\
+					for(auto& childSimplex : childrenSet)													\
+					{																						\
+						BOOST_PP_CAT(erase,																	\
+						BOOST_PP_DEC(i))(reinterpret_cast<HalfSimplex<BOOST_PP_DEC(i), T>*>(childSimplex));	\
+					},)																						\
+																											\
+				for(auto& element : twinMap ## i[signaturePair])											\
+				{																							\
+					if(element.second == simplex)															\
+					{																						\
+						auto tempSimplex = element.second;													\
+						auto thisElement = element;															\
+						map ## i.erase(element.first);														\
+						twinMap ## i[signaturePair].erase(element.first);									\
+						if(twinMap ## i[signaturePair].empty())												\
+						{																					\
+							twinMap ## i.erase(signaturePair);												\
+						}																					\
+																											\
+						auto fullSimplex = tempSimplex->fullSimplex;										\
+						delete tempSimplex;																	\
+																											\
+						if (fullSimplex->halfSimplices.empty())												\
+						{																					\
+							fullSimplexMap ## i.erase(indices);												\
+							delete fullSimplex;																\
+						}																					\
+																											\
+						break;																				\
+					}																						\
+				}																							\
+			};																								\
+																											\
+		};			 																						\
 
-	BOOST_PP_REPEAT(5, MANIFOLD_CLASS_TEMPLATE, _)
+		BOOST_PP_REPEAT(MANIFOLD_LIM, MANIFOLD_CLASS_TEMPLATE, _)
 
 	#undef DEF_MAP_TYPES
 	#undef DEF_POP_MAPS_RECURSE

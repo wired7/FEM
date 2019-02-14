@@ -92,24 +92,24 @@ namespace Graphics
 				if (j > 0 && i > 0)
 				{
 					indices.push_back(vertices.size() - 2 - circles[j].size());
-					indices.push_back(vertices.size() - 2);
 					indices.push_back(vertices.size() - 1 - circles[j].size());
+					indices.push_back(vertices.size() - 2);
 
 					indices.push_back(vertices.size() - 2);
-					indices.push_back(vertices.size() - 1);
 					indices.push_back(vertices.size() - 1 - circles[j].size());
+					indices.push_back(vertices.size() - 1);
 				}
 			}
 
 			if (j > 0)
 			{
 				indices.push_back(vertices.size() - 1 - circles[j].size());
-				indices.push_back(vertices.size() - 1);
 				indices.push_back(vertices.size() - 2 * circles[j].size());
+				indices.push_back(vertices.size() - 1);
 
 				indices.push_back(vertices.size() - 1);
-				indices.push_back(vertices.size() - circles[j].size());
 				indices.push_back(vertices.size() - 2 * circles[j].size());
+				indices.push_back(vertices.size() - circles[j].size());
 			}
 		}
 
@@ -119,12 +119,12 @@ namespace Graphics
 		for (int i = 0; i < resolution; i++)
 		{
 			indices.push_back(i);
-			indices.push_back((i + 1) % resolution);
 			indices.push_back(vertices.size() - 2);
+			indices.push_back((i + 1) % resolution);
 
 			indices.push_back(vertices.size() - 2 - resolution + i);
-			indices.push_back(vertices.size() - 1);
 			indices.push_back(vertices.size() - resolution + (i + 1) % resolution - 2);
+			indices.push_back(vertices.size() - 1);
 		}
 
 		bindBuffers();
@@ -142,23 +142,9 @@ namespace Graphics
 		addVertex(v1, n1);
 		addVertex(v2, n1);
 		addVertex(v3, n1);
+		addVertex(v4, n1);
 
-		vec3 n2 = glm::normalize(glm::cross(glm::normalize(v2 - v1), glm::normalize(v4 - v2)));
-		addVertex(v1, n2);
-		addVertex(v2, n2);
-		addVertex(v4, n2);
-
-		vec3 n3 = -glm::normalize(glm::cross(glm::normalize(v3 - v1), glm::normalize(v4 - v3)));
-		addVertex(v1, n3);
-		addVertex(v3, n3);
-		addVertex(v4, n3);
-
-		vec3 n4 = glm::normalize(glm::cross(glm::normalize(v3 - v2), glm::normalize(v4 - v3)));
-		addVertex(v2, n4);
-		addVertex(v3, n4);
-		addVertex(v4, n4);
-
-/*		vec3 centroid(0, 0, 0);
+		vec3 centroid(0, 0, 0);
 		for (int i = 0; i < vertices.size(); i++)
 		{
 			centroid += vertices[i].position;
@@ -169,10 +155,10 @@ namespace Graphics
 		for (int i = 0; i < vertices.size(); i++)
 		{
 			vertices[i].normal = normalize(vertices[i].position - centroid);
-		}*/
+		}
 
-		indices = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
-//		indices = { 1, 3, 0, 0, 2, 1, 0, 3, 2, 1, 2, 3 };
+//		indices = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+		indices = { 1, 3, 0, 0, 2, 1, 0, 3, 2, 1, 2, 3 };
 
 		bindBuffers();
 	}

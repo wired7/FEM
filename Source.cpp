@@ -61,6 +61,7 @@ int init() {
 		tuple<const GLchar*, UniformType>("Projection", MATRIX4FV),  tuple<const GLchar*, UniformType>("Model", MATRIX4FV), tuple<const GLchar*, UniformType>("selectedRef", ONEUI) }, "FACETGPASSVS");
 
 	ShaderProgram::getShaderProgram<FragmentShaderProgram>("shaders\\gPass.FRAGMENTSHADER", {}, "GPASSFS");
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("shaders\\gPass2.FRAGMENTSHADER", {}, "GPASSFS2");
 
 	ShaderProgram::getShaderProgram<FragmentShaderProgram>("shaders\\lightPass.FRAGMENTSHADER", { tuple<const GLchar*, UniformType>("gColors", TEXTURE),
 		tuple<const GLchar*, UniformType>("gNormals", TEXTURE), tuple<const GLchar*, UniformType>("gPositions", TEXTURE) }, "LPASSFS");
@@ -82,33 +83,43 @@ int init() {
 
 	ShaderProgram::getShaderProgram<FragmentShaderProgram>("shaders\\wireframeOverlay.FRAGMENTSHADER", {}, "WIREFRAMEOVERLAYFS");
 
+	ShaderProgram::getShaderProgram<GeometryShaderProgram>("shaders\\flatNormals.GEOMETRYSHADER",
+		{ /*tuple<const GLchar*, UniformType>("WIN_SCALE", TWOUI) */ }, "FLATNORMALSGS");
+
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("shaders\\flatNormals.FRAGMENTSHADER", {}, "FLATNORMALSFS");
+
+
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("A"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("A"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("GPASSFS2")->attachToPipeline(ShaderProgramPipeline::getPipeline("A"));
 	ShaderProgramPipeline::getPipeline("A")->alphaRendered = true;
 
+	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("A2"));
+	ShaderProgram::getShaderProgram<GeometryShaderProgram>("FLATNORMALSGS")->attachToPipeline(ShaderProgramPipeline::getPipeline("A2"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("FLATNORMALSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("A2"));
+
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("EDGEGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("EdgeA"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("EdgeA"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("EdgeA"));
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("LPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("B"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("LPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("B"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("LPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("B"));
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("POINTGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("C"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("C"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("C"));
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("FACETGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("D"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("D"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("GPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("D"));
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("VOLUMEGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V1"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("WIREFRAMEOVERLAYGS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V1"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("WIREFRAMEOVERLAYFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V1"));
+	ShaderProgram::getShaderProgram<GeometryShaderProgram>("WIREFRAMEOVERLAYGS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V1"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("WIREFRAMEOVERLAYFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V1"));
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("VOLUMEGPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V2"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("WIREFRAMEOVERLAYGS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V2"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("WIREFRAMEOVERLAYFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V2"));
+	ShaderProgram::getShaderProgram<GeometryShaderProgram>("WIREFRAMEOVERLAYGS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V2"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("WIREFRAMEOVERLAYFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("V2"));
 	ShaderProgramPipeline::getPipeline("V2")->alphaRendered = true;
 
 	ShaderProgram::getShaderProgram<VertexShaderProgram>("LPASSVS")->attachToPipeline(ShaderProgramPipeline::getPipeline("SB"));
-	ShaderProgram::getShaderProgram<VertexShaderProgram>("SLPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("SB"));
+	ShaderProgram::getShaderProgram<FragmentShaderProgram>("SLPASSFS")->attachToPipeline(ShaderProgramPipeline::getPipeline("SB"));
 
 	LinearAlgebraUtils::init();
 	

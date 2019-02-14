@@ -14,16 +14,18 @@ namespace ImplicitGeo
 		normal = normalize(cross(point2 - point1, point3 - point1));
 	}
 
-	bool Plane::intersects(vec3 origin, vec3 direction)
+	bool Plane::intersects(vec3 origin, vec3 direction) const
 	{
 		return dot(normal, direction);
 	}
 
-	float Plane::intersection(vec3 origin, vec3 direction)
+	float Plane::intersection(vec3 origin, vec3 direction) const
 	{
-		float t = -1;
-		if (Plane::intersects(origin, direction))
+		float t = INFINITY;
+		if (Plane::intersects(origin, direction) != 0.0)
+		{
 			t = dot(normal, point - origin) / dot(normal, direction);
+		}
 		return t;
 	}
 
@@ -40,13 +42,13 @@ namespace ImplicitGeo
 		this->radius = radius;
 	}
 
-	bool Sphere::intersects(vec3 origin, vec3 direction)
+	bool Sphere::intersects(vec3 origin, vec3 direction) const
 	{
 		double discriminant = pow(dot(direction, origin - center), 2) - pow(length(direction), 2) * (pow(length(origin - center), 2) - radius * radius);
 		return discriminant > 0;
 	}
 
-	float Sphere::intersection(vec3 origin, vec3 direction)
+	float Sphere::intersection(vec3 origin, vec3 direction) const
 	{
 		double t = -1;
 		if (intersects(origin, direction))
@@ -90,7 +92,7 @@ namespace ImplicitGeo
 		point2 = pt2;
 		point3 = pt3;
 		point = point1;
-		normal = normalize(cross(point2 - point1, point3 - point1));
+		normal = normalize(cross(point2 - point1, point3 - point2));
 	}
 
 	float Triangle::area(vec3 pt1, vec3 pt2, vec3 pt3)
@@ -98,11 +100,12 @@ namespace ImplicitGeo
 		return 0.5f * length(cross(pt2 - pt1, pt3 - pt1));
 	}
 
-	bool Triangle::intersects(vec3 origin, vec3 direction)
+	float Triangle::intersection(vec3 origin, vec3 direction) const
 	{
-		if (Plane::intersects(origin, direction))
+		float t = Plane::intersection(origin, direction);
+		if (abs(t) != INFINITY)
 		{
-			vec3 p = origin + Plane::intersection(origin, direction) * direction;
+			vec3 p = origin + t * direction;
 
 			vec3 v0 = point3 - point1;
 			vec3 v1 = point2 - point1;
@@ -121,44 +124,32 @@ namespace ImplicitGeo
 			float v = (dot00 * dot12 - dot01 * dot02) / d;
 
 			// Check if point is in triangle
-			return (u >= 0) && (v >= 0) && (u + v < 1);
+			if ((u >= -0.001f) && (v >= -0.001f) && (u + v < 1.001f))
+			{
+				return t;
+			}
 		}
-		return false;
+
+		return INFINITY;
 	}
 
-	bool Triangle::intersects(Triangle triangle)
+	bool Triangle::intersects(const Triangle& triangle) const
 	{
-		if (abs(dot(normalize(normal), normalize(triangle.normal))) == 1.0f)
-		{
-			return false;
-		}
-		
-		float intersections[6] = { intersection(triangle.point1, normalize(triangle.point2 - triangle.point1)),
-								   intersection(triangle.point2, normalize(triangle.point3 - triangle.point2)),
-								   intersection(triangle.point3, normalize(triangle.point1 - triangle.point3)),
-								   triangle.intersection(point1, normalize(point2 - point1)),
-								   triangle.intersection(point2, normalize(point3 - point2)),
-								   triangle.intersection(point3, normalize(point1 - point3)) };
+		float intersections[6] = { intersection(triangle.point1, triangle.point2 - triangle.point1),
+								   intersection(triangle.point2, triangle.point3 - triangle.point2),
+								   intersection(triangle.point3, triangle.point1 - triangle.point3),
+								   triangle.intersection(point1, point2 - point1),
+								   triangle.intersection(point2, point3 - point2),
+								   triangle.intersection(point3, point1 - point3) };
 
 		for (int i = 0; i < 6; ++i)
 		{
-			if (intersections[i] > 0.0 && intersections[i] < 1.0)
+			if (abs(intersections[i]) <= 1.001f)
 			{
 				return true;
 			}
 		}
 
 		return false;
-	}
-
-	float Triangle::intersection(vec3 origin, vec3 direction)
-	{
-		float t = -1;
-		if (intersects(origin, direction))
-		{
-			t = Plane::intersection(origin, direction);
-		}
-
-		return t;
 	}
 }

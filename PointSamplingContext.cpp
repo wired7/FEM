@@ -8,7 +8,7 @@
 using namespace std;
 using namespace Graphics;
 
-#define NUM_POINTS 100
+#define NUM_POINTS 2000
 #define POINT_SCALE 0.05f
 
 PointSamplingContext::PointSamplingContext(DecoratedGraphicsObject* surface, FPSCamera* cam, ReferenceManager* refMan) : refMan(refMan)
@@ -112,6 +112,15 @@ vector<vec3> PointSamplingContext::sampleSurface(int sampleSize, DecoratedGraphi
 				}
 			}
 		}
+	}
+
+	auto meshObject = reinterpret_cast<Graphics::MeshObject*>(object->signatureLookup("VERTEX"));
+	auto vertices = meshObject->vertices;
+	auto transform = reinterpret_cast<Graphics::MatrixInstancedMeshObject<mat4, float>*>(object->signatureLookup("TRANSFORM"))->extendedData[0];
+
+	for (const auto& vertex : vertices)
+	{
+		samples.push_back(vec3(transform * vec4(vertex.position, 1)));
 	}
 
 	return samples;

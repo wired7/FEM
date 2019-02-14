@@ -21,7 +21,7 @@ private:
 public:
 	bool tetrahedralizationReady = false;
 	ReferenceManager* refMan;
-	Geometry::Manifold3<GLuint> manifold;
+	Geometry::Manifold3<GLuint>* manifold;
 	TetrahedralizationContext(Graphics::DecoratedGraphicsObject* surface,
 							  Graphics::DecoratedGraphicsObject* points,
 							  vector<vec3>& _points,

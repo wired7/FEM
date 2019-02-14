@@ -13,8 +13,8 @@ namespace ImplicitGeo
 	public:
 		ImplicitGeometry() {};
 		~ImplicitGeometry() {};
-		virtual bool intersects(vec3 origin, vec3 direction) = 0;
-		virtual float intersection(vec3 origin, vec3 direction) = 0;
+		virtual bool intersects(vec3 origin, vec3 direction) const = 0;
+		virtual float intersection(vec3 origin, vec3 direction) const = 0;
 		virtual vec3 getNormal(vec3 point) = 0;
 		virtual void setPosition(vec3 pos) = 0;
 		virtual void translate(vec3 trans) = 0;
@@ -29,8 +29,8 @@ namespace ImplicitGeo
 		Plane(vec3, vec3);
 		Plane(vec3, vec3, vec3);
 		~Plane() {};
-		bool intersects(vec3, vec3);
-		float intersection(vec3, vec3);
+		virtual bool intersects(vec3, vec3) const override;
+		virtual float intersection(vec3, vec3) const override;
 		vec3 getNormal(vec3);
 		void setPosition(vec3) {};
 		void translate(vec3) {};
@@ -43,8 +43,8 @@ namespace ImplicitGeo
 		float radius;
 		Sphere(vec3, double);
 		~Sphere() {};
-		bool intersects(vec3, vec3);
-		float intersection(vec3, vec3);
+		bool intersects(vec3, vec3) const override;
+		float intersection(vec3, vec3) const override;
 		vec3 getNormal(vec3);
 		double getRadius();
 		void setPosition(vec3);
@@ -60,8 +60,8 @@ namespace ImplicitGeo
 		Triangle(vec3, vec3, vec3);
 		~Triangle() {};
 		float area(vec3, vec3, vec3);
-		bool intersects(vec3, vec3);
-		bool intersects(Triangle);
-		float intersection(vec3, vec3);
+		bool intersects(const Triangle&) const;
+		bool intersects(vec3, vec3) const override { return false; };
+		float intersection(vec3 origin, vec3 direction) const override;
 	};
 }

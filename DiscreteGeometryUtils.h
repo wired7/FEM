@@ -7,6 +7,6 @@ static class DiscreteGeometryUtils
 public:
 	static std::vector<ImplicitGeo::Triangle> getTrianglesFromMesh(Graphics::DecoratedGraphicsObject* object);
 	static std::pair<glm::vec3, glm::vec3> getBoundingBox(Graphics::DecoratedGraphicsObject* object);
-	static bool isPointInsideMesh(glm::vec3 point, std::vector<ImplicitGeo::Triangle>& triangles);
+	static bool isPointInsideMesh(glm::vec3 point, const std::vector<ImplicitGeo::Triangle>& triangles);
 };
 

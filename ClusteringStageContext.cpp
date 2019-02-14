@@ -11,7 +11,7 @@ ClusteringStageContext::ClusteringStageContext(Graphics::DecoratedGraphicsObject
 {
 	cameras.push_back(cam);
 	geometries["VOLUMES"] = mesh;
-	setupGeometries();
+ 	setupGeometries();
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	clContext = new OpenCLContext(WindowContext::window);
@@ -38,7 +38,7 @@ ClusteringStageContext::ClusteringStageContext(Graphics::DecoratedGraphicsObject
 	cameraDirBuffer->bindBuffer();
 	separationDistanceBuffer->bindBuffer();
 
-	setupPasses({ "V1", "V2" }, { "SB" });
+	setupPasses({"V1", "V2" }, { "SB" });
 }
 
 
@@ -67,7 +67,8 @@ void ClusteringStageContext::setupGeometries(void)
 void ClusteringStageContext::setupPasses(const std::vector<std::string>& gProgramSignatures, const std::vector<std::string>& lProgramSignatures)
 {
 	std::map<std::string, std::pair<CLKernel*, std::pair<int, int>>> clKMap;
-	clKMap["VOLUMEUPDATE"] = std::make_pair(volumeUpdateKernel, std::make_pair(renderableBuffer->bufferData.size(), 2));
+	int modulo = renderableBuffer->bufferData.size() % 32;
+	clKMap["VOLUMEUPDATE"] = std::make_pair(volumeUpdateKernel, std::make_pair(renderableBuffer->bufferData.size() + (32 - modulo), 2));
 	CLPass* clP = new CLPass(clKMap);
 
 	clP->addBuffer(renderableBuffer, "RENDERABLE", "VOLUMEUPDATE", 0, true);
@@ -117,7 +118,7 @@ void ClusteringStageContext::setupPasses(const std::vector<std::string>& gProgra
 
 void ClusteringStageContext::update(void)
 {
-	//	if (length(cameras[0]->velocity) > 0)
+//	if (length(cameras[0]->velocity) > 0)
 	{
 		FPSCameraControls::moveCamera(cameras[0], cameras[0]->velocity);
 

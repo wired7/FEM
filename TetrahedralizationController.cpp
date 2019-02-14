@@ -142,7 +142,7 @@ void TetrahedralizationController::kC(GLFWwindow* window, int key, int scancode,
 			auto geo = controller->context->geometries["VOLUMES"];
 			auto cam = controller->context->cameras[0];
 
-			controller->context->nextContext = new ClusteringStageContext(geo, &(((TetrahedralizationContext*)(controller->context))->manifold), cam);
+			controller->context->nextContext = new ClusteringStageContext(geo, (((TetrahedralizationContext*)(controller->context))->manifold), cam);
 			((ClusteringStageContext*)controller->context->nextContext)->prevContext = controller->context;
 		}
 

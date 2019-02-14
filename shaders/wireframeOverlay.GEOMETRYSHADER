@@ -43,9 +43,10 @@ void main(void)
 	vec2 v2 = p1 - p0;
 	float area = abs(v1.x * v2.y - v1.y * v2.x);
 
+	worldNormal = normalize(n[0] + n[1] + n[2]);
+
 	dist = vec3(area / length(v0), 0, 0);
 	worldPos = pos[0];
-	worldNormal = n[0];
 	worldColor = vColor[0];
 	worldOID = oID[0];
 	worldSelected = selected[0];
@@ -54,7 +55,6 @@ void main(void)
 
 	dist = vec3(0, area / length(v1), 0);
 	worldPos = pos[1];
-	worldNormal = n[1];
 	worldColor = vColor[1];
 	worldOID = oID[1];
 	worldSelected = selected[1];
@@ -63,7 +63,6 @@ void main(void)
 
 	dist = vec3(0, 0, area / length(v2));
 	worldPos = pos[2];
-	worldNormal = n[2];
 	worldColor = vColor[2];
 	worldOID = oID[2];
 	worldSelected = selected[2];

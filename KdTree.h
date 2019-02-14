@@ -33,15 +33,15 @@ protected:
 		if (depth >= minsAndMaxPerDim.size())
 		{
 			std::vector<int> dimensionalIndices;
-			std::cout << "CREATED KD NODE: (";
+//			std::cout << "CREATED KD NODE: (";
 			for (int i = 0; i < depth; ++i)
 			{
 				dimensionalIndices.push_back(mapCoordinateAtDimension(min[i], i, minsAndMaxPerDim[i].size()));
-				std::cout << dimensionalIndices[i];
-				if (i < depth - 1)
-					std::cout << ", ";
+//				std::cout << dimensionalIndices[i];
+//				if (i < depth - 1)
+//					std::cout << ", ";
 			}
-			std::cout << ")" << std::endl;
+//			std::cout << ")" << std::endl;
 
 			children[dimensionalIndices] = new NodeType(treeData, min, max);
 			return;
@@ -155,12 +155,27 @@ public:
 			return;
 		}
 
+		std::vector<std::vector<int>> deleteChildren;
 		for (const auto& child : children)
 		{
 			if (child.second != nullptr)
 			{
-				child.second->subdivide(2, 4);
+				if (child.second->pointOriginalIndices.size() < pointOriginalIndices.size() &&
+					child.second->pointOriginalIndices.size() >= minSize)
+				{
+					child.second->subdivide(2, 4);
+				}
+				else
+				{
+					deleteChildren.push_back(child.first);
+				}
 			}
+		}
+
+		for (auto& child : deleteChildren)
+		{
+			delete children[child];
+			children.erase(child);
 		}
 	};
 
@@ -252,7 +267,7 @@ public:
 			root->insert(i);
 		}
 
-		root->subdivide(1, 4);
+//		root->subdivide(2, 4);
 	};
 	~KdTree()
 	{

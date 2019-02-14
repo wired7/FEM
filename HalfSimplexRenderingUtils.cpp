@@ -1,6 +1,7 @@
 #include "HalfSimplexRenderingUtils.h"
 #include <unordered_map>
 #include "LinearAlgebraUtils.h"
+#include <iostream>
 
 namespace std {
 	template <> struct hash<glm::vec3>
@@ -19,61 +20,61 @@ Graphics::DecoratedGraphicsObject* HalfSimplexRenderingUtils::getRenderableVolum
 {
 	vector<GLuint> indices;
 	vector<Graphics::Vertex> vertices;
-
-	std::unordered_map<glm::vec3, Graphics::Vertex> vertexMap;
-	std::vector<glm::vec3> indexIter;
-
-	std::vector<Geometry::HalfSimplex<2, GLuint>*> facets = manifold->getHalfSimplices2();
-
-	for (const auto& transform : transforms)
+	
+	unsigned int i = 0;
+	for (const auto& pos : positions)
 	{
-		for (const auto& facet : facets)
+		auto vert = *(manifold->fullSimplexMap0.find({ i })->second->halfSimplices.begin());
+
+		glm::vec3 normal;
+
+//		auto incident = vert->getAllHigherIncident<2>();
+		
+
+		auto currentEdge = vert->belongsTo;
+		auto currentFacet = currentEdge->belongsTo;
+		std::map<Geometry::HalfSimplex<2, GLuint>*, Geometry::HalfSimplex<2, GLuint>*> facetMap;
+
+		do
 		{
-			std::unordered_set<Geometry::TopologicalStruct*> facetVertices;
-			facet->getAllNthChildren(facetVertices, 0);
+			facetMap[currentFacet] = currentFacet;
 
-			std::vector<glm::vec3> facetVertexPositions;
-			for (const auto& facetVertex : facetVertices)
-			{
-				auto fV = reinterpret_cast<Geometry::HalfSimplex<0, GLuint>*>(facetVertex);
-				vec3 pos = vec3(transform * vec4(positions[fV->halfSimplexData], 1));
-				auto neighbours = fV->getNeighbours();
+			currentEdge = currentEdge->twin->previous;
+			currentFacet = currentEdge->belongsTo;
 
-				std::vector<glm::vec3> adjacencyLines;
-				for (const auto& neighbour : neighbours)
-				{
-					adjacencyLines.push_back(pos - vec3(transform * vec4(positions[neighbour.second->halfSimplexData], 1)));
-				}
+			auto fV1 = currentEdge->pointsTo;
+			auto fV2 = currentEdge->next->pointsTo;
+			auto fV3 = currentEdge->next->next->pointsTo;
+			normal += glm::cross(positions[fV2->halfSimplexData] - positions[fV1->halfSimplexData],
+				positions[fV3->halfSimplexData] - positions[fV2->halfSimplexData]);
 
-				glm::vec3 normal;
-				for (int i = 0; i < adjacencyLines.size(); ++i)
-				{
-					normal += cross(adjacencyLines[i], adjacencyLines[i % adjacencyLines.size()]);
-				}
-				
-				vertexMap[pos] = Graphics::Vertex(pos, normalize(normal));
-				facetVertexPositions.push_back(pos);
-			}
-			
-			// TODO: triangulate facetVertices and iterate through all the new facets inside this context
-			for(const auto& fVPos : facetVertexPositions)
-			{
-				indexIter.push_back(fVPos);
-			}
+		} while (facetMap[currentFacet] == nullptr);
+
+		normal = normalize(normal);
+
+		vertices.push_back(Graphics::Vertex(pos, normal));
+		++i;
+	}
+
+	auto facets = manifold->map2;
+
+	for (const auto& facet : facets)
+	{
+		std::unordered_set<Geometry::TopologicalStruct*> facetVerticesSet;
+		std::vector<Geometry::TopologicalStruct*> facetVerticesVec;
+		facet.second->getAllNthChildren(facetVerticesVec, facetVerticesSet, 0);
+
+		for (const auto& facetVertex : facetVerticesVec)
+		{
+			auto fV = reinterpret_cast<Geometry::HalfSimplex<0, GLuint>*>(facetVertex);
+			indices.push_back(fV->halfSimplexData);
 		}
-
-	}
-
-	std::unordered_map<glm::vec3, int> vertexIndexMap;
-	for (const auto& vertex : vertexMap)
-	{
-		vertices.push_back(vertex.second);
-		vertexIndexMap[vertex.second.position] = vertices.size() - 1;
-	}
-
-	for (const auto& index : indexIter)
-	{
-		indices.push_back(vertexIndexMap[index]);
+			
+		// TODO: triangulate facetVertices and iterate through all the new facets inside this context
+/*		for(const auto& fVPos : facetVertexPositions)
+		{
+			indexIter.push_back(fVPos);
+		}*/
 	}
 
 	auto meshObject = new Graphics::MeshObject(vertices, indices);
@@ -89,11 +90,7 @@ Graphics::DecoratedGraphicsObject* HalfSimplexRenderingUtils::getRenderableVolum
 
 	auto selectable = new Graphics::ExtendedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION");
 
-	vector<mat4> parentTransforms;
-
-	parentTransforms.push_back(scale(mat4(1.0f), vec3(1.001f)));
-
-	auto g = new Graphics::MatrixInstancedMeshObject<mat4, float>(selectable, parentTransforms, "TRANSFORM");
+	auto g = new Graphics::MatrixInstancedMeshObject<mat4, float>(selectable, transforms, "TRANSFORM");
 
 	return g;
 }
@@ -106,14 +103,14 @@ Graphics::DecoratedGraphicsObject* HalfSimplexRenderingUtils::getRenderableFacet
 	vector<vec3> centroids;
 	vector<glm::mat4> triangleTransforms;
 
-	std::vector<Geometry::HalfSimplex<2, GLuint>*> facets = manifold->getHalfSimplices2();
-	std::vector<Geometry::HalfSimplex<0, GLuint>*> verts = manifold->getHalfSimplices0();
+	auto facets = manifold->map2;
+	auto verts = manifold->map0;
 
 	vec3 volumeCentroid;
 
 	for (const auto& vertex : verts)
 	{
-		volumeCentroid += positions[vertex->halfSimplexData];
+		volumeCentroid += positions[vertex.second->halfSimplexData];
 	}
 
 	volumeCentroid /= (float)verts.size();
@@ -127,7 +124,7 @@ Graphics::DecoratedGraphicsObject* HalfSimplexRenderingUtils::getRenderableFacet
 		{
 			glm::vec3 facetCentroid;
 			std::vector<glm::vec3> vertices;
-			Geometry::HalfSimplex<1, GLuint>* currentEdge = facet->pointsTo;
+			Geometry::HalfSimplex<1, GLuint>* currentEdge = facet.second->pointsTo;
 			Geometry::HalfSimplex<1, GLuint>* firstEdge = currentEdge;
 			do
 			{
@@ -180,14 +177,14 @@ Graphics::DecoratedGraphicsObject* HalfSimplexRenderingUtils::getRenderableEdges
 	vector<vec3> centroids;
 	vector<GLbyte> warningC;
 
-	std::vector<Geometry::HalfSimplex<2, GLuint>*> facets = manifold->getHalfSimplices2();
-	std::vector<Geometry::HalfSimplex<0, GLuint>*> verts = manifold->getHalfSimplices0();
+	auto facets = manifold->map2;
+	auto verts = manifold->map0;
 
 	vec3 volumeCentroid;
 
 	for (const auto& vertex : verts)
 	{
-		volumeCentroid += positions[vertex->halfSimplexData];
+		volumeCentroid += positions[vertex.second->halfSimplexData];
 	}
 
 	volumeCentroid /= (float)verts.size();
@@ -199,21 +196,23 @@ Graphics::DecoratedGraphicsObject* HalfSimplexRenderingUtils::getRenderableEdges
 
 		for (const auto& facet : facets)
 		{
-			std::unordered_set<Geometry::TopologicalStruct*> facetVertices;
-			facet->getAllNthChildren(facetVertices, 0);
+			std::unordered_set<Geometry::TopologicalStruct*> facetVerticesSet;
+			std::vector<Geometry::TopologicalStruct*> facetVerticesVec;
+			facet.second->getAllNthChildren(facetVerticesVec, facetVerticesSet, 0);
 
 			glm::vec3 facetCentroid;
-			for (const auto& facetVertex : facetVertices)
+			for (const auto& facetVertex : facetVerticesVec)
 			{
 				auto fV = reinterpret_cast<Geometry::HalfSimplex<0, GLuint>*>(facetVertex);
 				facetCentroid += vec3(transform * vec4(positions[fV->halfSimplexData], 1));
 			}
 
-			facetCentroid /= facetVertices.size();
+			facetCentroid /= facetVerticesVec.size();
 
-			std::unordered_set<Geometry::TopologicalStruct*> facetEdges;
-			facet->getAllNthChildren(facetEdges, 1);
-			for (const auto& edge : facetEdges)
+			std::unordered_set<Geometry::TopologicalStruct*> facetEdgesSet;
+			std::vector<Geometry::TopologicalStruct*> facetEdgesVec;
+			facet.second->getAllNthChildren(facetEdgesVec, facetEdgesSet, 1);
+			for (const auto& edge : facetEdgesSet)
 			{
 				warningC.push_back(0);
 				transformC.push_back(getHalfEdgeTransform(reinterpret_cast<Geometry::HalfSimplex<1, GLuint>*>(edge),

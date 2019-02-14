@@ -25,21 +25,37 @@ void SurfaceViewContext::setupGeometries(void)
 	refMan = new ReferenceManager();
 	makeQuad();
 
-	auto m = new ImportedMeshObject("models\\filledChinchilla.obj");
+	auto meshObject = new ImportedMeshObject("models\\filledChinchilla.obj");
+
+/*	auto pickable = new ReferencedGraphicsObject<GLuint, GLuint>(refMan, meshObject, meshObject->indices.size() / 3, "INSTANCEID", 3);
+
+	vector<GLbyte> selectedC;
+
+	for (int i = 0; i < meshObject->indices.size(); i++)
+	{
+		selectedC.push_back(1);
+	}
+
+	auto selectable = new Graphics::ExtendedMeshObject<GLbyte, GLbyte>(pickable, selectedC, "SELECTION");
+
+	vector<mat4> parentTransforms;
+	parentTransforms.push_back(scale(mat4(1.0f), vec3(10.0f)));
+
+	geometries["VOLUME"] = new Graphics::MatrixInstancedMeshObject<mat4, float>(selectable, parentTransforms, "TRANSFORM");*/
 //	auto m = new Cylinder(10);//Polyhedron(10, vec3(), vec3(1.0f));
-//	auto m = new Tetrahedron();
+//	auto meshObject = new Tetrahedron();
 
 	vector<mat4> transform;
 
 	vec3 pos = vec3(0, 0, 0);
 	transform.push_back(translate(mat4(1.0f), pos) * scale(mat4(1.0f), vec3(10.0f)));
 
-	Geometry::Manifold2<GLuint>* manifold = new Geometry::Manifold2<GLuint>(m->indices);
+	Geometry::Manifold2<GLuint>* manifold = new Geometry::Manifold2<GLuint>(meshObject->indices);
 
 	vector<vec3> positions;
-	for (int i = 0; i < m->vertices.size(); i++)
+	for (int i = 0; i < meshObject->vertices.size(); i++)
 	{
-		positions.push_back(m->vertices[i].position);
+		positions.push_back(meshObject->vertices[i].position);
 	}
 
 	setupRenderableVertices(positions, transform);

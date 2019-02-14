@@ -14,12 +14,13 @@ public:
 	GLuint FBO = 0;
 	GLuint texture;
 	GLuint RBO;
+	GLenum type;
 	int attachmentNumber = 0;
 	int width;
 	int height;
 	DecoratedFrameBuffer() {};
-	DecoratedFrameBuffer(int width, int height, string signature);
-	DecoratedFrameBuffer(DecoratedFrameBuffer* child, int width, int height, string signature);
+	DecoratedFrameBuffer(int width, int height, string signature, GLenum type);
+	DecoratedFrameBuffer(DecoratedFrameBuffer* child, int width, int height, string signature, GLenum type);
 	~DecoratedFrameBuffer() {};
 
 	void drawBuffers(void);
@@ -55,6 +56,16 @@ public:
 	ImageFrameBuffer(int width, int height, string signature);
 	ImageFrameBuffer(DecoratedFrameBuffer* child, int width, int height, string signature);
 	~ImageFrameBuffer() {};
+};
+
+class MSImageFrameBuffer : public DecoratedFrameBuffer
+{
+protected:
+	virtual void bindTexture(void);
+public:
+	MSImageFrameBuffer(int width, int height, string signature);
+	MSImageFrameBuffer(DecoratedFrameBuffer* child, int width, int height, string signature);
+	~MSImageFrameBuffer() {};
 };
 
 class PickingBuffer : public DecoratedFrameBuffer
